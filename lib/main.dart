@@ -9,7 +9,7 @@ void main() async {
     options: const FirebaseOptions(
       apiKey: "यहाँ_apiKey_राख्नुहोस्",
       authDomain: "यहाँ_authDomain_राख्नुहोस्",
-      projectId: "thalo-cd9f4"
+      projectId: "thalo-cd9f4",
       storageBucket: "thalo-cd9f4.firebasestorage.app",
       messagingSenderId: "1026967924822",
       appId: "1:1026967924822:web:cc091378a54b7f43e6",
