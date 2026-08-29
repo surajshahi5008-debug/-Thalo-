@@ -245,7 +245,7 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const ThaloNavigationScreen()),
+        MaterialPageRoute(builder: (context) => ThaloNavigationScreen()),
       );
     } catch (e) {
       if (!mounted) return;
