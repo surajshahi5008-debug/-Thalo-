@@ -18,6 +18,14 @@ workflows:
           cp google-services.json android/app/google-services.json
 
           python3 - <<'PYEOF'
+          import json
+
+          # Read the real package name from google-services.json
+          with open("android/app/google-services.json") as f:
+              data = json.load(f)
+          package_name = data["client"][0]["client_info"]["android_client_info"]["package_name"]
+          print("Using package name:", package_name)
+
           # 1. Register the google-services plugin in settings.gradle.kts
           settings_path = "android/settings.gradle.kts"
           try:
@@ -34,23 +42,24 @@ workflows:
           except FileNotFoundError:
               pass
 
-          # 2. Apply the plugin in app-level build.gradle.kts
+          # 2. Apply the plugin + fix applicationId/namespace in app-level build.gradle.kts
           app_gradle_kts = "android/app/build.gradle.kts"
-          app_gradle_groovy = "android/app/build.gradle"
-          try:
-              with open(app_gradle_kts) as f:
-                  content = f.read()
-              if 'id("com.google.gms.google-services")' not in content:
-                  content = content.replace(
-                      'plugins {',
-                      'plugins {\n    id("com.google.gms.google-services")',
-                      1,
-                  )
-                  with open(app_gradle_kts, "w") as f:
-                      f.write(content)
-          except FileNotFoundError:
-              with open(app_gradle_groovy, "a") as f:
-                  f.write("\napply plugin: 'com.google.gms.google-services'\n")
+          with open(app_gradle_kts) as f:
+              content = f.read()
+
+          if 'id("com.google.gms.google-services")' not in content:
+              content = content.replace(
+                  'plugins {',
+                  'plugins {\n    id("com.google.gms.google-services")',
+                  1,
+              )
+
+          import re
+          content = re.sub(r'applicationId\s*=\s*"[^"]*"', f'applicationId = "{package_name}"', content)
+          content = re.sub(r'namespace\s*=\s*"[^"]*"', f'namespace = "{package_name}"', content)
+
+          with open(app_gradle_kts, "w") as f:
+              f.write(content)
           PYEOF
 
       - name: Build Thalo APK
