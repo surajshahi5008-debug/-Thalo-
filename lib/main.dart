@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+  import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -12,7 +12,7 @@ void main() async {
   }
 
   runApp(const MaterialApp(
-    home: ThaloLoginScreen(), // मुख्य सुरुवाती स्क्रिन लगइन बनाइयो
+    home: ThaloLoginScreen(),
     debugShowCheckedModeBanner: false,
   ));
 }
@@ -536,4 +536,55 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                         child: Text(labels['loginLink']!,
                             style: const TextStyle(
                                 color: Colors.black87,
-                                fontWeight: FontWeigh
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.language, color: Colors.grey, size: 20),
+                      const SizedBox(width: 8),
+                      DropdownButton<String>(
+                        value: _selectedLang,
+                        underline: const SizedBox(),
+                        items: _languages.map((String lang) {
+                          return DropdownMenuItem<String>(
+                            value: lang,
+                            child: Text(lang,
+                                style: const TextStyle(fontSize: 14)),
+                          );
+                        }).toList(),
+                        onChanged: (String? newLang) {
+                          if (newLang != null) {
+                            setState(() => _selectedLang = newLang);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ================= ३. लगइन पछिको मुख्य होम स्क्रिन =================
+class ThaloNavigationScreen extends StatelessWidget {
+  const ThaloNavigationScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Thalo Home')),
+      body: const Center(child: Text('Welcome to Thalo!')),
+    );
+  }
+}
+        
