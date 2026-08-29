@@ -12,7 +12,7 @@ class AuthService {
       password: password,
     );
   }
-
+//test
   Future<void> sendPasswordReset(String email) async {
     await _auth.sendPasswordResetEmail(email: email);
   }
