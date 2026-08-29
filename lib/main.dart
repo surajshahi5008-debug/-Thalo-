@@ -1,3 +1,21 @@
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: const ThaloLoginScreen(),
+    );
+  }
+}
+
 class ThaloLoginScreen extends StatefulWidget {
   const ThaloLoginScreen({super.key});
 
@@ -266,9 +284,6 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
                   ),
                   const SizedBox(height: 10),
 
-                  // Language selector — constrained width + ellipsis so long
-                  // names (e.g. "Bhojpuri (भोजपुरी)") don't overflow on
-                  // narrow screens.
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
