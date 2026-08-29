@@ -12,6 +12,23 @@ workflows:
           set -e
           flutter create --platforms=android --org com.thalo.app .
 
+      - name: Configure Firebase for Android
+        script: |
+          set -e
+          cp google-services.json android/app/google-services.json
+
+          if [ -f android/build.gradle.kts ]; then
+            sed -i "s/dependencies {/dependencies {\n        classpath(\"com.google.gms:google-services:4.4.2\")/" android/build.gradle.kts
+          else
+            sed -i "s/dependencies {/dependencies {\n        classpath 'com.google.gms:google-services:4.4.2'/" android/build.gradle
+          fi
+
+          if [ -f android/app/build.gradle.kts ]; then
+            echo 'apply(plugin = "com.google.gms.google-services")' >> android/app/build.gradle.kts
+          else
+            echo "apply plugin: 'com.google.gms.google-services'" >> android/app/build.gradle
+          fi
+
       - name: Build Thalo APK
         script: |
           set -e
