@@ -5,14 +5,17 @@ workflows:
     environment:
       flutter: stable
     scripts:
-      - name: Create Flutter platform files
+      - name: Setup and build
         script: |
-          flutter create --platforms=android .
-      - name: Get Flutter packages
-        script: |
+          set -e
+          echo "Current directory:"
+          pwd
+          echo "Files here:"
+          ls -la
+          flutter create --platforms=android --org com.thalo.app .
+          echo "After flutter create:"
+          ls -la
           flutter pub get
-      - name: Build APK
-        script: |
           flutter build apk --release
     artifacts:
       - build/**/outputs/**/*.apk
