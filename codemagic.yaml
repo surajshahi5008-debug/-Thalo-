@@ -8,13 +8,10 @@ workflows:
       - name: Setup and build
         script: |
           set -e
-          echo "Current directory:"
-          pwd
-          echo "Files here:"
-          ls -la
           flutter create --platforms=android --org com.thalo.app .
-          echo "After flutter create:"
-          ls -la
+          cp google-services.json android/app/google-services.json
+          sed -i '/dependencies {/a\        classpath "com.google.gms:google-services:4.4.2"' android/build.gradle
+          echo "apply plugin: 'com.google.gms.google-services'" >> android/app/build.gradle
           flutter pub get
           flutter build apk --release
     artifacts:
