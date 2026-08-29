@@ -409,5 +409,189 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
                   const Directionality(
                     textDirection: TextDirection.ltr,
                     child: Text('Thalo', textAlign: TextAlign.center, style: TextStyle(fontSize: 42, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                  ),const SizedBox(height: 5),
+                  Text(labels['title']!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+                  const SizedBox(height: 35),
+
+                  TextFormField(
+                    controller: _emailController,
+                    textDirection: dir,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: InputDecoration(
+                      hintText: labels['email']!, filled: true, fillColor: const Color(0xfff5f6f8),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      prefixIcon: const Icon(Icons.mail_outline, color: Colors.grey),
+                    ),
+                    validator: (value) => (value == null || !value.contains('@')) ? labels['invalidEmail'] : null,
                   ),
-      
+                  const SizedBox(height: 16),
+
+                  TextFormField(
+                    controller: _passwordController,
+                    textDirection: dir,
+                    obscureText: _obscurePassword,
+                    decoration: InputDecoration(
+                      hintText: labels['pass']!, filled: true, fillColor: const Color(0xfff5f6f8),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
+                      suffixIcon: IconButton(
+                        icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: Colors.grey),
+                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                      ),
+                    ),
+                    validator: (value) => (value == null || value.length < 6) ? labels['invalidPass'] : null,
+                  ),
+                  const SizedBox(height: 10),
+
+                  Align(
+                    alignment: dir == TextDirection.rtl ? Alignment.centerLeft : Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: _handleForgotPassword,
+                      child: Text(labels['forgot']!, style: const TextStyle(color: Colors.black54, fontSize: 13)),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+
+                  ElevatedButton(
+                    onPressed: _isLoading ? null : _handleLogin,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black87,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Text(
+                            labels['btn']!,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        labels['noAccount']!,
+                        style: const TextStyle(color: Colors.grey, fontSize: 13),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(
+                          labels['registerLink']!,
+                          style: const TextStyle(
+                            color: Colors.black87,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.language, color: Colors.grey, size: 20),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xfff5f6f8),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _selectedLang,
+                            style: const TextStyle(
+                              color: Colors.black87,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            onChanged: (val) =>
+                                setState(() => _selectedLang = val!),
+                            items: _languages
+                                .map((v) => DropdownMenuItem<String>(
+                                      value: v,
+                                      child: Text(v),
+                                    ))
+                                .toList(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class ThaloNavigationScreen extends StatefulWidget {
+  const ThaloNavigationScreen({super.key});
+
+  @override
+  State<ThaloNavigationScreen> createState() => _ThaloNavigationScreenState();
+}
+
+class _ThaloNavigationScreenState extends State<ThaloNavigationScreen> {
+  int _currentIndex = 0;
+
+  final List<Widget> _pages = [
+    const Center(child: Text('🏠 Thalo Home Screen', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 16))),
+    const Center(child: Text('🔍 Search Screen', style: TextStyle(color: Colors.grey, fontSize: 16))),
+    const Center(child: Text('📊 Analytics Screen', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 16))),
+    const Center(child: Text('👤 Profile Screen', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 16))),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: IndexedStack(index: _currentIndex, children: _pages),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.black87,
+        shape: const CircleBorder(),
+        onPressed: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Chat Room Button Clicked!')),
+          );
+        },
+        child: const Icon(Icons.chat_bubble_outline, color: Colors.white),
+      ),
+      bottomNavigationBar: BottomAppBar(
+        shape: const CircularNotchedRectangle(),
+        notchMargin: 8.0,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            IconButton(icon: const Icon(Icons.home), onPressed: () => setState(() => _currentIndex = 0)),
+            IconButton(icon: const Icon(Icons.search), onPressed: () => setState(() => _currentIndex = 1)),
+            const SizedBox(width: 40),
+            IconButton(icon: const Icon(Icons.bar_chart), onPressed: () => setState(() => _currentIndex = 2)),
+            IconButton(icon: const Icon(Icons.person), onPressed: () => setState(() => _currentIndex = 3)),
+          ],
+        ),
+      ),
+    );
+  }
+}
