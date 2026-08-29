@@ -17,17 +17,37 @@ workflows:
           set -e
           cp google-services.json android/app/google-services.json
 
-          if [ -f android/build.gradle.kts ]; then
-            sed -i "s/dependencies {/dependencies {\n        classpath(\"com.google.gms:google-services:4.4.2\")/" android/build.gradle.kts
-          else
-            sed -i "s/dependencies {/dependencies {\n        classpath 'com.google.gms:google-services:4.4.2'/" android/build.gradle
-          fi
+          python3 - <<'PYEOF'
+          # 1. Add google-services classpath to project-level build.gradle(.kts)
+          for path in ["android/build.gradle.kts", "android/build.gradle"]:
+              try:
+                  with open(path) as f:
+                      content = f.read()
+              except FileNotFoundError:
+                  continue
+              if "google-services" in content:
+                  break
+              if path.endswith(".kts"):
+                  addition = '        classpath("com.google.gms:google-services:4.4.2")\n'
+              else:
+                  addition = "        classpath 'com.google.gms:google-services:4.4.2'\n"
+              content = content.replace("dependencies {", "dependencies {\n" + addition, 1)
+              with open(path, "w") as f:
+                  f.write(content)
+              break
 
-          if [ -f android/app/build.gradle.kts ]; then
-            echo 'apply(plugin = "com.google.gms.google-services")' >> android/app/build.gradle.kts
-          else
-            echo "apply plugin: 'com.google.gms.google-services'" >> android/app/build.gradle
-          fi
+          # 2. Apply the plugin in app-level build.gradle(.kts)
+          for path in ["android/app/build.gradle.kts", "android/app/build.gradle"]:
+              try:
+                  with open(path, "a") as f:
+                      if path.endswith(".kts"):
+                          f.write('\napply(plugin = "com.google.gms.google-services")\n')
+                      else:
+                          f.write("\napply plugin: 'com.google.gms.google-services'\n")
+              except FileNotFoundError:
+                  continue
+              break
+          PYEOF
 
       - name: Build Thalo APK
         script: |
