@@ -18,35 +18,39 @@ workflows:
           cp google-services.json android/app/google-services.json
 
           python3 - <<'PYEOF'
-          # 1. Add google-services classpath to project-level build.gradle(.kts)
-          for path in ["android/build.gradle.kts", "android/build.gradle"]:
-              try:
-                  with open(path) as f:
-                      content = f.read()
-              except FileNotFoundError:
-                  continue
-              if "google-services" in content:
-                  break
-              if path.endswith(".kts"):
-                  addition = '        classpath("com.google.gms:google-services:4.4.2")\n'
-              else:
-                  addition = "        classpath 'com.google.gms:google-services:4.4.2'\n"
-              content = content.replace("dependencies {", "dependencies {\n" + addition, 1)
-              with open(path, "w") as f:
-                  f.write(content)
-              break
+          # 1. Register the google-services plugin in settings.gradle.kts
+          settings_path = "android/settings.gradle.kts"
+          try:
+              with open(settings_path) as f:
+                  content = f.read()
+              if "com.google.gms.google-services" not in content:
+                  content = content.replace(
+                      'id("com.android.application") version',
+                      'id("com.google.gms.google-services") version "4.4.2" apply false\n    id("com.android.application") version',
+                      1,
+                  )
+                  with open(settings_path, "w") as f:
+                      f.write(content)
+          except FileNotFoundError:
+              pass
 
-          # 2. Apply the plugin in app-level build.gradle(.kts)
-          for path in ["android/app/build.gradle.kts", "android/app/build.gradle"]:
-              try:
-                  with open(path, "a") as f:
-                      if path.endswith(".kts"):
-                          f.write('\napply(plugin = "com.google.gms.google-services")\n')
-                      else:
-                          f.write("\napply plugin: 'com.google.gms.google-services'\n")
-              except FileNotFoundError:
-                  continue
-              break
+          # 2. Apply the plugin in app-level build.gradle.kts
+          app_gradle_kts = "android/app/build.gradle.kts"
+          app_gradle_groovy = "android/app/build.gradle"
+          try:
+              with open(app_gradle_kts) as f:
+                  content = f.read()
+              if 'id("com.google.gms.google-services")' not in content:
+                  content = content.replace(
+                      'plugins {',
+                      'plugins {\n    id("com.google.gms.google-services")',
+                      1,
+                  )
+                  with open(app_gradle_kts, "w") as f:
+                      f.write(content)
+          except FileNotFoundError:
+              with open(app_gradle_groovy, "a") as f:
+                  f.write("\napply plugin: 'com.google.gms.google-services'\n")
           PYEOF
 
       - name: Build Thalo APK
