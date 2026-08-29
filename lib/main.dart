@@ -293,23 +293,40 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: Colors.grey, fontSize: 14)),
                   const SizedBox(height: 35),
-                  TextFormField(
-                    controller: _emailController,
-                    textDirection: dir,
-                    decoration: InputDecoration(
-                        hintText: labels['email']!,
-                        filled: true,
-                        fillColor: const Color(0xfff5f6f8),
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none),
-                        prefixIcon: const Icon(Icons.person_outline,
-                            color: Colors.grey)),
-                    validator: (value) =>
-                        (value == null || value.isEmpty)
-                            ? 'User ID (इमेल वा फोन) हाल्नुहोस्'
-                            : null,
-                  ),
+                  InternationalPhoneNumberInput(
+  onInputChanged: (PhoneNumber number) {
+    // यो कोडले फोन नम्बरको पूरा format (जस्तै +977... वा +91...) लिन्छ
+    _emailController.text = number.phoneNumber ?? '';
+  },
+  selectorConfig: const SelectorConfig(
+    selectorType: PhoneInputSelectorType.BOTTOM_SHEET,
+    showFlags: true,
+    setSelectorButtonAsPrefixIcon: true,
+    leadingPadding: 12,
+  ),
+  ignoreBlank: false,
+  autoValidateMode: AutovalidateMode.disabled,
+  initialValue: PhoneNumber(isoCode: 'NP'), // सुरुमा नेपालको झण्डा देखाउने
+  textFieldController: _emailController,
+  formatInput: true,
+  keyboardType: TextInputType.text,
+  inputDecoration: InputDecoration(
+    hintText: labels['email_phone_hint'] ?? 'इमेल वा मोबाइल नम्बर',
+    filled: true,
+    fillColor: const Color(0xfff5f6f8),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide.none,
+    ),
+  ),
+  validator: (value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'कृपया इमेल वा मोबाइल नम्बर हाल्नुहोस्';
+    }
+    return null;
+  },
+),
+
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _passwordController,
