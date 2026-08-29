@@ -16,4 +16,15 @@ class AuthService {
   Future<void> sendPasswordReset(String email) async {
     await _auth.sendPasswordResetEmail(email: email);
   }
+
+  Future<void> verifyOTP({
+    required String verificationId,
+    required String smsCode,
+  }) async {
+    PhoneAuthCredential credential = PhoneAuthProvider.credential(
+      verificationId: verificationId,
+      smsCode: smsCode,
+    );
+    await _auth.signInWithCredential(credential);
+  }
 }
