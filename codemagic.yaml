@@ -10,7 +10,7 @@ workflows:
       - name: Create Android project
         script: |
           set -e
-          flutter create --platforms=android --org com.thalo.app .
+          flutter create --platforms=android --org com.thalo --project-name app .
 
       - name: Configure Firebase for Android
         script: |
