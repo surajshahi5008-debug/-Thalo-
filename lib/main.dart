@@ -5,16 +5,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: const FirebaseOptions(
-      apiKey: "AIzaSyAQHZYtbxhLgcSyKgCTxPJlgr-8WX4UG",
-      authDomain: "thalo-cd9f4.firebaseapp.com", // अद्यावधिक गरिएको authDomain
-      projectId: "thalo-cd9f4",
-      storageBucket: "thalo-cd9f4.firebasestorage.app",
-      messagingSenderId: "1026967924822",
-      appId: "1:1026967924822:web:cc091378a54b7f43e6",
-    ),
-  );
+  // Firebase initialisation लाई try-catch मा राख्नाले Crash हुन पाउँदैन
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    debugPrint("Firebase init error: $e");
+  }
 
   runApp(const MaterialApp(
     home: ThaloRegisterScreen(),
@@ -81,7 +77,7 @@ class AuthService {
       case 'network-request-failed':
         return 'इन्टरनेट जडान जाँच गर्नुहोस्।';
       default:
-        return 'त्रुटि भयो: ${e.message}';
+        return 'इमेल वा पासवर्ड मिलेन।';
     }
   }
 }
@@ -352,28 +348,28 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
   }
 }
 
-// खाली रहेका Screen Placeholder हरू थपिएका छन् ताकि Build Error नआओस्:
-
+// navigation screen setup
 class ThaloNavigationScreen extends StatelessWidget {
   const ThaloNavigationScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Thalo Home')),
-      body: const Center(child: Text('Welcome to Thalo!')),
+      appBar: AppBar(title: const Text('Thalo Main App')),
+      body: const Center(child: Text('Welcome to Thalo App!')),
     );
   }
 }
 
+// login screen setup
 class ThaloLoginScreen extends StatelessWidget {
   const ThaloLoginScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Login')),
-      body: const Center(child: Text('Login Screen')),
+      appBar: AppBar(title: const Text('Thalo Login')),
+      body: const Center(child: Text('Login Page')),
     );
   }
 }
