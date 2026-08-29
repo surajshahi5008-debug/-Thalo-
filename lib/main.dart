@@ -583,13 +583,25 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
             onPressed: () => Navigator.pop(context),
             child: const Text("रद्द गर्नुहोस्"),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.black87),
-            onPressed: () async {
-              if (_otpController.text.length < 6) return;
-              Navigator.pop(context);
-              setState(() => _isLoading = true);
-              try {
-                await _authService.verifyOTPAndCreateAccount(
-                  verificationId: verificationId,
-                  smsCode: _otpController.tex                       
+                 ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.blue, // तपाईंको भएको रङ्ग राख्न सक्नुहुन्छ
+        ),
+        onPressed: () async {
+          if (_otpController.text.length < 6) return;
+          Navigator.pop(context);
+          setState(() => _isLoading = true);
+          try {
+            // तपाईंको बाँकी कोड यहाँ छ
+            await _authService.verifyOTP(
+              verificationId: verificationId,
+              smsCode: _otpController.text,
+            );
+          } catch (e) {
+            // एरर ह्यान्डलिङ
+            setState(() => _isLoading = false);
+          }
+        },
+        child: const Text("प्रमाणित गर्नुहोस्"),
+      ),
+                      
