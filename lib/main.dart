@@ -12,7 +12,7 @@ void main() async {
       projectId: "thalo-cd9f4"
       storageBucket: "thalo-cd9f4.firebasestorage.app"
       messagingSenderId: "1026967924822"
-      appId: "1:1026967924822:web:cc091378a54b7f43e6"
+      appId: "1:1026967924822:web:cc091378a54b7f43e6",
     ),
   );
 
