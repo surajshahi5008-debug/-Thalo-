@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // await Firebase.initializeApp(); // फायरबेस इनिसिएलाइज गर्न आवश्यक भए अनकमेन्ट गर्नुहोस्
+  
+  // फायरबेस सुरक्षित रूपमा इनिसिएलाइज गर्न यो प्रयोग गर्नुहोस्:
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    debugPrint("Firebase initialization error: $e");
+  }
+
   runApp(const MyApp());
 }
 
@@ -16,7 +24,10 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Thalo',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(primarySwatch: Colors.blue),
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        scaffoldBackgroundColor: Colors.white, // ग्रे स्क्रिन नआओस् भनेर सेतो ब्याकग्राउन्ड
+      ),
       home: const ThaloLoginScreen(),
     );
   }
@@ -86,32 +97,6 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
   final _authService = AuthService();
   bool _obscurePassword = true;
   bool _isLoading = false;
-  String _selectedLang = 'नेपाली';
-
-  final List<String> _languages = ['नेपाली', 'हिन्दी', 'English', 'Urdu'];
-
-  Map<String, String> _getLoginLabels(String lang) {
-    switch (lang) {
-      case 'English':
-        return {
-          'title': 'Log in to your account',
-          'email': 'Email Address',
-          'pass': 'Password',
-          'btn': 'Log In',
-          'noAccount': "Don't have an account?",
-          'signUpLink': 'Sign Up'
-        };
-      default:
-        return {
-          'title': 'आफ्नो खातामा लगइन गर्नुहोस्',
-          'email': 'इमेल ठेगाना',
-          'pass': 'पासवर्ड',
-          'btn': 'लगइन गर्नुहोस्',
-          'noAccount': 'खाता छैन?',
-          'signUpLink': 'साइन अप गर्नुहोस्'
-        };
-    }
-  }
 
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
@@ -145,8 +130,6 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final labels = _getLoginLabels(_selectedLang);
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
@@ -158,18 +141,22 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text('Thalo',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 42, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Thalo',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 42, fontWeight: FontWeight.bold, color: Colors.black87),
+                ),
                 const SizedBox(height: 5),
-                Text(labels['title']!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.grey, fontSize: 14)),
+                const Text(
+                  'आफ्नो खातामा लगइन गर्नुहोस्',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                ),
                 const SizedBox(height: 35),
                 TextFormField(
                   controller: _emailController,
                   decoration: InputDecoration(
-                    hintText: labels['email'],
+                    hintText: 'इमेल ठेगाना',
                     filled: true,
                     fillColor: const Color(0xfff5f6f8),
                     border: OutlineInputBorder(
@@ -185,7 +172,7 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
                   controller: _passwordController,
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
-                    hintText: labels['pass'],
+                    hintText: 'पासवर्ड',
                     filled: true,
                     fillColor: const Color(0xfff5f6f8),
                     border: OutlineInputBorder(
@@ -216,20 +203,24 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : Text(labels['btn']!, style: const TextStyle(color: Colors.white, fontSize: 16)),
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text('लगइन गर्नुहोस्', style: TextStyle(color: Colors.white, fontSize: 16)),
                 ),
                 const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(labels['noAccount']!, style: const TextStyle(color: Colors.grey)),
+                    const Text('खाता छैन?', style: TextStyle(color: Colors.grey)),
                     TextButton(
                       onPressed: () => Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => const ThaloRegisterScreen()),
                       ),
-                      child: Text(labels['signUpLink']!, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+                      child: const Text('साइन अप गर्नुहोस्', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
@@ -270,7 +261,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
     );
     if (picked != null) {
       setState(() {
-        _dobController.text = "${picked.year}-${picked.month}-${picked.day}";
+        _dobController.text = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
       });
     }
   }
@@ -313,6 +304,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      appBarometer: AppBar(backgroundColor: Colors.white, elevation: 0, iconTheme: const IconThemeData(color: Colors.black)),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -322,8 +314,8 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text('Thalo Register', textAlign: TextAlign.center, style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 20),
+                const Text('थलो खाता बनाउनुहोस्', textAlign: TextAlign.center, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black87)),
+                const SizedBox(height: 25),
                 TextFormField(
                   controller: _nameController,
                   decoration: InputDecoration(
@@ -353,7 +345,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                 TextFormField(
                   controller: _emailController,
                   decoration: InputDecoration(
-                    hintText: 'इमेल',
+                    hintText: 'इमेल ठेगाना',
                     filled: true,
                     fillColor: const Color(0xfff5f6f8),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
@@ -391,17 +383,16 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
                       : const Text('साइन अप गर्नुहोस्', style: TextStyle(color: Colors.white, fontSize: 16)),
-                ),
-                const SizedBox(height: 20),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('पहिले नै खाता छ? लगइन गर्नुहोस्', style: TextStyle(color: Colors.black87)),
                 ),
               ],
             ),
-         ),
+          ),
         ),
       ),
     );
