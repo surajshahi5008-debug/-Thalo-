@@ -127,7 +127,7 @@ String getLocalizedError(String errorCode, String lang) {
       'English': 'Invalid email or password.',
       'नेपाली': 'इमेल वा पासवर्ड मिलेन।',
       'हिन्दी': 'अमान्य ईमेल या पासवर्ड।',
-      'Urdu': 'غلط ای میل یا پاس ورڈ।',
+      'Urdu': 'غلط ای میل یا پاس ورڈ۔',
     },
     'email-already-in-use': {
       'English': 'This email is already registered.',
@@ -188,7 +188,7 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
     try {
       await AuthService().login(email: _emailController.text, password: _passwordController.text);
       if (!mounted) return;
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ThaloNavigationScreen()));
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ThaloNavigationScreen()));
     } catch (e) {
       if (!mounted) return;
       String message = getLocalizedError(e.toString(), _lang);
@@ -404,7 +404,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
         password: _passC.text,
       );
       if (!mounted) return;
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ThaloNavigationScreen()));
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ThaloNavigationScreen()));
     } catch (e) {
       if (!mounted) return;
       String message = getLocalizedError(e.toString(), _lang);
@@ -487,4 +487,4 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                         ElevatedButton(
                           onPressed: _goToStep2,
                           style: ElevatedButton.styleFrom(
-                            backgroundColo
+                            ba
