@@ -6,7 +6,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // फायरबेस सुरक्षित रूपमा इनिसिएलाइज गर्न यो प्रयोग गर्नुहोस्:
   try {
     await Firebase.initializeApp();
   } catch (e) {
@@ -26,7 +25,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,
-        scaffoldBackgroundColor: Colors.white, // ग्रे स्क्रिन नआओस् भनेर सेतो ब्याकग्राउन्ड
+        scaffoldBackgroundColor: Colors.white,
       ),
       home: const ThaloLoginScreen(),
     );
@@ -304,7 +303,11 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBarometer: AppBar(backgroundColor: Colors.white, elevation: 0, iconTheme: const IconThemeData(color: Colors.black)),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.black),
+      ),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
