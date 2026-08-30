@@ -81,46 +81,6 @@ class AuthService {
       throw e.toString();
     }
   }
-
-  Future<void> sendPhoneOTP({
-    required String phoneNumber,
-    required Function(String) onCodeSent,
-    required Function(String) onError,
-  }) async {
-    try {
-      await _auth.verifyPhoneNumber(
-        phoneNumber: phoneNumber.trim(),
-        verificationCompleted: (PhoneAuthCredential credential) async {
-          await _auth.signInWithCredential(credential);
-        },
-        verificationFailed: (FirebaseAuthException e) {
-          onError(e.message ?? 'प्रमाणीकरण असफल भयो');
-        },
-        codeSent: (String verificationId, int? resendToken) {
-          onCodeSent(verificationId);
-        },
-        codeAutoRetrievalTimeout: (String verificationId) {},
-      );
-    } catch (e) {
-      onError(e.toString());
-    }
-  }
-
-  Future<User?> verifyOTP({
-    required String verificationId,
-    required String smsCode,
-  }) async {
-    try {
-      PhoneAuthCredential credential = PhoneAuthProvider.credential(
-        verificationId: verificationId,
-        smsCode: smsCode.trim(),
-      );
-      UserCredential userCredential = await _auth.signInWithCredential(credential);
-      return userCredential.user;
-    } catch (e) {
-      throw e.toString();
-    }
-  }
 }
 
 // ================= २. ThaloLoginScreen (लगइन स्क्रिन) =================
@@ -201,13 +161,8 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      String msg = e.toString().contains('invalid-credential') ||
-              e.toString().contains('wrong-password') ||
-              e.toString().contains('user-not-found')
-          ? 'इमेल वा पासवर्ड मिलेन।'
-          : 'लगइन गर्न सकिएन। फेरि प्रयास गर्नुहोस्।';
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg)),
+        const SnackBar(content: Text('इमेल वा पासवर्ड मिलेन वा लगइन असफल भयो।')),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -264,12 +219,9 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
                       ),
                       prefixIcon: const Icon(Icons.mail_outline, color: Colors.grey),
                     ),
-                    validator: (value) {
-                      if (value == null || !value.contains('@')) {
-                        return 'मान्य इमेल हाल्नुहोस्';
-                      }
-                      return null;
-                    },
+                    validator: (value) => (value == null || !value.contains('@'))
+                        ? 'मान्य इमेल हाल्नुहोस्'
+                        : null,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
@@ -283,16 +235,12 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide.none),
-                      prefixIcon:
-                          const Icon(Icons.lock_outline, color: Colors.grey),
+                      prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
                       suffixIcon: IconButton(
                         icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_off
-                                : Icons.visibility,
+                            _obscurePassword ? Icons.visibility_off : Icons.visibility,
                             color: Colors.grey),
-                        onPressed: () => setState(
-                            () => _obscurePassword = !_obscurePassword),
+                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                       ),
                     ),
                     validator: (value) => (value == null || value.isEmpty)
@@ -324,13 +272,11 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(labels['noAccount']!,
-                          style: const TextStyle(
-                              color: Colors.grey, fontSize: 13)),
+                          style: const TextStyle(color: Colors.grey, fontSize: 13)),
                       TextButton(
                         onPressed: () => Navigator.push(
                           context,
-                          MaterialPageRoute(
-                              builder: (context) => const ThaloRegisterScreen()),
+                          MaterialPageRoute(builder: (context) => const ThaloRegisterScreen()),
                         ),
                         child: Text(labels['signUpLink']!,
                             style: const TextStyle(
@@ -352,8 +298,7 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
                         items: _languages.map((String lang) {
                           return DropdownMenuItem<String>(
                             value: lang,
-                            child: Text(lang,
-                                style: const TextStyle(fontSize: 14)),
+                            child: Text(lang, style: const TextStyle(fontSize: 14)),
                           );
                         }).toList(),
                         onChanged: (String? newLang) {
@@ -491,13 +436,8 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      String msg = e.toString().contains('email-already-in-use')
-          ? 'यो इमेल पहिले नै प्रयोगमा छ।'
-          : e.toString().contains('weak-password')
-              ? 'पासवर्ड धेरै कमजोर छ।'
-              : 'खाता बनाउन सकिएन। फेरि प्रयास गर्नुहोस्।';
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg)),
+        const SnackBar(content: Text('खाता बनाउन सकिएन। फेरि प्रयास गर्नुहोस्।')),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -572,4 +512,44 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
                       ),
-                      prefixIcon: const Icon(Icons.cake_outlined
+                      prefixIcon: const Icon(Icons.cake_outlined, color: Colors.grey),
+                      helperText: _calculatedAgeText,
+                    ),
+                    validator: (value) => (value == null || value.isEmpty)
+                        ? 'जन्ममिति छान्नुहोस्'
+                        : null,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _emailController,
+                    textDirection: dir,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: InputDecoration(
+                      hintText: labels['email'],
+                      filled: true,
+                      fillColor: const Color(0xfff5f6f8),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      prefixIcon: const Icon(Icons.mail_outline, color: Colors.grey),
+                    ),
+                    validator: (value) => (value == null || !value.contains('@'))
+                        ? 'मान्य इमेल हाल्नुहोस्'
+                        : null,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _passwordController,
+                    textDirection: dir,
+                    obscureText: _obscurePassword,
+                    decoration: InputDecoration(
+                      hintText: labels['pass'],
+                      filled: true,
+                      fillColor: const Color(0xfff5f6f8),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none),
+                      prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
+                      suffixIcon: IconButton(
+               
