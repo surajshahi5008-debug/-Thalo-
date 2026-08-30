@@ -718,3 +718,26 @@ class _ThaloNavigationScreenState extends State<ThaloNavigationScreen> {
     );
   }
 }
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // यदि तपाईंले Firebase Initialize गर्नुभएको छैन भने यो लाइन राख्नुपर्छ:
+  // await Firebase.initializeApp(); 
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Thalo',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      // एप खुल्दा सबैभन्दा पहिले कुन स्क्रिन देखाउने (यहाँ Login देखाउने बनाइएको छ)
+      home: const ThaloLoginScreen(), 
+    );
+  }
+}
