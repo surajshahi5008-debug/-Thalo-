@@ -96,6 +96,50 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
   final _authService = AuthService();
   bool _obscurePassword = true;
   bool _isLoading = false;
+  
+  // भाषाको लागि स्टेट (पहिलो English राखिएको छ)
+  String _selectedLang = 'English';
+
+  Map<String, String> _getLoginLabels(String lang) {
+    switch (lang) {
+      case 'नेपाली':
+        return {
+          'title': 'आफ्नो खातामा लगइन गर्नुहोस्',
+          'email': 'इमेल ठेगाना',
+          'pass': 'पासवर्ड',
+          'btn': 'लगइन गर्नुहोस्',
+          'noAccount': 'खाता छैन?',
+          'signUpLink': 'साइन अप गर्नुहोस्'
+        };
+      case 'हिन्दी':
+        return {
+          'title': 'अपने खाते में लॉगिन करें',
+          'email': 'ईमेल पता',
+          'pass': 'पासवर्ड',
+          'btn': 'लॉगिन करें',
+          'noAccount': 'खाता नहीं है?',
+          'signUpLink': 'साइन अप करें'
+        };
+      case 'Urdu':
+        return {
+          'title': 'اپنے اکاؤنٹ میں لاگ ان کریں',
+          'email': 'ای میل کا پتہ',
+          'pass': 'پاس ورڈ',
+          'btn': 'لاگ ان کریں',
+          'noAccount': 'اکاؤنٹ نہیں ہے؟',
+          'signUpLink': 'سائن اپ کریں'
+        };
+      default: // English
+        return {
+          'title': 'Log in to your account',
+          'email': 'Email Address',
+          'pass': 'Password',
+          'btn': 'Log In',
+          'noAccount': "Don't have an account?",
+          'signUpLink': 'Sign Up'
+        };
+    }
+  }
 
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
@@ -129,102 +173,146 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'Thalo',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 42, fontWeight: FontWeight.bold, color: Colors.black87),
-                ),
-                const SizedBox(height: 5),
-                const Text(
-                  'आफ्नो खातामा लगइन गर्नुहोस्',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey, fontSize: 14),
-                ),
-                const SizedBox(height: 35),
-                TextFormField(
-                  controller: _emailController,
-                  decoration: InputDecoration(
-                    hintText: 'इमेल ठेगाना',
-                    filled: true,
-                    fillColor: const Color(0xfff5f6f8),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    prefixIcon: const Icon(Icons.mail_outline, color: Colors.grey),
+    final labels = _getLoginLabels(_selectedLang);
+    final isRtl = _selectedLang == 'Urdu';
+
+    return Directionality(
+      textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Thalo',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 42, fontWeight: FontWeight.bold, color: Colors.black87),
                   ),
-                  validator: (v) => (v == null || !v.contains('@')) ? 'मान्य इमेल हाल्नुहोस्' : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: _obscurePassword,
-                  decoration: InputDecoration(
-                    hintText: 'पासवर्ड',
-                    filled: true,
-                    fillColor: const Color(0xfff5f6f8),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                        color: Colors.grey,
+                  const SizedBox(height: 5),
+                  Text(
+                    labels['title']!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.grey, fontSize: 14),
+                  ),
+                  const SizedBox(height: 35),
+                  TextFormField(
+                    controller: _emailController,
+                    decoration: InputDecoration(
+                      hintText: labels['email'],
+                      filled: true,
+                      fillColor: const Color(0xfff5f6f8),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
                       ),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
+                      prefixIcon: const Icon(Icons.mail_outline, color: Colors.grey),
                     ),
+                    validator: (v) => (v == null || !v.contains('@')) ? 'मान्य इमेल हाल्नुहोस्' : null,
                   ),
-                  validator: (v) => (v == null || v.isEmpty) ? 'पासवर्ड हाल्नुहोस्' : null,
-                ),
-                const SizedBox(height: 28),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _handleLogin,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black87,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Text('लगइन गर्नुहोस्', style: TextStyle(color: Colors.white, fontSize: 16)),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text('खाता छैन?', style: TextStyle(color: Colors.grey)),
-                    TextButton(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const ThaloRegisterScreen()),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    decoration: InputDecoration(
+                      hintText: labels['pass'],
+                      filled: true,
+                      fillColor: const Color(0xfff5f6f8),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
                       ),
-                      child: const Text('साइन अप गर्नुहोस्', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+                      prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                          color: Colors.grey,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      ),
                     ),
-                  ],
-                ),
-              ],
+                    validator: (v) => (v == null || v.isEmpty) ? 'पासवर्ड हाल्नुहोस्' : null,
+                  ),
+                  const SizedBox(height: 28),
+                  ElevatedButton(
+                    onPressed: _isLoading ? null : _handleLogin,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black87,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : Text(labels['btn']!, style: const TextStyle(color: Colors.white, fontSize: 16)),
+                  ),
+                  const SizedBox(height: 20),
+                  // साइन अप लिंक
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(labels['noAccount']!, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                      TextButton(
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const ThaloRegisterScreen()),
+                        ),
+                        child: Text(labels['signUpLink']!, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 13)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  // तेर्छो रूपमा साना अक्षरमा राखिएको भाषा परिवर्तन गर्ने अप्सन (पहिलो अंग्रेजी, नेपाली, र अन्य)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _buildLangOption('English'),
+                      const Text(' • ', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                      _buildLangOption('नेपाली'),
+                      const Text(' • ', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                      _buildLangOption('हिन्दी'),
+                      const Text(' • ', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                      _buildLangOption('Urdu'),
+                    ],
+                  ),
+                ],
+              ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // भाषा छान्ने सानो बटनको विजेट
+  Widget _buildLangOption(String langName) {
+    bool isSelected = _selectedLang == langName;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedLang = langName;
+        });
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4.0),
+        child: Text(
+          langName,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected ? Colors.black87 : Colors.grey,
           ),
         ),
       ),
