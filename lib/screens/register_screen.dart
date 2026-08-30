@@ -11,7 +11,7 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final AuthService _authService = AuthService();
-  
+
   // बहु-चरण (Multi-step) कन्ट्रोलर
   int _currentStep = 0;
 
@@ -19,11 +19,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _middleNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
-  
+
   // इमेल र पासवर्ड कन्ट्रोलरहरू
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  
+
   // लिङ्ग र जन्म मिति चरहरू
   String? _selectedGender;
   final List<String> _gendersEnglish = ['Male', 'Female', 'Other'];
@@ -32,12 +32,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
   DateTime? _selectedDate;
   int? _years;
   int? _days;
-  
+
   String _selectedLang = 'English';
   bool _isLoading = false;
-  String _errorMessage = '';
 
-  // उमेर र दिन गणना गर्ने फंक्सन
+  // जन्म मिति छान्ने र उमेर तथा दिन गणना गर्ने फंक्सन
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+        _calculateAgeAndDays(picked);
+      });
+    }
+  }
+
   void _calculateAgeAndDays(DateTime birthDate) {
     DateTime today = DateTime.now();
     
@@ -45,240 +59,194 @@ class _RegisterScreenState extends State<RegisterScreen> {
     int months = today.month - birthDate.month;
     int days = today.day - birthDate.day;
 
-    if (days < 0) {
-      months--;
-      // अघिल्लो महिनामा कति दिन थियो भन्ने हिसाब गर्न
-      DateTime prevMonth = DateTime(today.year, today.month - 1, 0);
-      days += prevMonth.day;
-    }
-
-    if (months < 0) {
+    if (months < 0 || (months == 0 && days < 0)) {
       years--;
-      months += 12;
     }
 
-    // कुल दिनको अनुमान वा महिना-दिन देखाउन सकिन्छ, यहाँ हामी सटीक वर्ष र दिन निकाल्छौं
-    int totalDays = today.difference(birthDate).inDays;
-
+    // कुल दिनको गणना
+    Duration difference = today.difference(birthDate);
+    
     setState(() {
-      _selectedDate = birthDate;
       _years = years;
-      _days = totalDays; // कुल दिन वा बचेको दिन देखाउन सकिन्छ
+      _days = difference.inDays;
     });
   }
 
-  // जन्म मिति छान्ने बक्स
-  Future<void> _pickBirthDate(BuildContext context) async {
-    DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime(2000, 1, 1),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-    );
-    if (picked != null) {
-      _calculateAgeAndDays(picked);
-    }
-  }
+  // दर्ता प्रक्रिया पूरा गर्ने फंक्सन
+  void _handleRegister() async {
+    setState(() => _isLoading = true);
+    
+    String firstName = _firstNameController.text.trim();
+    String middleName = _middleNameController.text.trim();
+    String lastName = _lastNameController.text.trim();
+    
+    String fullName = middleName.isEmpty 
+        ? '$firstName $lastName' 
+        : '$firstName $middleName $lastName';
 
-  // दर्ता गर्ने मुख्य फंक्सन
-  void _register() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = '';
-    });
-
-    String fullName = '${_firstNameController.text} ${_middleNameController.text} ${_lastNameController.text}'.trim();
+    String email = _emailController.text.trim();
+    String password = _passwordController.text.trim();
 
     try {
-      await _authService.register(
-        email: _emailController.text,
-        password: _passwordController.text,
-        name: fullName,
-        age: _years ?? 0,
-      );
-      // सफल भएपछि गरिने काम
+      await _authService.registerWithEmailAndPassword(email, password, fullName);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Registration Successful!')),
+        );
+      }
     } catch (e) {
-      setState(() {
-        _errorMessage = getLocalizedError(e.toString(), _selectedLang);
-      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    bool isEng = _selectedLang == 'English';
+    List<String> currentGenders = _selectedLang == 'Nepali' ? _gendersNepali : _gendersEnglish;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isEng ? 'Create Thalo Account' : 'थलो खाता सिर्जना गर्नुहोस्'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: buildLang_bar(_selectedLang, (lang) {
-              setState(() {
-                _selectedLang = lang;
-              });
-            }),
-          ),
-        ],
+        title: Text(_selectedLang == 'Nepali' ? 'थालो खाता सिर्जना गर्नुहोस्' : 'Create Thalo Account'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Expanded(
-              child: Stepper(
-                type: StepperType.vertical,
-                currentStep: _currentStep,
-                controlsBuilder: (context, details) {
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 16.0),
-                    child: Row(
-                      children: [
-                        ElevatedButton(
-                          onPressed: details.onStepContinue,
-                          child: Text(_currentStep == 0 
-                              ? (isEng ? 'Next' : 'अर्को') 
-                              : (isEng ? 'Sign Up' : 'साइन अप')),
+      body: Column(
+        children: [
+          LangBar(
+            selectedLang: _selectedLang,
+            onLangChanged: (lang) => setState(() => _selectedLang = lang),
+          ),
+          Expanded(
+            child: Stepper(
+              type: StepperType.vertical,
+              currentStep: _currentStep,
+              onStepTapped: (step) => setState(() => _currentStep = step),
+              onStepContinue: () {
+                if (_currentStep < 1) {
+                  setState(() => _currentStep += 1);
+                } else {
+                  _handleRegister();
+                }
+              },
+              onStepCancel: () {
+                if (_currentStep > 0) {
+                  setState(() => _currentStep -= 1);
+                }
+              },
+              steps: [
+                // चरण १: व्यक्तिगत विवरण (Name, Gender, DOB)
+                Step(
+                  title: Text(_selectedLang == 'Nepali' ? 'व्यक्तिगत विवरण' : 'Personal Details'),
+                  content: Column(
+                    children: [
+                      TextField(
+                        controller: _firstNameController,
+                        decoration: InputDecoration(
+                          labelText: _selectedLang == 'Nepali' ? 'पहिलो नाम' : 'First Name',
+                          prefixIcon: const Icon(Icons.person),
                         ),
-                        if (_currentStep > 0) ...[
-                          const SizedBox(width: 12),
-                          TextButton(
-                            onPressed: details.onStepCancel,
-                            child: Text(isEng ? 'Back' : 'पछाडि'),
-                          ),
-                        ],
-                      ],
-                    ),
-                  );
-                },
-                onStepContinue: () {
-                  if (_currentStep < 1) {
-                    setState(() {
-                      _currentStep += 1;
-                    });
-                  } else {
-                    _register();
-                  }
-                },
-                onStepCancel: () {
-                  if (_currentStep > 0) {
-                    setState(() {
-                      _currentStep -= 1;
-                    });
-                  }
-                },
-                steps: [
-                  // चरण १: नाम, लिङ्ग र जन्म मिति
-                  Step(
-                    title: Text(isEng ? 'Personal Details' : 'व्यक्तिगत विवरण'),
-                    content: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TextField(
-                          controller: _firstNameController,
-                          decoration: InputDecoration(
-                            labelText: isEng ? 'First Name' : 'पहिलो नाम',
-                          ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _middleNameController,
+                        decoration: InputDecoration(
+                          labelText: _selectedLang == 'Nepali' ? 'बुवाको वा बीचको नाम (ऐच्छिक)' : 'Middle Name (Optional)',
+                          prefixIcon: const Icon(Icons.person_outline),
                         ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _middleNameController,
-                          decoration: InputDecoration(
-                            labelText: isEng ? 'Middle Name (Optional)' : 'बीचको नाम (ऐच्छिक)',
-                          ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _lastNameController,
+                        decoration: InputDecoration(
+                          labelText: _selectedLang == 'Nepali' ? 'थथर (लास्ट नेम)' : 'Last Name',
+                          prefixIcon: const Icon(Icons.person),
                         ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _lastNameController,
-                          decoration: InputDecoration(
-                            labelText: isEng ? 'Last Name' : 'थर',
-                          ),
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        value: _selectedGender,
+                        hint: Text(_selectedLang == 'Nepali' ? 'लिङ्ग छान्नुहोस्' : 'Select Gender'),
+                        items: currentGenders.map((String gender) {
+                          return DropdownMenuItem<String>(
+                            value: gender,
+                            child: Text(gender),
+                          );
+                        }).toList,
+                        onChanged: (String? newValue) {
+                          setState(() {
+                            _selectedGender = newValue;
+                          });
+                        },
+                        decoration: const InputDecoration(
+                          prefixIcon: Icon(Icons.wc),
                         ),
-                        const SizedBox(height: 12),
-                        DropdownButtonFormField<String>(
-                          value: _selectedGender,
-                          decoration: InputDecoration(
-                            labelText: isEng ? 'Gender' : 'लिङ्ग',
-                          ),
-                          items: (isEng ? _gendersEnglish : _gendersNepali)
-                              .map((gender) => DropdownMenuItem(
-                                    value: gender,
-                                    child: Text(gender),
-                                  ))
-                              .toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedGender = value;
-                            });
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton.icon(
-                          onPressed: () => _pickBirthDate(context),
-                          icon: const Icon(Icons.calendar_today),
-                          label: Text(_selectedDate == null
-                              ? (isEng ? 'Select Birth Date' : 'जन्म मिति छान्नुहोस्')
-                              : '${_selectedDate!.toLocal()}'.split(' ')[0]),
-                        ),
-                        const SizedBox(height: 12),
-                        if (_years != null && _days != null)
-                          Text(
-                            isEng
-                                ? 'Age: $_years years (Total approx. $_days days)'
-                                : 'उमेर: $_years वर्ष (जम्मा करिब $_days दिन)',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue,
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _selectedDate == null
+                                  ? (_selectedLang == 'Nepali' ? 'जन्म मिति छनौट गरिएको छैन' : 'No Date Chosen')
+                                  : '${_selectedLang == 'Nepali' ? 'जन्म मिति' : 'DOB'}: ${_selectedDate!.toLocal().toString().split(' ')[0]}',
                             ),
                           ),
-                      ],
-                    ),
-                    isActive: _currentStep >= 0,
-                  ),
-                  
-                  // चरण २: इमेल र पासवर्ड
-                  Step(
-                    title: Text(isEng ? 'Account Credentials' : 'खाताको विवरण'),
-                    content: Column(
-                      children: [
-                        TextField(
-                          controller: _emailController,
-                          decoration: InputDecoration(
-                            labelText: isEng ? 'Email Address' : 'इमेल ठेगाना',
+                          ElevatedButton(
+                            onPressed: () => _selectDate(context),
+                            child: Text(_selectedLang == 'Nepali' ? 'मिति छान्नुहोस्' : 'Pick Date'),
                           ),
-                          keyboardType: TextInputType.emailAddress,
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _passwordController,
-                          decoration: InputDecoration(
-                            labelText: isEng ? 'Password' : 'पासवर्ड',
-                          ),
-                          obscureText: true,
+                        ],
+                      ),
+                      if (_years != null && _days != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          _selectedLang == 'Nepali'
+                              ? 'उमेर: $_years वर्ष ($_days दिन)'
+                              : 'Age: $_years years ($_days days)',
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
                         ),
                       ],
-                    ),
-                    isActive: _currentStep >= 1,
+                    ],
                   ),
-                ],
-              ),
-            ),
-            if (_errorMessage.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(
-                  _errorMessage,
-                  style: const TextStyle(color: Colors.red),
+                  isActive: _currentStep >= 0,
                 ),
-              ),
-            if (_isLoading) const CircularProgressIndicator(),
-          ],
-        ),
+                // चरण २: इमेल र पासवर्ड (Email & Password)
+                Step(
+                  title: Text(_selectedLang == 'Nepali' ? 'लगइन विवरण' : 'Login Credentials'),
+                  content: Column(
+                    children: [
+                      TextField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(
+                          labelText: _selectedLang == 'Nepali' ? 'इमेल ठेगाना' : 'Email Address',
+                          prefixIcon: const Icon(Icons.email),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _passwordController,
+                        obscureText: true,
+                        decoration: InputDecoration(
+                          labelText: _selectedLang == 'Nepali' ? 'पासवर्ड' : 'Password',
+                          prefixIcon: const Icon(Icons.lock),
+                        ),
+                      ),
+                      if (_isLoading) ...[
+                        const SizedBox(height: 20),
+                        const CircularProgressIndicator(),
+                      ],
+                    ],
+                  ),
+                  isActive: _currentStep >= 1,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
