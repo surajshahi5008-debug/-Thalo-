@@ -127,7 +127,7 @@ String getLocalizedError(String errorCode, String lang) {
       'English': 'Invalid email or password.',
       'नेपाली': 'इमेल वा पासवर्ड मिलेन।',
       'हिन्दी': 'अमान्य ईमेल या पासवर्ड।',
-      'Urdu': 'غلط ای میل یا پاس ورڈ۔',
+      'Urdu': 'غلط ای میل یا پاس ورڈ।',
     },
     'email-already-in-use': {
       'English': 'This email is already registered.',
@@ -188,7 +188,7 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
     try {
       await AuthService().login(email: _emailController.text, password: _passwordController.text);
       if (!mounted) return;
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ThaloNavigationScreen()));
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ThaloNavigationScreen()));
     } catch (e) {
       if (!mounted) return;
       String message = getLocalizedError(e.toString(), _lang);
@@ -238,7 +238,11 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
                   const SizedBox(height: 28),
                   ElevatedButton(
                     onPressed: _isLoading ? null : _submit,
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.black87, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black87,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
                     child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : Text(t['btn']!, style: const TextStyle(color: Colors.white, fontSize: 16)),
                   ),
                   const SizedBox(height: 20),
@@ -270,7 +274,7 @@ class ThaloRegisterScreen extends StatefulWidget {
 }
 
 class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
-  int _currentStep = 1; // 1 = Name/DOB/Gender, 2 = Email/Password
+  int _currentStep = 1;
   final _formKey1 = GlobalKey<FormState>();
   final _formKey2 = GlobalKey<FormState>();
 
@@ -400,7 +404,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
         password: _passC.text,
       );
       if (!mounted) return;
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ThaloNavigationScreen()));
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ThaloNavigationScreen()));
     } catch (e) {
       if (!mounted) return;
       String message = getLocalizedError(e.toString(), _lang);
@@ -482,4 +486,5 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                         const SizedBox(height: 28),
                         ElevatedButton(
                           onPressed: _goToStep2,
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.black87, padding: const EdgeInsets.symmetric(vertical
+                          style: ElevatedButton.styleFrom(
+                            backgroundColo
