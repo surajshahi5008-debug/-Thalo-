@@ -33,30 +33,38 @@ class AuthService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future<User?> login({required String email, required String password}) async {
-    UserCredential credential = await _auth.signInWithEmailAndPassword(
-      email: email.trim(),
-      password: password,
-    );
-    return credential.user;
+    try {
+      UserCredential credential = await _auth.signInWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
+      return credential.user;
+    } catch (e) {
+      throw e.toString();
+    }
   }
 
   Future<User?> register({required String name, required String email, required String password, required String dob}) async {
-    UserCredential credential = await _auth.createUserWithEmailAndPassword(
-      email: email.trim(),
-      password: password,
-    );
-    User? user = credential.user;
-    if (user != null) {
-      await user.updateDisplayName(name.trim());
-      await _firestore.collection('users').doc(user.uid).set({
-        'uid': user.uid,
-        'name': name,
-        'email': email.trim(),
-        'dob': dob,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+    try {
+      UserCredential credential = await _auth.createUserWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
+      User? user = credential.user;
+      if (user != null) {
+        await user.updateDisplayName(name.trim());
+        await _firestore.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'name': name,
+          'email': email.trim(),
+          'dob': dob,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+      return user;
+    } catch (e) {
+      throw e.toString();
     }
-    return user;
   }
 }
 
@@ -116,7 +124,9 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ThaloNavigationScreen()));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Login failed')));
+      // यहाँ Firebase को वास्तविक एरर (जस्तै wrong password) देखाउने बनाइएको छ
+      String errorMessage = e.toString().replaceAll(RegExp(r'\[.*?\]'), '').trim();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage)));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -219,7 +229,8 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ThaloNavigationScreen()));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Registration failed')));
+      String errorMessage = e.toString().replaceAll(RegExp(r'\[.*?\]'), '').trim();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage)));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
