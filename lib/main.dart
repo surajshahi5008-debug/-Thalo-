@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-// ================= मुख्य (Main) फंक्सन र एप सेटअप =================
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // यदि तपाईंले Firebase.initializeApp() यहाँ गराउनुभएको छैन भने यो लाइन अनकमेन्ट गर्नुहोस्:
-  // await Firebase.initializeApp();
+  // await Firebase.initializeApp(); // फायरबेस इनिसिएलाइज गर्न आवश्यक भए अनकमेन्ट गर्नुहोस्
   runApp(const MyApp());
 }
 
@@ -18,15 +16,13 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Thalo',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
+      theme: ThemeData(primarySwatch: Colors.blue),
       home: const ThaloLoginScreen(),
     );
   }
 }
 
-// ================= १. AuthService (अथेन्टिकेसन र डाटाबेज लजिक) =================
+// ================= AuthService =================
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -73,17 +69,9 @@ class AuthService {
       throw e.toString();
     }
   }
-
-  Future<void> sendPasswordReset(String email) async {
-    try {
-      await _auth.sendPasswordResetEmail(email: email.trim());
-    } catch (e) {
-      throw e.toString();
-    }
-  }
 }
 
-// ================= २. ThaloLoginScreen (लगइन स्क्रिन) =================
+// ================= ThaloLoginScreen =================
 class ThaloLoginScreen extends StatefulWidget {
   const ThaloLoginScreen({super.key});
 
@@ -104,15 +92,6 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
 
   Map<String, String> _getLoginLabels(String lang) {
     switch (lang) {
-      case 'हिन्दी':
-        return {
-          'title': 'अपने खाते में लॉगिन करें',
-          'email': 'ईमेल पता',
-          'pass': 'पासवर्ड',
-          'btn': 'लॉगिन करें',
-          'noAccount': 'खाता नहीं है?',
-          'signUpLink': 'साइन अप करें'
-        };
       case 'English':
         return {
           'title': 'Log in to your account',
@@ -121,15 +100,6 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
           'btn': 'Log In',
           'noAccount': "Don't have an account?",
           'signUpLink': 'Sign Up'
-        };
-      case 'Urdu':
-        return {
-          'title': 'اپنے اکاؤنٹ میں لاگ ان کریں',
-          'email': 'ای میل کا پتہ',
-          'pass': 'پاس ورڈ',
-          'btn': 'لاگ ان کریں',
-          'noAccount': 'اکاؤنٹ نہیں ہے؟',
-          'signUpLink': 'سائن اپ کریں'
         };
       default:
         return {
@@ -142,9 +112,6 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
         };
     }
   }
-
-  TextDirection _getDirection(String lang) =>
-      lang == 'Urdu' ? TextDirection.rtl : TextDirection.ltr;
 
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
@@ -162,7 +129,7 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('इमेल वा पासवर्ड मिलेन वा लगइन असफल भयो।')),
+        const SnackBar(content: Text('इमेल वा पासवर्ड मिलेन।')),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -179,138 +146,94 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
   @override
   Widget build(BuildContext context) {
     final labels = _getLoginLabels(_selectedLang);
-    final dir = _getDirection(_selectedLang);
 
-    return Directionality(
-      textDirection: dir,
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Text('Thalo',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          fontSize: 42,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.5)),
-                  const SizedBox(height: 5),
-                  Text(labels['title']!,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.grey, fontSize: 14)),
-                  const SizedBox(height: 35),
-                  TextFormField(
-                    controller: _emailController,
-                    textDirection: dir,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      hintText: labels['email'],
-                      filled: true,
-                      fillColor: const Color(0xfff5f6f8),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      prefixIcon: const Icon(Icons.mail_outline, color: Colors.grey),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text('Thalo',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 42, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 5),
+                Text(labels['title']!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.grey, fontSize: 14)),
+                const SizedBox(height: 35),
+                TextFormField(
+                  controller: _emailController,
+                  decoration: InputDecoration(
+                    hintText: labels['email'],
+                    filled: true,
+                    fillColor: const Color(0xfff5f6f8),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
                     ),
-                    validator: (value) => (value == null || !value.contains('@'))
-                        ? 'मान्य इमेल हाल्नुहोस्'
-                        : null,
+                    prefixIcon: const Icon(Icons.mail_outline, color: Colors.grey),
                   ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _passwordController,
-                    textDirection: dir,
-                    obscureText: _obscurePassword,
-                    decoration: InputDecoration(
-                      hintText: labels['pass'],
-                      filled: true,
-                      fillColor: const Color(0xfff5f6f8),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none),
-                      prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                            _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                            color: Colors.grey),
-                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                      ),
+                  validator: (v) => (v == null || !v.contains('@')) ? 'मान्य इमेल हाल्नुहोस्' : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: _obscurePassword,
+                  decoration: InputDecoration(
+                    hintText: labels['pass'],
+                    filled: true,
+                    fillColor: const Color(0xfff5f6f8),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
                     ),
-                    validator: (value) => (value == null || value.isEmpty)
-                        ? 'पासवर्ड हाल्नुहोस्'
-                        : null,
-                  ),
-                  const SizedBox(height: 28),
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _handleLogin,
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black87,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12))),
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white))
-                        : Text(labels['btn']!,
-                            style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white)),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(labels['noAccount']!,
-                          style: const TextStyle(color: Colors.grey, fontSize: 13)),
-                      TextButton(
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const ThaloRegisterScreen()),
-                        ),
-                        child: Text(labels['signUpLink']!,
-                            style: const TextStyle(
-                                color: Colors.black87,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13)),
+                    prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                        color: Colors.grey,
                       ),
-                    ],
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                    ),
                   ),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.language, color: Colors.grey, size: 20),
-                      const SizedBox(width: 8),
-                      DropdownButton<String>(
-                        value: _selectedLang,
-                        underline: const SizedBox(),
-                        items: _languages.map((String lang) {
-                          return DropdownMenuItem<String>(
-                            value: lang,
-                            child: Text(lang, style: const TextStyle(fontSize: 14)),
-                          );
-                        }).toList(),
-                        onChanged: (String? newLang) {
-                          if (newLang != null) {
-                            setState(() => _selectedLang = newLang);
-                          }
-                        },
+                  validator: (v) => (v == null || v.isEmpty) ? 'पासवर्ड हाल्नुहोस्' : null,
+                ),
+                const SizedBox(height: 28),
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _handleLogin,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black87,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : Text(labels['btn']!, style: const TextStyle(color: Colors.white, fontSize: 16)),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(labels['noAccount']!, style: const TextStyle(color: Colors.grey)),
+                    TextButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const ThaloRegisterScreen()),
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                      child: Text(labels['signUpLink']!, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ),
@@ -319,7 +242,7 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
   }
 }
 
-// ================= ३. ThaloRegisterScreen (रजिस्टर स्क्रिन) =================
+// ================= ThaloRegisterScreen =================
 class ThaloRegisterScreen extends StatefulWidget {
   const ThaloRegisterScreen({super.key});
 
@@ -337,84 +260,17 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
   final _authService = AuthService();
   bool _obscurePassword = true;
   bool _isLoading = false;
-  String _selectedLang = 'नेपाली';
-  String? _calculatedAgeText;
-
-  final List<String> _languages = ['नेपाली', 'हिन्दी', 'English', 'Urdu'];
-
-  Map<String, String> _getRegisterLabels(String lang) {
-    switch (lang) {
-      case 'हिन्दी':
-        return {
-          'title': 'थलो अकाउंट बनाएं',
-          'name': 'पूरा नाम',
-          'dob': 'जन्म तिथि (DOB)',
-          'email': 'ईमेल पता',
-          'pass': 'पासवर्ड बनाएं',
-          'btn': 'साइन अप करें',
-          'haveAccount': 'पहले से खाता है?',
-          'loginLink': 'लॉगिन करें'
-        };
-      case 'English':
-        return {
-          'title': 'Create Thalo Account',
-          'name': 'Full Name',
-          'dob': 'Date of Birth',
-          'email': 'Email Address',
-          'pass': 'Create Password',
-          'btn': 'Sign Up',
-          'haveAccount': 'Already have an account?',
-          'loginLink': 'Log In'
-        };
-      case 'Urdu':
-        return {
-          'title': 'تھلو اکاؤنٹ بنائیں',
-          'name': 'پورا نام',
-          'dob': 'تاریخ پیدائش',
-          'email': 'ای میل کا پتہ',
-          'pass': 'پاس ورڈ بنائیں',
-          'btn': 'سائن اپ کریں',
-          'haveAccount': 'پہلے سے اکاؤنٹ ہے؟',
-          'loginLink': 'لاگ ان کریں'
-        };
-      default:
-        return {
-          'title': 'थलो खाता बनाउनुहोस्',
-          'name': 'पूरा नाम',
-          'dob': 'जन्ममिति (DOB)',
-          'email': 'इमेल ठेगाना',
-          'pass': 'पासवर्ड राख्नुहोस्',
-          'btn': 'साइन अप गर्नुहोस्',
-          'haveAccount': 'पहिले नै खाता छ?',
-          'loginLink': 'लगइन गर्नुहोस्'
-        };
-    }
-  }
-
-  TextDirection _getDirection(String lang) =>
-      lang == 'Urdu' ? TextDirection.rtl : TextDirection.ltr;
 
   Future<void> _selectDateOfBirth(BuildContext context) async {
-    final DateTime now = DateTime.now();
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime(2000, 1, 1),
       firstDate: DateTime(1940),
-      lastDate: now,
+      lastDate: DateTime.now(),
     );
-
     if (picked != null) {
       setState(() {
-        _dobController.text =
-            "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
-
-        int years = now.year - picked.year;
-        DateTime lastBirthday = DateTime(now.year, picked.month, picked.day);
-
-        if (now.isBefore(lastBirthday)) {
-          years--;
-        }
-        _calculatedAgeText = "उमेर: $years वर्ष";
+        _dobController.text = "${picked.year}-${picked.month}-${picked.day}";
       });
     }
   }
@@ -437,7 +293,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('खाता बनाउन सकिएन। फेरि प्रयास गर्नुहोस्।')),
+        const SnackBar(content: Text('खाता बनाउन सकिएन।')),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -455,101 +311,113 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final labels = _getRegisterLabels(_selectedLang);
-    final dir = _getDirection(_selectedLang);
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text('Thalo Register', textAlign: TextAlign.center, style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: _nameController,
+                  decoration: InputDecoration(
+                    hintText: 'पूरा नाम',
+                    filled: true,
+                    fillColor: const Color(0xfff5f6f8),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    prefixIcon: const Icon(Icons.person_outline, color: Colors.grey),
+                  ),
+                  validator: (v) => (v == null || v.isEmpty) ? 'नाम लेख्नुहोस्' : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _dobController,
+                  readOnly: true,
+                  onTap: () => _selectDateOfBirth(context),
+                  decoration: InputDecoration(
+                    hintText: 'जन्ममिति',
+                    filled: true,
+                    fillColor: const Color(0xfff5f6f8),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    prefixIcon: const Icon(Icons.cake_outlined, color: Colors.grey),
+                  ),
+                  validator: (v) => (v == null || v.isEmpty) ? 'जन्ममिति छान्नुहोस्' : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _emailController,
+                  decoration: InputDecoration(
+                    hintText: 'इमेल',
+                    filled: true,
+                    fillColor: const Color(0xfff5f6f8),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    prefixIcon: const Icon(Icons.mail_outline, color: Colors.grey),
+                  ),
+                  validator: (v) => (v == null || !v.contains('@')) ? 'मान्य इमेल हाल्नुहोस्' : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: _obscurePassword,
+                  decoration: InputDecoration(
+                    hintText: 'पासवर्ड',
+                    filled: true,
+                    fillColor: const Color(0xfff5f6f8),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: Colors.grey),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                    ),
+                  ),
+                  validator: (v) => (v == null || v.length < 6) ? 'कमপক্ষে ६ अक्षरको हुनुपर्छ' : null,
+                ),
+                const SizedBox(height: 28),
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _handleRegister,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black87,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text('साइन अप गर्नुहोस्', style: TextStyle(color: Colors.white, fontSize: 16)),
+                ),
+                const SizedBox(height: 20),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('पहिले नै खाता छ? लगइन गर्नुहोस्', style: TextStyle(color: Colors.black87)),
+                ),
+              ],
+            ),
+         ),
+        ),
+      ),
+    );
+  }
+}
 
-    return Directionality(
-      textDirection: dir,
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Text('Thalo',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          fontSize: 42,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.5)),
-                  const SizedBox(height: 5),
-                  Text(labels['title']!,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.grey, fontSize: 14)),
-                  const SizedBox(height: 30),
-                  TextFormField(
-                    controller: _nameController,
-                    textDirection: dir,
-                    decoration: InputDecoration(
-                      hintText: labels['name'],
-                      filled: true,
-                      fillColor: const Color(0xfff5f6f8),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      prefixIcon: const Icon(Icons.person_outline, color: Colors.grey),
-                    ),
-                    validator: (value) => (value == null || value.trim().isEmpty)
-                        ? 'कृपया नाम हाल्नुहोस्'
-                        : null,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _dobController,
-                    readOnly: true,
-                    onTap: () => _selectDateOfBirth(context),
-                    decoration: InputDecoration(
-                      hintText: labels['dob'],
-                      filled: true,
-                      fillColor: const Color(0xfff5f6f8),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      prefixIcon: const Icon(Icons.cake_outlined, color: Colors.grey),
-                      helperText: _calculatedAgeText,
-                    ),
-                    validator: (value) => (value == null || value.isEmpty)
-                        ? 'जन्ममिति छान्नुहोस्'
-                        : null,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _emailController,
-                    textDirection: dir,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      hintText: labels['email'],
-                      filled: true,
-                      fillColor: const Color(0xfff5f6f8),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      prefixIcon: const Icon(Icons.mail_outline, color: Colors.grey),
-                    ),
-                    validator: (value) => (value == null || !value.contains('@'))
-                        ? 'मान्य इमेल हाल्नुहोस्'
-                        : null,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _passwordController,
-                    textDirection: dir,
-                    obscureText: _obscurePassword,
-                    decoration: InputDecoration(
-                      hintText: labels['pass'],
-                      filled: true,
-                      fillColor: const Color(0xfff5f6f8),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none),
-                      prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
-                      suffixIcon: IconButton(
-               
+// ================= ThaloNavigationScreen =================
+class ThaloNavigationScreen extends StatelessWidget {
+  const ThaloNavigationScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(
+        child: Text('Welcome to Thalo Home Screen!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+      ),
+    );
+  }
+}
