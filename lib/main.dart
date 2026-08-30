@@ -58,7 +58,7 @@ class AuthService {
       email: email.trim(),
       password: password,
     );
-abc
+
     User? user = credential.user;
     if (user != null) {
       await user.updateDisplayName(name.trim());
@@ -437,15 +437,6 @@ class ThaloRegisterScreen extends StatefulWidget {
   @override
   State<ThaloRegisterScreen> createState() => _ThaloRegisterScreenState();
 }
-
-class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _dobController = TextEditingController();
-  final _otpController = TextEditingController();
 
   final _authService = AuthService();
   bool _obscurePassword = true;
