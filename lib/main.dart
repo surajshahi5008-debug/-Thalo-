@@ -39,8 +39,10 @@ class AuthService {
         password: password,
       );
       return credential.user;
+    } on FirebaseAuthException catch (e) {
+      throw e.code; // Firebase को खास एरर कोड मात्र पठाउने (जस्तै wrong-password)
     } catch (e) {
-      throw e.toString();
+      throw 'unknown';
     }
   }
 
@@ -62,13 +64,15 @@ class AuthService {
         });
       }
       return user;
+    } on FirebaseAuthException catch (e) {
+      throw e.code;
     } catch (e) {
-      throw e.toString();
+      throw 'unknown';
     }
   }
 }
 
-// ================= Language Helper Widget =================
+// ================= Language Helper & Error Translator =================
 Widget buildLangBar(String currentLang, Function(String) onSelected) {
   return Row(
     mainAxisAlignment: MainAxisAlignment.center,
@@ -90,6 +94,58 @@ Widget buildLangBar(String currentLang, Function(String) onSelected) {
       );
     }).toList(),
   );
+}
+
+// भाषा अनुसार एरर म्यासेज देखाउने फंक्सन
+String getLocalizedError(String errorCode, String lang) {
+  Map<String, Map<String, String>> errorMessages = {
+    'wrong-password': {
+      'English': 'Incorrect password. Please try again.',
+      'नेपाली': 'गलत पासवर्ड। कृपया फेरि प्रयास गर्नुहोस्।',
+      'हिन्दी': 'गलत पासवर्ड। कृपया पुनः प्रयास करें।',
+      'Urdu': 'गलत پاس ورڈ۔ براہ کرم دوبارہ کوشش کریں۔',
+    },
+    'user-not-found': {
+      'English': 'No user found with this email.',
+      'नेपाली': 'यो इमेलसँग सम्बन्धित कुनै खाता फेला परेन।',
+      'हिन्दी': 'इस ईमेल से कोई उपयोगकर्ता नहीं मिला।',
+      'Urdu': 'اس ای میل کے ساتھ کوئی صارف نہیں ملا۔',
+    },
+    'invalid-credential': {
+      'English': 'Invalid email or password.',
+      'नेपाली': 'इमेल वा पासवर्ड मिलेन।',
+      'हिन्दी': 'अमान्य ईमेल या पासवर्ड।',
+      'Urdu': 'غلط ای میل یا پاس ورڈ۔',
+    },
+    'email-already-in-use': {
+      'English': 'This email is already registered.',
+      'नेपाली': 'यो इमेल पहिल्यै दर्ता भइसकेको छ।',
+      'हिन्दी': 'यह ईमेल पहले से पंजीकृत है।',
+      'Urdu': 'یہ ای میل پہلے سے رجسٹرڈ ہے۔',
+    },
+    'weak-password': {
+      'English': 'The password is too weak.',
+      'नेपाली': 'पासवर्ड धेरै कमजोर भयो। कम्तीमा ६ अक्षर हुनुपर्छ।',
+      'हिन्दी': 'पासवर्ड बहुत कमज़ोर है।',
+      'Urdu': 'پاس ورڈ بہت کمزور ہے۔',
+    },
+  };
+
+  if (errorMessages.containsKey(errorCode) && errorMessages[errorCode]!.containsKey(lang)) {
+    return errorMessages[errorCode]![lang]!;
+  }
+
+  // यदि सूचीमा छैन भने भाषा अनुसार जेनेरिक म्यासेज देखाउने
+  switch (lang) {
+    case 'नेपाली':
+      return 'केही त्रुटि भयो। कृपया फेरि प्रयास गर्नुहोस्।';
+    case 'हिन्दी':
+      return 'कुछ त्रुटि हुई। कृपया पुनः प्रयास करें।';
+    case 'Urdu':
+      return 'کچھ غلط ہو گیا۔ براہ مہربانی دوبارہ کوشش کریں۔';
+    default:
+      return 'An error occurred. Please try again.';
+  }
 }
 
 // ================= ThaloLoginScreen =================
@@ -124,9 +180,9 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ThaloNavigationScreen()));
     } catch (e) {
       if (!mounted) return;
-      // यहाँ Firebase को वास्तविक एरर (जस्तै wrong password) देखाउने बनाइएको छ
-      String errorMessage = e.toString().replaceAll(RegExp(r'\[.*?\]'), '').trim();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage)));
+      // युजरले छानेको भाषाअनुसार नै ठ्याक्कै त्यही भाषामा एरर म्यासेज देखाउने
+      String message = getLocalizedError(e.toString(), _lang);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -229,8 +285,8 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ThaloNavigationScreen()));
     } catch (e) {
       if (!mounted) return;
-      String errorMessage = e.toString().replaceAll(RegExp(r'\[.*?\]'), '').trim();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage)));
+      String message = getLocalizedError(e.toString(), _lang);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
