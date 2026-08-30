@@ -118,7 +118,7 @@ String getLocalizedError(String errorCode, String lang) {
       'English': 'Incorrect password. Please try again.',
       'नेपाली': 'गलत पासवर्ड। कृपया फेरि प्रयास गर्नुहोस्।',
       'हिन्दी': 'गलत पासवर्ड। कृपया पुनः प्रयास करें।',
-      'Urdu': 'गलत پاس ورڈ۔ براہ کرم دوبارہ کوشش کریں۔',
+      'Urdu': 'गलत پاس ورڈ। براہ کرم دوبارہ کوشش کریں۔',
     },
     'user-not-found': {
       'English': 'No user found with this email.',
@@ -130,7 +130,7 @@ String getLocalizedError(String errorCode, String lang) {
       'English': 'Invalid email or password.',
       'नेपाली': 'इमेल वा पासवर्ड मिलेन।',
       'हिन्दी': 'अमान्य ईमेल या पासवर्ड।',
-      'Urdu': 'غلط ای میل یا پاس ورڈ।',
+      'Urdu': 'غلط ای میل یا پاس ورڈ۔',
     },
     'email-already-in-use': {
       'English': 'This email is already registered.',
@@ -381,6 +381,9 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       'btn': 'Sign Up',
       'hasAcc': 'Already have an account?',
       'link': 'Log In',
+      'male': 'Male',
+      'female': 'Female',
+      'other': 'Other',
     },
     'नेपाली': {
       'title1': 'व्यक्तिगत विवरण (चरण १)',
@@ -396,6 +399,9 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       'btn': 'साइन अप गर्नुहोस्',
       'hasAcc': 'पहिले नै खाता छ?',
       'link': 'लगइन गर्नुहोस्',
+      'male': 'पुरुष',
+      'female': 'महिला',
+      'other': 'अन्य',
     },
     'हिन्दी': {
       'title1': 'व्यक्तिगत विवरण (चरण 1)',
@@ -411,6 +417,9 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       'btn': 'साइन अप करें',
       'hasAcc': 'पहले से खाता है?',
       'link': 'लॉगिन करें',
+      'male': 'पुरुष',
+      'female': 'महिला',
+      'other': 'अन्य',
     },
     'Urdu': {
       'title1': 'ذاتی تفصیلات (مرحلہ 1)',
@@ -426,6 +435,9 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       'btn': 'سائن اپ کریں',
       'hasAcc': 'پہلے سے اکاؤنٹ ہے؟',
       'link': 'لاگ ان کریں',
+      'male': 'مرد',
+      'female': 'عورت',
+      'other': 'دیگر',
     },
   };
 
@@ -445,7 +457,19 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
     }
 
     setState(() {
-      _ageString = 'Age: $years years, $months months, $days days';
+      switch (_lang) {
+        case 'नेपाली':
+          _ageString = 'उमेर: $years वर्ष, $months महिना, $days दिन';
+          break;
+        case 'हिन्दी':
+          _ageString = 'आयु: $years वर्ष, $months महीने, $days दिन';
+          break;
+        case 'Urdu':
+          _ageString = 'عمر: $years سال، $months ماہ، $days دن';
+          break;
+        default:
+          _ageString = 'Age: $years years, $months months, $days days';
+      }
     });
   }
 
@@ -453,9 +477,11 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
     if (_formKey1.currentState!.validate() && _selectedGender != null) {
       setState(() => _currentStep = 2);
     } else if (_selectedGender == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select gender')),
-      );
+      String msg = 'Please select gender';
+      if (_lang == 'नेपाली') msg = 'कृपया लिङ्ग छान्नुहोस्';
+      if (_lang == 'हिन्दी') msg = 'कृपया लिंग चुनें';
+      if (_lang == 'Urdu') msg = 'براہ کرم صنف منتخب کریں';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
   }
 
@@ -576,9 +602,11 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                             ),
                             prefixIcon: const Icon(Icons.transgender, color: Colors.grey),
                           ),
-                          items: ['Male', 'Female', 'Other']
-                              .map((g) => DropdownMenuItem(value: g, child: Text(g)))
-                              .toList(),
+                          items: [
+                            DropdownMenuItem(value: 'Male', child: Text(t['male']!)),
+                            DropdownMenuItem(value: 'Female', child: Text(t['female']!)),
+                            DropdownMenuItem(value: 'Other', child: Text(t['other']!)),
+                          ],
                           onChanged: (val) => setState(() => _selectedGender = val),
                         ),
                         const SizedBox(height: 16),
@@ -645,7 +673,17 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                           ],
                         ),
                         const SizedBox(height: 10),
-                        buildLangBar(_lang, (l) => setState(() => _lang = l)),
+                        buildLangBar(_lang, (l) {
+                          setState(() {
+                            _lang = l;
+                            if (_dobC.text.isNotEmpty) {
+                              try {
+                                DateTime parsedDate = DateTime.parse(_dobC.text);
+                                _calculateAge(parsedDate);
+                              } catch (_) {}
+                            }
+                          });
+                        }),
                       ],
                     ),
                   )
