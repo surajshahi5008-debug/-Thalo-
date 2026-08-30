@@ -58,7 +58,7 @@ class AuthService {
       email: email.trim(),
       password: password,
     );
-
+abc
     User? user = credential.user;
     if (user != null) {
       await user.updateDisplayName(name.trim());
@@ -604,3 +604,4 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                 ),
               ],
         
+अab aba 
