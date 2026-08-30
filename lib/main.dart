@@ -127,7 +127,7 @@ String getLocalizedError(String errorCode, String lang) {
       'English': 'Invalid email or password.',
       'नेपाली': 'इमेल वा पासवर्ड मिलेन।',
       'हिन्दी': 'अमान्य ईमेल या पासवर्ड।',
-      'Urdu': 'غلط ای میل یا پاس ورڈ।',
+      'Urdu': 'غلط ای میل یا پاس ورڈ۔',
     },
     'email-already-in-use': {
       'English': 'This email is already registered.',
@@ -301,7 +301,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       'gender': 'Select Gender',
       'dob': 'Date of Birth',
       'email': 'Email Address',
-      'pass': 'Password',
+      'pass': 'Create Password',
       'next': 'Next',
       'btn': 'Sign Up',
       'hasAcc': 'Already have an account?',
@@ -316,7 +316,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       'gender': 'लिङ्ग छान्नुहोस्',
       'dob': 'जन्म मिति',
       'email': 'इमेल ठेगाना',
-      'pass': 'पासवर्ड',
+      'pass': 'पासवर्ड सिर्जना गर्नुहोस्',
       'next': 'अर्को',
       'btn': 'साइन अप गर्नुहोस्',
       'hasAcc': 'पहिले नै खाता छ?',
@@ -331,7 +331,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       'gender': 'लिंग चुनें',
       'dob': 'जन्म तिथि',
       'email': 'ईमेल पता',
-      'pass': 'पासवर्ड',
+      'pass': 'पासवर्ड बनाएं',
       'next': 'अगला',
       'btn': 'साइन अप करें',
       'hasAcc': 'पहले से खाता है?',
@@ -346,7 +346,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       'gender': 'صنف منتخب کریں',
       'dob': 'تاریخ پیدائش',
       'email': 'ای میل کا پتہ',
-      'pass': 'پاس ورڈ',
+      'pass': 'پاس ورڈ بنائیں',
       'next': 'اگلا',
       'btn': 'سائن اپ کریں',
       'hasAcc': 'پہلے سے اکاؤنٹ ہے؟',
@@ -374,6 +374,8 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
         _ageString = 'उमेर: $years वर्ष, $months महिना, $days दिन';
       } else if (_lang == 'हिन्दी') {
         _ageString = 'आयु: $years वर्ष, $months महीने, $days दिन';
+      } else if (_lang == 'Urdu') {
+        _ageString = 'عمر: $years سال, $months مہینے, $days دن';
       } else {
         _ageString = 'Age: $years years, $months months, $days days';
       }
@@ -384,8 +386,13 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
     if (_formKey1.currentState!.validate() && _selectedGender != null) {
       setState(() => _currentStep = 2);
     } else if (_selectedGender == null) {
+      String msg = 'Please select gender';
+      if (_lang == 'नेपाली') msg = 'कृपया लिङ्ग छान्नुहोस्';
+      if (_lang == 'हिन्दी') msg = 'कृपया लिंग चुनें';
+      if (_lang == 'Urdu') msg = 'براہ کرم صنف منتخب کریں';
+      
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select gender / कृपया लिङ्ग छान्नुहोस्')),
+        SnackBar(content: Text(msg)),
       );
     }
   }
@@ -481,120 +488,4 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                         ),
                         if (_ageString.isNotEmpty) ...[
                           const SizedBox(height: 8),
-                          Text(_ageString, textAlign: TextAlign.center, style: const TextStyle(color: Colors.blueGrey, fontWeight: FontWeight.w600)),
-                        ],
-                        const SizedBox(height: 28),
-                        ElevatedButton(
-                          onPressed: _goToStep2,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black87,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          child: Text(t['next']!, style: const TextStyle(color: Colors.white, fontSize: 16)),
-                        ),
-                        const SizedBox(height: 20),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(t['hasAcc']!, style: const TextStyle(color: Colors.grey, fontSize: 13)),
-                            TextButton(onPressed: () => Navigator.pop(context), child: Text(t['link']!, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 13))),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        buildLangBar(_lang, (l) => setState(() => _lang = l)),
-                      ],
-                    ),
-                  )
-                : Form(
-                    key: _formKey2,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(t['title2']!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 25),
-                        TextFormField(
-                          controller: _emailC,
-                          decoration: InputDecoration(hintText: t['email'], filled: true, fillColor: const Color(0xfff5f6f8), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), prefixIcon: const Icon(Icons.mail_outline, color: Colors.grey)),
-                          validator: (v) => (v == null || !v.contains('@')) ? 'Invalid email' : null,
-                        ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _passC,
-                          obscureText: _obscurePassword,
-                          decoration: InputDecoration(
-                            hintText: t['pass'],
-                            filled: true,
-                            fillColor: const Color(0xfff5f6f8),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                            prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
-                            suffixIcon: IconButton(icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscurePassword = !_obscurePassword)),
-                          ),
-                          validator: (v) => (v == null || v.length < 6) ? 'Min 6 characters' : null,
-                        ),
-                        const SizedBox(height: 28),
-                        ElevatedButton(
-                          onPressed: _isLoading ? null : _submit,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black87,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : Text(t['btn']!, style: const TextStyle(color: Colors.white, fontSize: 16)),
-                        ),
-                        const SizedBox(height: 20),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(t['hasAcc']!, style: const TextStyle(color: Colors.grey, fontSize: 13)),
-                            TextButton(onPressed: () => Navigator.pop(context), child: Text(t['link']!, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 13))),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        buildLangBar(_lang, (l) => setState(() => _lang = l)),
-                      ],
-                    ),
-                  ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ================= ThaloNavigationScreen =================
-class ThaloNavigationScreen extends StatefulWidget {
-  const ThaloNavigationScreen({super.key});
-
-  @override
-  State<ThaloNavigationScreen> createState() => _ThaloNavigationScreenState();
-}
-
-class _ThaloNavigationScreenState extends State<ThaloNavigationScreen> {
-  String _lang = 'English';
-  final Map<String, String> _texts = {
-    'English': 'Welcome to Thalo Home Screen!',
-    'नेपाली': 'थलो होम स्क्रिनमा स्वागत छ!',
-    'हिन्दी': 'थलो होम स्क्रीन में आपका स्वागत है!',
-    'Urdu': 'تھلو ہوم اسکرین میں خوش آمدید!',
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: _lang == 'Urdu' ? TextDirection.rtl : TextDirection.ltr,
-      child: Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(_texts[_lang]!, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 30),
-              buildLangBar(_lang, (l) => setState(() => _lang = l)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+                          Text(_ageString, textAlign: TextAlign.center, style: const TextSty
