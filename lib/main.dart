@@ -603,5 +603,5 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                   child: const Text("प्रमाणित गर्नुहोस्"),
                 ),
               ],
+
         
-अab aba 
