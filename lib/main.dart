@@ -55,12 +55,17 @@ class AuthService {
     required String lastName,
     required String gender,
     required String dob,
-    required String email,
+    required String emailOrPhone,
     required String password,
   }) async {
     try {
+      String finalEmail = emailOrPhone.trim();
+      if (!finalEmail.contains('@')) {
+        finalEmail = '$finalEmail@thalo.app';
+      }
+
       UserCredential credential = await _auth.createUserWithEmailAndPassword(
-        email: email.trim(),
+        email: finalEmail,
         password: password,
       );
       User? user = credential.user;
@@ -75,7 +80,7 @@ class AuthService {
           'fullName': fullName.trim(),
           'gender': gender,
           'dob': dob,
-          'email': email.trim(),
+          'emailOrPhone': emailOrPhone.trim(),
           'createdAt': FieldValue.serverTimestamp(),
         });
       }
@@ -121,22 +126,22 @@ String getLocalizedError(String errorCode, String lang) {
       'Urdu': 'गलत پاس ورڈ۔ براہ کرم دوبارہ کوشش کریں۔',
     },
     'user-not-found': {
-      'English': 'No user found with this email.',
-      'नेपाली': 'यो इमेलसँग सम्बन्धित कुनै खाता फेला परेन।',
-      'हिन्दी': 'इस ईमेल से कोई उपयोगकर्ता नहीं मिला।',
-      'Urdu': 'اس ای میل کے ساتھ کوئی صارف نہیں ملا।',
+      'English': 'No user found with this email/phone.',
+      'नेपाली': 'यो इमेल वा फोन नम्बरसँग सम्बन्धित कुनै खाता फेला परेन।',
+      'हिन्दी': 'इस ईमेल या फोन से कोई उपयोगकर्ता नहीं मिला।',
+      'Urdu': 'اس ای میل یا فون کے ساتھ کوئی صارف نہیں ملا।',
     },
     'invalid-credential': {
-      'English': 'Invalid email or password.',
-      'नेपाली': 'इमेल वा पासवर्ड मिलेन।',
-      'हिन्दी': 'अमान्य ईमेल या पासवर्ड।',
-      'Urdu': 'غلط ای میل یا پاس ورڈ۔',
+      'English': 'Invalid email/phone or password.',
+      'नेपाली': 'इमेल/फोन वा पासवर्ड मिलेन।',
+      'हिन्दी': 'अमान्य ईमेल/फोन या पासवर्ड।',
+      'Urdu': 'غلط ای میل/فون یا پاس ورڈ۔',
     },
     'email-already-in-use': {
-      'English': 'This email is already registered.',
-      'नेपाली': 'यो इमेल पहिल्यै दर्ता भइसकेको छ।',
-      'हिन्दी': 'यह ईमेल पहले से पंजीकृत है।',
-      'Urdu': 'یہ ای میل پہلے سے رجسٹرڈ ہے۔',
+      'English': 'This email or phone is already registered.',
+      'नेपाली': 'यो इमेल वा फोन नम्बर पहिल्यै दर्ता भइसकेको छ।',
+      'हिन्दी': 'यह ईमेल या फोन पहले से पंजीकृत है।',
+      'Urdu': 'یہ ای میل یا فون پہلے سے رجسٹرڈ ہے۔',
     },
     'weak-password': {
       'English': 'The password is too weak.',
@@ -181,7 +186,7 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
   final Map<String, Map<String, String>> _texts = {
     'English': {
       'title': 'Log in to your account',
-      'email': 'Email Address',
+      'email': 'Email or Phone Number',
       'pass': 'Password',
       'btn': 'Log In',
       'noAcc': "Don't have an account?",
@@ -189,7 +194,7 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
     },
     'नेपाली': {
       'title': 'आफ्नो खातामा लगइन गर्नुहोस्',
-      'email': 'इमेल ठेगाना',
+      'email': 'इमेल वा फोन नम्बर',
       'pass': 'पासवर्ड',
       'btn': 'लगइन गर्नुहोस्',
       'noAcc': 'खाता छैन?',
@@ -197,7 +202,7 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
     },
     'हिन्दी': {
       'title': 'अपने खाते में लॉगिन करें',
-      'email': 'ईमेल पता',
+      'email': 'ईमेल या फोन नंबर',
       'pass': 'पासवर्ड',
       'btn': 'लॉगिन करें',
       'noAcc': 'खाता नहीं है?',
@@ -205,7 +210,7 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
     },
     'Urdu': {
       'title': 'اپنے اکاؤنٹ میں لاگ ان کریں',
-      'email': 'ای میل کا پتہ',
+      'email': 'ای میل یا فون نمبر',
       'pass': 'پاس ورڈ',
       'btn': 'لاگ ان کریں',
       'noAcc': 'اکاؤنٹ نہیں ہے؟',
@@ -217,8 +222,12 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
     try {
+      String loginInput = _emailController.text.trim();
+      if (!loginInput.contains('@')) {
+        loginInput = '$loginInput@thalo.app';
+      }
       await AuthService().login(
-        email: _emailController.text,
+        email: loginInput,
         password: _passwordController.text,
       );
       if (!mounted) return;
@@ -273,9 +282,9 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
                       ),
-                      prefixIcon: const Icon(Icons.mail_outline, color: Colors.grey),
+                      prefixIcon: const Icon(Icons.person_outline, color: Colors.grey),
                     ),
-                    validator: (v) => (v == null || !v.contains('@')) ? 'Invalid email' : null,
+                    validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
@@ -356,7 +365,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
   final _firstNameC = TextEditingController();
   final _middleNameC = TextEditingController();
   final _lastNameC = TextEditingController();
-  final _emailC = TextEditingController();
+  final _emailOrPhoneC = TextEditingController();
   final _passC = TextEditingController();
   final _dobC = TextEditingController();
 
@@ -375,7 +384,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       'lName': 'Last Name',
       'gender': 'Select Gender',
       'dob': 'Date of Birth',
-      'email': 'Email Address',
+      'email': 'Email or Phone Number',
       'pass': 'Create Password',
       'next': 'Next',
       'btn': 'Sign Up',
@@ -393,7 +402,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       'lName': 'थर',
       'gender': 'लिङ्ग छान्नुहोस्',
       'dob': 'जन्म मिति',
-      'email': 'इमेल ठेगाना',
+      'email': 'इमेल वा फोन नम्बर',
       'pass': 'पासवर्ड सिर्जना गर्नुहोस्',
       'next': 'अर्को',
       'btn': 'साइन अप गर्नुहोस्',
@@ -411,7 +420,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       'lName': 'उपनाम',
       'gender': 'लिंग चुनें',
       'dob': 'जन्म तिथि',
-      'email': 'ईमेल पता',
+      'email': 'ईमेल या फोन नंबर',
       'pass': 'पासवर्ड बनाएं',
       'next': 'अगला',
       'btn': 'साइन अप करें',
@@ -429,7 +438,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       'lName': 'آخری نام',
       'gender': 'صنف منتخب کریں',
       'dob': 'تاریخ پیدائش',
-      'email': 'ای میل کا پتہ',
+      'email': 'ای میل یا فون نمبر',
       'pass': 'پاس ورڈ بنائیں',
       'next': 'اگلا',
       'btn': 'سائن اپ کریں',
@@ -495,7 +504,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
         lastName: _lastNameC.text,
         gender: _selectedGender ?? '',
         dob: _dobC.text,
-        email: _emailC.text,
+        emailOrPhone: _emailOrPhoneC.text,
         password: _passC.text,
       );
       if (!mounted) return;
@@ -574,240 +583,4 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                             prefixIcon: const Icon(Icons.person_outline, color: Colors.grey),
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _lastNameC,
-                          decoration: InputDecoration(
-                            hintText: t['lName'],
-                            filled: true,
-                            fillColor: const Color(0xfff5f6f8),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                            prefixIcon: const Icon(Icons.person_outline, color: Colors.grey),
-                          ),
-                          validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
-                        ),
-                        const SizedBox(height: 16),
-                        DropdownButtonFormField<String>(
-                          value: _selectedGender,
-                          decoration: InputDecoration(
-                            hintText: t['gender'],
-                            filled: true,
-                            fillColor: const Color(0xfff5f6f8),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                            prefixIcon: const Icon(Icons.transgender, color: Colors.grey),
-                          ),
-                          items: [
-                            DropdownMenuItem(value: 'Male', child: Text(t['male']!)),
-                            DropdownMenuItem(value: 'Female', child: Text(t['female']!)),
-                            DropdownMenuItem(value: 'Other', child: Text(t['other']!)),
-                          ],
-                          onChanged: (val) => setState(() => _selectedGender = val),
-                        ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _dobC,
-                          readOnly: true,
-                          onTap: () async {
-                            DateTime? picked = await showDatePicker(
-                              context: context,
-                              initialDate: DateTime(2000),
-                              firstDate: DateTime(1940),
-                              lastDate: DateTime.now(),
-                            );
-                            if (picked != null) {
-                              _dobC.text =
-                                  "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
-                              _calculateAge(picked);
-                            }
-                          },
-                          decoration: InputDecoration(
-                            hintText: t['dob'],
-                            filled: true,
-                            fillColor: const Color(0xfff5f6f8),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                            prefixIcon: const Icon(Icons.cake_outlined, color: Colors.grey),
-                          ),
-                          validator: (v) => (v == null || v.isEmpty) ? 'Select DOB' : null,
-                        ),
-                        if (_ageString.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            _ageString,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(color: Colors.blueGrey, fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                        const SizedBox(height: 28),
-                        ElevatedButton(
-                          onPressed: _goToStep2,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black87,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: Text(t['next']!, style: const TextStyle(color: Colors.white, fontSize: 16)),
-                        ),
-                        const SizedBox(height: 20),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(t['hasAcc']!, style: const TextStyle(color: Colors.grey, fontSize: 13)),
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: Text(
-                                t['link']!,
-                                style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 13),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        buildLangBar(_lang, (l) {
-                          setState(() {
-                            _lang = l;
-                            if (_dobC.text.isNotEmpty) {
-                              try {
-                                DateTime parsedDate = DateTime.parse(_dobC.text);
-                                _calculateAge(parsedDate);
-                              } catch (_) {}
-                            }
-                          });
-                        }),
-                      ],
-                    ),
-                  )
-                : Form(
-                    key: _formKey2,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          t['title2']!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 25),
-                        TextFormField(
-                          controller: _emailC,
-                          decoration: InputDecoration(
-                            hintText: t['email'],
-                            filled: true,
-                            fillColor: const Color(0xfff5f6f8),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                            prefixIcon: const Icon(Icons.mail_outline, color: Colors.grey),
-                          ),
-                          validator: (v) => (v == null || !v.contains('@')) ? 'Invalid email' : null,
-                        ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _passC,
-                          obscureText: _obscurePassword,
-                          decoration: InputDecoration(
-                            hintText: t['pass'],
-                            filled: true,
-                            fillColor: const Color(0xfff5f6f8),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                            prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
-                            suffixIcon: IconButton(
-                              icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                            ),
-                          ),
-                          validator: (v) => (v == null || v.length < 6) ? 'Min 6 characters' : null,
-                        ),
-                        const SizedBox(height: 28),
-                        ElevatedButton(
-                          onPressed: _isLoading ? null : _submit,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black87,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: _isLoading
-                              ? const CircularProgressIndicator(color: Colors.white)
-                              : Text(t['btn']!, style: const TextStyle(color: Colors.white, fontSize: 16)),
-                        ),
-                        const SizedBox(height: 20),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(t['hasAcc']!, style: const TextStyle(color: Colors.grey, fontSize: 13)),
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: Text(
-                                t['link']!,
-                                style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 13),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        buildLangBar(_lang, (l) => setState(() => _lang = l)),
-                      ],
-                    ),
-                  ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ================= ThaloNavigationScreen =================
-class ThaloNavigationScreen extends StatefulWidget {
-  const ThaloNavigationScreen({super.key});
-
-  @override
-  State<ThaloNavigationScreen> createState() => _ThaloNavigationScreenState();
-}
-
-class _ThaloNavigationScreenState extends State<ThaloNavigationScreen> {
-  String _lang = 'English';
-  final Map<String, String> _texts = {
-    'English': 'Welcome to Thalo Home Screen!',
-    'नेपाली': 'थलो होम स्क्रिनमा स्वागत छ!',
-    'हिन्दी': 'थलो होम स्क्रीन में आपका स्वागत है!',
-    'Urdu': 'تھلو ہوم اسکرین میں خوش آمدید!',
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: _lang == 'Urdu' ? TextDirection.rtl : TextDirection.ltr,
-      child: Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                _texts[_lang]!,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 30),
-              buildLangBar(_lang, (l) => setState(() => _lang = l)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+                    
