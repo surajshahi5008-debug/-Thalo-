@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -54,7 +55,7 @@ Widget buildLangBar(String currentLang, Function(String) onSelected) {
   );
 }
 
-// ================= Number Localizer (अंकहरू भाषाअनुसार बदल्ने) =================
+// ================= Number Localizer =================
 String _localizeNumber(String input, String lang) {
   if (lang != 'नेपाली' && lang != 'नेपाल भाषा' && lang != 'हिन्दी' && lang != 'Urdu') {
     return input;
@@ -213,12 +214,9 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
                           color: activeCalendarType == 'AD' ? Colors.black87 : Colors.grey[300],
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text(
+                        child: const Text(
                           'AD',
-                          style: TextStyle(
-                            color: activeCalendarType == 'AD' ? Colors.white : Colors.black87,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
@@ -332,37 +330,27 @@ class ThaloVerificationNoticeScreen extends StatelessWidget {
     final Map<String, Map<String, String>> texts = {
       'English': {
         'title': isEmail ? 'Verify Your Email' : 'Verify Your Phone',
-        'desc': isEmail 
-            ? 'We have sent a verification link to your email. Please check your inbox and click the link to verify.' 
-            : 'We have sent a 6-digit OTP to your phone number via SMS.',
+        'desc': isEmail ? 'We have sent a verification link to your email.' : 'We have sent a 6-digit OTP to your phone.',
         'btn': 'Go to Home',
       },
       'नेपाली': {
         'title': isEmail ? 'तपाईंको इमेल पुष्टि गर्नुहोस्' : 'तपाईंको फोन नम्बर पुष्टि गर्नुहोस्',
-        'desc': isEmail 
-            ? 'हामीले तपाईंको इमेलमा भेरिफिकेसन लिङ्क पठाएका छौं। कृपया इमेल खोलेर लिङ्कमा क्लिक गर्नुहोस्।' 
-            : 'हामीले तपाईंको फोन नम्बरमा SMS मार्फत ६ अंकको OTP पठाएका छौं।',
+        'desc': isEmail ? 'इमेलमा भेरिफिकेसन लिङ्क पठाइएको छ।' : 'फोनमा OTP पठाइएको छ।',
         'btn': 'गृह पृष्ठमा जानुहोस्',
       },
       'नेपाल भाषा': {
         'title': isEmail ? 'जिगु इमेल निश्चित यानादिसँ' : 'जिगु फोन नम्बर निश्चित यानादिसँ',
-        'desc': isEmail 
-            ? 'जिपिं जिगु इमेलय् भेरिफिकेसन लिंक छ्वयाबियागु दु। छगु इमेल स्वयाः भेरिफाइ यानादिसँ।' 
-            : 'जिपिं जिगु फोन नम्बरय् SMS पाखें ६ अंकया OTP छ्वयाबियागु दु।',
+        'desc': isEmail ? 'इमेलय् लिंक छ्वयाबियागु दु।' : 'फोन नम्बरय् OTP छ्वयाबियागु दु।',
         'btn': 'छेँय् वनेगु',
       },
       'हिन्दी': {
         'title': isEmail ? 'अपना ईमेल सत्यापित करें' : 'अपना फोन सत्यापित करें',
-        'desc': isEmail 
-            ? 'हमने आपके ईमेल पर एक सत्यापन लिंक भेजा है। कृपया अपना इनबॉक्स जांचें।' 
-            : 'हमने आपके फोन पर 6-अंक का OTP भेजा है।',
+        'desc': isEmail ? 'ईमेल पर सत्यापन लिंक भेजा गया है।' : 'फोन पर OTP भेजा गया है।',
         'btn': 'होम स्क्रीन पर जाएं',
       },
       'Urdu': {
         'title': isEmail ? 'اپنا ای میل تصدیق کریں' : 'اپنا فون تصدیق کریں',
-        'desc': isEmail 
-            ? 'ہم نے آپ کے ای میل پر تصدیقی لنک بھیج دیا ہے۔' 
-            : 'ہم نے آپ کے فون پر 6 ہندسوں کا OTP بھیج دیا ہے۔',
+        'desc': isEmail ? 'ای میل پر لنک بھیج دیا گیا ہے۔' : 'فون پر OTP بھیج دیا گیا ہے۔',
         'btn': 'ہوم سکرین پر جائیں',
       }
     };
@@ -535,7 +523,7 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
                     children: [
                       Text(t['noAcc']!, style: const TextStyle(color: Colors.grey, fontSize: 13)),
                       TextButton(
-                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ThaloRegisterScreen())),
+                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ThaloRegisterScreen(initialLang: _lang))),
                         child: Text(t['link']!, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 13)),
                       ),
                     ],
@@ -554,7 +542,8 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
 
 // ================= ThaloRegisterScreen =================
 class ThaloRegisterScreen extends StatefulWidget {
-  const ThaloRegisterScreen({super.key});
+  final String initialLang;
+  const ThaloRegisterScreen({super.key, required this.initialLang});
 
   @override
   State<ThaloRegisterScreen> createState() => _ThaloRegisterScreenState();
@@ -577,7 +566,13 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
   String _birthdayMessage = '';
   String _birthdayWish = '';
   bool _obscurePassword = true;
-  String _lang = 'English';
+  late String _lang;
+
+  @override
+  void initState() {
+    super.initState();
+    _lang = widget.initialLang;
+  }
 
   final Map<String, Map<String, String>> _texts = {
     'English': {
@@ -737,13 +732,13 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                 String cAgeStr = _localizeNumber('$celebratingAge', _lang);
                 
                 if (_lang == 'नेपाली') {
-                  _birthdayMessage = 'तपाईंको आज $cAgeStr औं जन्मदिन रहेको छ।';
+                  _birthdayMessage = 'तपाईंको आज $cAgeStrऔं जन्मदिन रहेको छ।';
                   _birthdayWish = '🎉 थलोको तर्फबाट तपाईंलाई जन्मदिनको हार्दिक मंगलमय शुभकामना! 🎉';
                 } else if (_lang == 'नेपाल भाषा') {
-                  _birthdayMessage = 'जिगु थौं $cAgeStr औं बुगुन्हि जुयाच्वंगु दु।';
+                  _birthdayMessage = 'जिगु थौं $cAgeStrऔं बुगुन्हि जुयाच्वंगु दु।';
                   _birthdayWish = '🎉 थलो पाखें जिगु बुगुन्हिया भिंतुना! 🎉';
                 } else if (_lang == 'हिन्दी') {
-                  _birthdayMessage = 'आपका आज $cAgeStr वां जन्मदिन है।';
+                  _birthdayMessage = 'आपका आज $cAgeStrवां जन्मदिन है।';
                   _birthdayWish = '🎉 थलो की ओर से आपको जन्मदिन की हार्दिक शुभकामनाएं! 🎉';
                 } else if (_lang == 'Urdu') {
                   _birthdayMessage = 'آج آپ کی سالگرہ ہے۔';
@@ -759,15 +754,15 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                 String nthStr = _localizeNumber('$nthAge', _lang);
                 
                 if (_lang == 'नेपाली') {
-                  _birthdayMessage = 'तपाईंको $nthStr जन्मदिन $diffStr दिनपछि आउँदैछ।';
+                  _birthdayMessage = 'तपाईंको $nthStrऔं जन्मदिन $diffStr दिनपछि आउँदैछ।';
                 } else if (_lang == 'नेपाल भाषा') {
-                  _birthdayMessage = 'जिगु $nthStr गुगु बुगुन्हि $diffStr दिं लिपा वयाच्वंगु दु।';
+                  _birthdayMessage = 'जिगु $nthStrऔं गुगु बुगुन्हि $diffStr दिं लिपा वयाच्वंगु दु।';
                 } else if (_lang == 'हिन्दी') {
-                  _birthdayMessage = 'आपका $nthStr जन्मदिन $diffStr दिन बाद आ रहा है।';
+                  _birthdayMessage = 'आपका $nthStrवां जन्मदिन $diffStr दिन बाद आ रहा है।';
                 } else if (_lang == 'Urdu') {
                   _birthdayMessage = 'آپ کی اگلی سالگرہ $diffStr دن کے بعد آ رہی ہے۔';
                 } else {
-                  _birthdayMessage = 'Your $nthStr birthday is coming up in $diffStr days.';
+                  _birthdayMessage = 'Your $nthStr-th birthday is coming up in $diffStr days.';
                 }
               }
 
@@ -994,7 +989,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
   }
 }
 
-// ================= ThaloNavigationScreen =================
+// ================= ThaloNavigationScreen (Home with Progressive Sound & Animations) =================
 class ThaloNavigationScreen extends StatefulWidget {
   final String lang;
   const ThaloNavigationScreen({super.key, required this.lang});
@@ -1003,25 +998,95 @@ class ThaloNavigationScreen extends StatefulWidget {
   State<ThaloNavigationScreen> createState() => _ThaloNavigationScreenState();
 }
 
-class _ThaloNavigationScreenState extends State<ThaloNavigationScreen> {
+class _ThaloNavigationScreenState extends State<ThaloNavigationScreen> with TickerProviderStateMixin {
   late String _lang;
+  final AudioPlayer _audioPlayer = AudioPlayer();
+
+  // Animation controllers for words
+  late AnimationController _ctrl1;
+  late AnimationController _ctrl2;
+  late AnimationController _ctrl3;
+
+  late Animation<double> _scale1;
+  late Animation<double> _scale2;
+  late Animation<double> _scale3;
 
   @override
   void initState() {
     super.initState();
     _lang = widget.lang;
+
+    _ctrl1 = AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
+    _ctrl2 = AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
+    _ctrl3 = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+
+    _scale1 = CurvedAnimation(parent: _ctrl1, curve: Curves.easeOutBack);
+    _scale2 = CurvedAnimation(parent: _ctrl2, curve: Curves.easeOutBack);
+    _scale3 = CurvedAnimation(parent: _ctrl3, curve: Curves.easeOutBack);
+
+    _startSequence();
   }
 
-  final Map<String, String> _texts = {
-    'English': 'Connect, Create and Be Happy',
-    'नेपाली': 'जोडिनुहोस्, सिर्जना गर्नुहोस् र खुसी रहनुहोस्',
-    'नेपाल भाषा': 'स्वापू तयादिसँ, सिर्जना यानादिसँ व तनाः च्वनादिसँ',
-    'हिन्दी': 'जुड़ें, बनाएं और खुश रहें',
-    'Urdu': 'جڑیں، تخلیق کریں اور خوش رہیں',
+  void _playTing(double volume, double pitch) async {
+    try {
+      await _audioPlayer.setVolume(volume);
+      await _audioPlayer.setPlaybackRate(pitch);
+      // Ensure you have a 'ting.mp3' asset in your assets folder, or this gracefully catches missing asset errors
+      await _audioPlayer.play(AssetSource('ting.mp3'));
+    } catch (e) {
+      debugPrint("Audio play note: $e");
+    }
+  }
+
+  void _startSequence() async {
+    // 1st Word Pop
+    await Future.delayed(const Duration(milliseconds: 400));
+    if (!mounted) return;
+    _ctrl1.forward();
+    _playTing(0.3, 0.8); // Smaller volume, lower/normal pitch
+
+    // 2nd Word Pop
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (!mounted) return;
+    _ctrl2.forward();
+    _playTing(0.6, 1.0); // Medium volume, medium pitch
+
+    // 3rd Word (Blink in/shrink first with medium-low sound, then pop out with max sound)
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (!mounted) return;
+    
+    // Blink In (Shrink/Fade step)
+    _playTing(0.5, 1.1); 
+    await _ctrl3.animateTo(0.5, duration: const Duration(milliseconds: 150));
+    await Future.delayed(const Duration(milliseconds: 100));
+    if (!mounted) return;
+
+    // Blink Out (Final Pop to full size)
+    _playTing(1.0, 1.3); // Loudest volume, highest crisp pitch
+    await _ctrl3.forward();
+  }
+
+  @override
+  void dispose() {
+    _ctrl1.dispose();
+    _ctrl2.dispose();
+    _ctrl3.dispose();
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
+  final Map<String, List<String>> _wordsMap = {
+    'English': ['Connect,', 'Create', 'and Be Happy'],
+    'नेपाली': ['जोडिनुहोस्,', 'सिर्जना गर्नुहोस्', 'र खुसी रहनुहोस्'],
+    'नेपाल भाषा': ['स्वापू तयादिसँ,', 'सिर्जना यानादिसँ', 'व तनाः च्वनादिसँ'],
+    'हिन्दी': ['जुड़ें,', 'बनाएं', 'और खुश रहें'],
+    'Urdu': ['جڑیں،', 'تخلیق کریں', 'اور خوش رہیں'],
   };
 
   @override
   Widget build(BuildContext context) {
+    final words = _wordsMap[_lang] ?? _wordsMap['English']!;
+
     return Directionality(
       textDirection: _lang == 'Urdu' ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
@@ -1046,10 +1111,33 @@ class _ThaloNavigationScreenState extends State<ThaloNavigationScreen> {
         body: Center(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Text(
-              _texts[_lang] ?? _texts['English']!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8.0,
+              runSpacing: 8.0,
+              children: [
+                ScaleTransition(
+                  scale: _scale1,
+                  child: Text(
+                    words[0],
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
+                  ),
+                ),
+                ScaleTransition(
+                  scale: _scale2,
+                  child: Text(
+                    words[1],
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
+                  ),
+                ),
+                ScaleTransition(
+                  scale: _scale3,
+                  child: Text(
+                    words[2],
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
