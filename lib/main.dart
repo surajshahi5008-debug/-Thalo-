@@ -148,8 +148,8 @@ String getLocalizedError(String errorCode, String lang) {
       'Urdu': 'یہ ای میل یا فون پہلے سے رجسٹرڈ ہے۔',
     },
     'weak-password': {
-      'English': 'The password is too weak.',
-      'नेपाली': 'पासवर्ड धेरै कमजोर भयो। कम्तीमा ६ अक्षर हुनुपर्छ।',
+      'English': 'The password is too weak (Min 6 chars).',
+      'नेपाली': 'पासवर्ड धेरै कमजोर भयो (कम्तीमा ६ अक्षर)।',
       'हिन्दी': 'पासवर्ड बहुत कमज़ोर है।',
       'Urdu': 'پاس ورڈ بہت کمزور ہے۔',
     },
@@ -161,13 +161,13 @@ String getLocalizedError(String errorCode, String lang) {
 
   switch (lang) {
     case 'नेपाली':
-      return 'केही त्रुटि भयो। कृपया फेरि प्रयास गर्नुहोस्।';
+      return 'त्रुटि: $errorCode';
     case 'हिन्दी':
-      return 'कुछ त्रुटि हुई। कृपया पुनः प्रयास करें।';
+      return 'त्रुटि: $errorCode';
     case 'Urdu':
-      return 'کچھ غلط ہو گیا۔ براہ مہربانی دوبارہ کوشش کریں۔';
+      return 'خرابی: $errorCode';
     default:
-      return 'An error occurred. Please try again.';
+      return 'Error: $errorCode';
   }
 }
 
@@ -349,7 +349,7 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
   }
 }
 
-// ================= ThaloRegisterScreen (Multi-step) =================
+// ================= ThaloRegisterScreen =================
 class ThaloRegisterScreen extends StatefulWidget {
   const ThaloRegisterScreen({super.key});
 
