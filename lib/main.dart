@@ -78,10 +78,12 @@ List<String> getLocalizedMonths(String langCode, String calendarType) {
   }
   
   switch (langCode) {
-    case 'नेपाली':
-      return ['वैशाख', 'जेठ', 'आषाढ', 'श्रावण', 'भाद्र', 'आश्विन', 'कार्तिक', 'मार्गशीर्ष', 'पौष', 'माघ', 'फाल्गुन', 'चैत्र'];
     case 'हिन्दी':
       return ['जनवरी', 'फरवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'];
+    case 'नेपाली':
+    case 'नेपाल भाषा':
+    case 'Urdu':
+    case 'English':
     default:
       return ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   }
@@ -690,7 +692,6 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
               DateTime parsed = DateTime(year, month, day);
               DateTime today = DateTime.now();
 
-              // सही उमेर गणना
               int ageYears = today.year - parsed.year;
               int ageMonths = today.month - parsed.month;
               int ageDays = today.day - parsed.day;
@@ -706,7 +707,6 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                 ageMonths += 12;
               }
 
-              // उमेर स्ट्रिङ निर्माण
               String yStr = _localizeNumber('$ageYears', _lang);
               String mStr = _localizeNumber('$ageMonths', _lang);
               String dStr = _localizeNumber('$ageDays', _lang);
@@ -723,7 +723,6 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                 _ageString = 'Age: $yStr years, $mStr months and $dStr days';
               }
 
-              // --- जन्मदिन र आगामी दिनहरूको सही गणना ---
               DateTime nextBday = DateTime(today.year, parsed.month, parsed.day);
               if (nextBday.isBefore(today) || nextBday.isAtSameMomentAs(today)) {
                 if (!(nextBday.month == today.month && nextBday.day == today.day)) {
@@ -733,29 +732,28 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
 
               int diffDays = nextBday.difference(today).inDays;
               
-              // यदि आज नै जन्मदिन परेको छ भने
               if (parsed.month == today.month && parsed.day == today.day) {
                 int celebratingAge = today.year - parsed.year;
                 String cAgeStr = _localizeNumber('$celebratingAge', _lang);
                 
                 if (_lang == 'नेपाली') {
-                  _birthdayMessage = 'तपाईंको आज $cऔं जन्मदिन रहेको छ।';
+                  _birthdayMessage = 'तपाईंको आज $cAgeStr औं जन्मदिन रहेको छ।';
                   _birthdayWish = '🎉 थलोको तर्फबाट तपाईंलाई जन्मदिनको हार्दिक मंगलमय शुभकामना! 🎉';
                 } else if (_lang == 'नेपाल भाषा') {
-                  _birthdayMessage = 'जिगु थौं $cऔं बुगुन्हि जुयाच्वंगु दु।'.replaceAll('$c', cAgeStr);
+                  _birthdayMessage = 'जिगु थौं $cAgeStr औं बुगुन्हि जुयाच्वंगु दु।';
                   _birthdayWish = '🎉 थलो पाखें जिगु बुगुन्हिया भिंतुना! 🎉';
                 } else if (_lang == 'हिन्दी') {
-                  _birthdayMessage = 'आपका आज $cवां जन्मदिन है।'.replaceAll('$c', cAgeStr);
+                  _birthdayMessage = 'आपका आज $cAgeStr वां जन्मदिन है।';
                   _birthdayWish = '🎉 थलो की ओर से आपको जन्मदिन की हार्दिक शुभकामनाएं! 🎉';
                 } else if (_lang == 'Urdu') {
                   _birthdayMessage = 'آج آپ کی سالگرہ ہے۔';
                   _birthdayWish = '🎉 تھلو کی طرف سے آپ کو سالگرہ بہت مبارک ہو! 🎉';
                 } else {
-                  _birthdayMessage = 'Today is your $c-th birthday.'.replaceAll('$c', cAgeStr);
+                  _birthdayMessage = 'Today is your $cAgeStr-th birthday.';
                   _birthdayWish = '🎉 Happy Birthday! Wishing you a wonderful birthday from Thalo! 🎉';
                 }
               } else {
-                _birthdayWish = ''; // आज जन्मदिन नभए शुभकामना नदेखाइने
+                _birthdayWish = ''; 
                 int nthAge = ageYears + 1;
                 String diffStr = _localizeNumber('$diffDays', _lang);
                 String nthStr = _localizeNumber('$nthAge', _lang);
