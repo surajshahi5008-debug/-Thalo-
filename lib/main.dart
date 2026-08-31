@@ -54,6 +54,21 @@ Widget buildLangBar(String currentLang, Function(String) onSelected) {
   );
 }
 
+// ================= Number Localizer (अंकहरू भाषाअनुसार बदल्ने) =================
+String _localizeNumber(String input, String lang) {
+  if (lang != 'नेपाली' && lang != 'नेपाल भाषा' && lang != 'हिन्दी' && lang != 'Urdu') {
+    return input;
+  }
+  const english = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+  const localized = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
+  
+  String result = input;
+  for (int i = 0; i < english.length; i++) {
+    result = result.replaceAll(english[i], localized[i]);
+  }
+  return result;
+}
+
 // ================= Helper: Localized Month Names =================
 List<String> getLocalizedMonths(String langCode, String calendarType) {
   if (calendarType == 'वि.सं.') {
@@ -157,7 +172,6 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // --- सुधार गरिएको क्यालेन्डर स्विच बटन (स्पष्ट कन्ट्रास्टसहित) ---
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -219,7 +233,6 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
               ],
             ),
             const SizedBox(height: 24),
-            // --- महिनाको नाम स्थानीयकरण गरिएको ड्रपडाउन ---
             Row(
               children: [
                 Expanded(
@@ -231,7 +244,10 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
                       child: DropdownButton<int>(
                         value: years.contains(selectedYear) ? selectedYear : currentBaseYear,
                         isExpanded: true,
-                        items: years.map((y) => DropdownMenuItem(value: y, child: Text('$y'))).toList(),
+                        items: years.map((y) => DropdownMenuItem(
+                          value: y, 
+                          child: Text(_localizeNumber('$y', widget.appLanguage)),
+                        )).toList(),
                         onChanged: (val) => setState(() => selectedYear = val!),
                       ),
                     ),
@@ -266,7 +282,10 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
                       child: DropdownButton<int>(
                         value: selectedDay,
                         isExpanded: true,
-                        items: days.map((d) => DropdownMenuItem(value: d, child: Text('$d'))).toList(),
+                        items: days.map((d) => DropdownMenuItem(
+                          value: d, 
+                          child: Text(_localizeNumber('$d', widget.appLanguage)),
+                        )).toList(),
                         onChanged: (val) => setState(() => selectedDay = val!),
                       ),
                     ),
@@ -298,7 +317,7 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
   }
 }
 
-// ================= Verification Notice Screen (नेपाल भाषासहित) =================
+// ================= Verification Notice Screen =================
 class ThaloVerificationNoticeScreen extends StatelessWidget {
   final String contactInfo;
   final String lang;
@@ -553,6 +572,8 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
 
   String? _selectedGender;
   String _ageString = '';
+  String _birthdayMessage = '';
+  String _birthdayWish = '';
   bool _obscurePassword = true;
   String _lang = 'English';
 
@@ -669,7 +690,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
               DateTime parsed = DateTime(year, month, day);
               DateTime today = DateTime.now();
 
-              // --- सुधार गरिएको सही वर्ष, महिना र दिन गणना लजिक ---
+              // सही उमेर गणना
               int ageYears = today.year - parsed.year;
               int ageMonths = today.month - parsed.month;
               int ageDays = today.day - parsed.day;
@@ -685,19 +706,77 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                 ageMonths += 12;
               }
 
+              // उमेर स्ट्रिङ निर्माण
+              String yStr = _localizeNumber('$ageYears', _lang);
+              String mStr = _localizeNumber('$ageMonths', _lang);
+              String dStr = _localizeNumber('$ageDays', _lang);
+
               if (_lang == 'नेपाली') {
-                _ageString = 'उमेर: $ageYears वर्ष, $ageMonths महिना र $ageDays दिन';
+                _ageString = 'उमेर: $yStr वर्ष, $mStr महिना र $dStr दिन';
               } else if (_lang == 'नेपाल भाषा') {
-                _ageString = 'उमेर: $ageYears दँ, $ageMonths महिना व $ageDays दिं';
+                _ageString = 'उमेर: $yStr दँ, $mStr महिना व $dStr दिं';
               } else if (_lang == 'हिन्दी') {
-                _ageString = 'आयु: $ageYears वर्ष, $ageMonths महीने और $ageDays दिन';
+                _ageString = 'आयु: $yStr वर्ष, $mStr महीने और $dStr दिन';
               } else if (_lang == 'Urdu') {
-                _ageString = 'عمر: $ageYears سال، $ageMonths مہینے اور $ageDays دن';
+                _ageString = 'عمر: $yStr سال، $mStr مہینے اور $dStr دن';
               } else {
-                _ageString = 'Age: $ageYears years, $ageMonths months and $ageDays days';
+                _ageString = 'Age: $yStr years, $mStr months and $dStr days';
               }
-            } catch (_) {
+
+              // --- जन्मदिन र आगामी दिनहरूको सही गणना ---
+              DateTime nextBday = DateTime(today.year, parsed.month, parsed.day);
+              if (nextBday.isBefore(today) || nextBday.isAtSameMomentAs(today)) {
+                if (!(nextBday.month == today.month && nextBday.day == today.day)) {
+                  nextBday = DateTime(today.year + 1, parsed.month, parsed.day);
+                }
+              }
+
+              int diffDays = nextBday.difference(today).inDays;
+              
+              // यदि आज नै जन्मदिन परेको छ भने
+              if (parsed.month == today.month && parsed.day == today.day) {
+                int celebratingAge = today.year - parsed.year;
+                String cAgeStr = _localizeNumber('$celebratingAge', _lang);
+                
+                if (_lang == 'नेपाली') {
+                  _birthdayMessage = 'तपाईंको आज $cऔं जन्मदिन रहेको छ।';
+                  _birthdayWish = '🎉 थलोको तर्फबाट तपाईंलाई जन्मदिनको हार्दिक मंगलमय शुभकामना! 🎉';
+                } else if (_lang == 'नेपाल भाषा') {
+                  _birthdayMessage = 'जिगु थौं $cऔं बुगुन्हि जुयाच्वंगु दु।'.replaceAll('$c', cAgeStr);
+                  _birthdayWish = '🎉 थलो पाखें जिगु बुगुन्हिया भिंतुना! 🎉';
+                } else if (_lang == 'हिन्दी') {
+                  _birthdayMessage = 'आपका आज $cवां जन्मदिन है।'.replaceAll('$c', cAgeStr);
+                  _birthdayWish = '🎉 थलो की ओर से आपको जन्मदिन की हार्दिक शुभकामनाएं! 🎉';
+                } else if (_lang == 'Urdu') {
+                  _birthdayMessage = 'آج آپ کی سالگرہ ہے۔';
+                  _birthdayWish = '🎉 تھلو کی طرف سے آپ کو سالگرہ بہت مبارک ہو! 🎉';
+                } else {
+                  _birthdayMessage = 'Today is your $c-th birthday.'.replaceAll('$c', cAgeStr);
+                  _birthdayWish = '🎉 Happy Birthday! Wishing you a wonderful birthday from Thalo! 🎉';
+                }
+              } else {
+                _birthdayWish = ''; // आज जन्मदिन नभए शुभकामना नदेखाइने
+                int nthAge = ageYears + 1;
+                String diffStr = _localizeNumber('$diffDays', _lang);
+                String nthStr = _localizeNumber('$nthAge', _lang);
+                
+                if (_lang == 'नेपाली') {
+                  _birthdayMessage = 'तपाईंको $nthStr जन्मदिन $diffStr दिनपछि आउँदैछ।';
+                } else if (_lang == 'नेपाल भाषा') {
+                  _birthdayMessage = 'जिगु $nthStr गुगु बुगुन्हि $diffStr दिं लिपा वयाच्वंगु दु।';
+                } else if (_lang == 'हिन्दी') {
+                  _birthdayMessage = 'आपका $nthStr जन्मदिन $diffStr दिन बाद आ रहा है।';
+                } else if (_lang == 'Urdu') {
+                  _birthdayMessage = 'آپ کی اگلی سالگرہ $diffStr دن کے بعد آ رہی ہے۔';
+                } else {
+                  _birthdayMessage = 'Your $nthStr birthday is coming up in $diffStr days.';
+                }
+              }
+
+            } catch (e) {
               _ageString = '';
+              _birthdayMessage = '';
+              _birthdayWish = '';
             }
           });
         },
@@ -815,6 +894,14 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                           const SizedBox(height: 8),
                           Text(_ageString, textAlign: TextAlign.center, style: const TextStyle(color: Colors.blueGrey, fontWeight: FontWeight.w600)),
                         ],
+                        if (_birthdayMessage.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(_birthdayMessage, textAlign: TextAlign.center, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w500, fontSize: 13)),
+                        ],
+                        if (_birthdayWish.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Text(_birthdayWish, textAlign: TextAlign.center, style: const TextStyle(color: Colors.pink, fontWeight: FontWeight.bold, fontSize: 13)),
+                        ],
                         const SizedBox(height: 28),
                         ElevatedButton(
                           onPressed: _goToStep2,
@@ -909,7 +996,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
   }
 }
 
-// ================= ThaloNavigationScreen (भाषाको लाइन हटाइएको) =================
+// ================= ThaloNavigationScreen =================
 class ThaloNavigationScreen extends StatefulWidget {
   final String lang;
   const ThaloNavigationScreen({super.key, required this.lang});
@@ -928,11 +1015,11 @@ class _ThaloNavigationScreenState extends State<ThaloNavigationScreen> {
   }
 
   final Map<String, String> _texts = {
-    'English': 'Welcome to Thalo Home Screen!',
-    'नेपाली': 'थलो होम स्क्रिनमा स्वागत छ!',
-    'नेपाल भाषा': 'थलो होम स्क्रिनय् सुस्वागतम्!',
-    'हिन्दी': 'थलो होम स्क्रीन में आपका स्वागत है!',
-    'Urdu': 'تھلو ہوم اسکرین میں خوش آمدید!',
+    'English': 'Connect, Create and Be Happy',
+    'नेपाली': 'जोडिनुहोस्, सिर्जना गर्नुहोस् र खुसी रहनुहोस्',
+    'नेपाल भाषा': 'स्वापू तयादिसँ, सिर्जना यानादिसँ व तनाः च्वनादिसँ',
+    'हिन्दी': 'जुड़ें, बनाएं और खुश रहें',
+    'Urdu': 'جڑیں، تخلیق کریں اور خوش رہیں',
   };
 
   @override
@@ -959,14 +1046,13 @@ class _ThaloNavigationScreenState extends State<ThaloNavigationScreen> {
           ],
         ),
         body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(_texts[_lang]!, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 10),
-              Text('Current App Language: $_lang', style: const TextStyle(color: Colors.grey)),
-              // नोट: यहाँ तलतर्फ भएको भाषा परिवर्तन गर्ने बार (buildLangBar) हटाइएको छ।
-            ],
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Text(
+              _texts[_lang] ?? _texts['English']!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+            ),
           ),
         ),
       ),
