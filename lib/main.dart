@@ -112,7 +112,7 @@ class AuthService {
 Widget buildLangBar(String currentLang, Function(String) onSelected) {
   return Row(
     mainAxisAlignment: MainAxisAlignment.center,
-    children: ['English', 'नेपाली', 'हिन्दी', 'Urdu'].map((lang) {
+    children: ['English', 'नेपाली', 'नेपाल भाषा', 'हिन्दी', 'Urdu'].map((lang) {
       bool isSel = currentLang == lang;
       return GestureDetector(
         onTap: () => onSelected(lang),
@@ -137,42 +137,49 @@ String getLocalizedError(String errorCode, String lang) {
     'wrong-password': {
       'English': 'Incorrect password. Please try again.',
       'नेपाली': 'गलत पासवर्ड। कृपया फेरि प्रयास गर्नुहोस्।',
+      'नेपाल भाषा': 'जिगु पासवर्ड मिला मखु। हानिं क्यनादिसँ।',
       'हिन्दी': 'गलत पासवर्ड। कृपया पुनः प्रयास करें।',
       'Urdu': 'गलत پاس ورڈ۔ براہ کرم دوبارہ کوشش کریں۔',
     },
     'user-not-found': {
       'English': 'No user found with this email/phone.',
       'नेपाली': 'यो इमेल वा फोन नम्बरसँग सम्बन्धित कुनै खाता फेला परेन।',
+      'नेपाल भाषा': 'थ्व इमेल वा फोन नम्बर नापं स्वापू दुगु छुं खाता मदु।',
       'हिन्दी': 'इस ईमेल या फोन से कोई उपयोगकर्ता नहीं मिला।',
       'Urdu': 'اس ای میل یا فون کے ساتھ کوئی صارف نہیں ملا।',
     },
     'invalid-credential': {
       'English': 'Invalid email/phone or password.',
       'नेपाली': 'इमेल/फोन वा पासवर्ड मिलेन।',
+      'नेपाल भाषा': 'इमेल/फोन वा पासवर्ड मिला मखु।',
       'हिन्दी': 'अमान्य ईमेल/फोन या पासवर्ड।',
       'Urdu': 'غلط ای میل/فون یا پاس ورڈ۔',
     },
     'email-already-in-use': {
       'English': 'This email or phone is already registered.',
       'नेपाली': 'यो इमेल वा फोन नम्बर पहिल्यै दर्ता भइसकेको छ।',
+      'नेपाल भाषा': 'थ्व इमेल वा फोन नम्बर न्ह्यथें हे दर्ता जुइधुंकूगु दु।',
       'हिन्दी': 'यह ईमेल या फोन पहले से पंजीकृत है।',
       'Urdu': 'یہ ای میل یا فون پہلے سے رجسٹرڈ ہے۔',
     },
     'weak-password': {
       'English': 'The password is too weak (Min 6 characters).',
       'नेपाली': 'पासवर्ड धेरै कमजोर भयो (कम्तीमा ६ अक्षर आवश्यक छ)।',
+      'नेपाल भाषा': 'पासवर्ड चिधामुख जूगु दु (कम्तीमा ६ गू आखः माः)।',
       'हिन्दी': 'पासवर्ड बहुत कमज़ोर है (न्यूनतम 6 अक्षर)।',
       'Urdu': 'پاس ورڈ بہت کمزور ہے (کم از کم 6 حروف)۔',
     },
     'invalid-email': {
       'English': 'The format of the email or phone is invalid.',
       'नेपाली': 'इमेल वा फोन नम्बरको ढाँचा मिलेन।',
+      'नेपाल भाषा': 'इमेल वा फोन नम्बरया ढाँचा मिला मखु।',
       'हिन्दी': 'ईमेल या फोन नंबर का प्रारूप अमान्य है।',
       'Urdu': 'ای میل یا فون نمبر کا فارمیٹ غلط ہے۔',
     },
     'network-request-failed': {
       'English': 'Network error. Please check your internet connection.',
       'नेपाली': 'इन्टरनेट जडान असफल भयो। कृपया आफ्नो नेट जाँच गर्नुहोस्।',
+      'नेपाल भाषा': 'इन्टरनेट जडान जुइ मखन। जिगु नेट स्वयादिसँ।',
       'हिन्दी': 'नेटवर्क त्रुटि। कृपया अपना इंटरनेट कनेक्शन जांचें।',
       'Urdu': 'نیٹ ورک کی خرابی۔ براہ کرم اپنا انٹرنیٹ چیک کریں۔',
     },
@@ -200,7 +207,7 @@ class DynamicCalendarPickerDialog extends StatefulWidget {
 }
 
 class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialog> {
-  late String primaryCalendarName;
+  String? primaryCalendarName; // जस्तै 'वि.सं.', 'ने.सं.', 'هجری' वा null (यदि AD मात्र भए)
   late String activeCalendarType;
 
   int selectedYear = 2080;
@@ -210,25 +217,32 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
   @override
   void initState() {
     super.initState();
-    // भाषा अनुसार स्थानीय क्यालेन्डर नाम छुट्याउने
+    
+    // भाषा अनुसार क्यालेन्डरको छोटो नाम निर्धारण
     if (widget.appLanguage == 'नेपाली') {
-      primaryCalendarName = 'BS';
+      primaryCalendarName = 'वि.सं.';
+    } else if (widget.appLanguage == 'नेपाल भाषा') {
+      primaryCalendarName = 'ने.सं.';
     } else if (widget.appLanguage == 'Urdu') {
-      primaryCalendarName = 'Hijri';
-    } else if (widget.appLanguage == 'हिन्दी') {
-      primaryCalendarName = 'VS';
+      primaryCalendarName = 'هجری';
     } else {
-      primaryCalendarName = 'Local';
+      primaryCalendarName = null; // English र हिन्दीको लागि केवल AD मात्र
     }
 
-    activeCalendarType = primaryCalendarName;
+    activeCalendarType = primaryCalendarName ?? 'AD';
     _setToday();
   }
 
   void _setToday() {
     DateTime now = DateTime.now();
-    if (activeCalendarType == primaryCalendarName) {
-      selectedYear = now.year + (widget.appLanguage == 'नेपाली' ? 57 : 0);
+    if (primaryCalendarName != null && activeCalendarType == primaryCalendarName) {
+      if (widget.appLanguage == 'नेपाली') {
+        selectedYear = now.year + 57;
+      } else if (widget.appLanguage == 'नेपाल भाषा') {
+        selectedYear = now.year + 923; // नेपाल सम्वत अफसेट अंदाजी
+      } else {
+        selectedYear = now.year;
+      }
       selectedMonth = now.month;
       selectedDay = now.day;
     } else {
@@ -240,12 +254,13 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
 
   @override
   Widget build(BuildContext context) {
-    List<int> years = activeCalendarType == primaryCalendarName
-        ? List.generate(85, (index) => 2000 + index)
-        : List.generate(80, (index) => 1950 + index);
-
+    // वर्षको लिमिट अनलिमिटेड (विगत १०० वर्षदेखि भविष्यको १०० वर्षसम्म)
+    int currentBaseYear = DateTime.now().year;
+    List<int> years = List.generate(201, (index) => (currentBaseYear - 100) + index);
     List<int> months = List.generate(12, (index) => index + 1);
     List<int> days = List.generate(32, (index) => index + 1);
+
+    bool hasToggle = primaryCalendarName != null;
 
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -254,40 +269,42 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // माथिल्लो भागमा भाषा अनुसारको क्यालेन्डर टगल र Today बटन
+            // क्यालेन्डर स्विच र Today बटन
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
                   children: [
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          activeCalendarType = primaryCalendarName;
-                          selectedYear = 2080;
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: activeCalendarType == primaryCalendarName ? Colors.black87 : Colors.grey[200],
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          primaryCalendarName,
-                          style: TextStyle(
-                            color: activeCalendarType == primaryCalendarName ? Colors.white : Colors.black,
-                            fontWeight: FontWeight.bold,
+                    if (hasToggle) ...[
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            activeCalendarType = primaryCalendarName!;
+                            selectedYear = currentBaseYear + 57;
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: activeCalendarType == primaryCalendarName ? Colors.black87 : Colors.grey[200],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            primaryCalendarName!,
+                            style: TextStyle(
+                              color: activeCalendarType == primaryCalendarName ? Colors.white : Colors.black,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
+                      const SizedBox(width: 8),
+                    ],
                     GestureDetector(
                       onTap: () {
                         setState(() {
                           activeCalendarType = 'AD';
-                          selectedYear = 2000;
+                          selectedYear = currentBaseYear;
                         });
                       },
                       child: Container(
@@ -296,10 +313,10 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
                           color: activeCalendarType == 'AD' ? Colors.black87 : Colors.grey[200],
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text(
+                        child: const Text(
                           'AD',
                           style: TextStyle(
-                            color: activeCalendarType == 'AD' ? Colors.white : Colors.black,
+                            color: Colors.white, // हमेशा AD मात्र भएको बेला वा सेलेक्ट हुँदा
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -325,7 +342,7 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
             ),
             const SizedBox(height: 24),
 
-            // साल, महिना र दिन छान्ने ड्रपडाउन बक्सहरू (तस्बिरको ढाँचा अनुसार)
+            // साल, महिना र दिन छान्ने ड्रपडाउन बक्सहरू
             Row(
               children: [
                 Expanded(
@@ -338,7 +355,7 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<int>(
-                        value: selectedYear,
+                        value: years.contains(selectedYear) ? selectedYear : currentBaseYear,
                         isExpanded: true,
                         items: years.map((y) => DropdownMenuItem(value: y, child: Text('$y'))).toList(),
                         onChanged: (val) => setState(() => selectedYear = val!),
@@ -443,6 +460,14 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
       'btn': 'लगइन गर्नुहोस्',
       'noAcc': 'खाता छैन?',
       'link': 'साइन अप गर्नुहोस्'
+    },
+    'नेपाल भाषा': {
+      'title': 'जिगु खाताय् लगइन यानादिसँ',
+      'email': 'इमेल वा फोन नम्बर',
+      'pass': 'पासवर्ड',
+      'btn': 'लगइन यानादिसँ',
+      'noAcc': 'खाता मदु ला?',
+      'link': 'साइन अप यायेगु'
     },
     'हिन्दी': {
       'title': 'अपने खाते में लॉगिन करें',
@@ -628,6 +653,24 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       'female': 'महिला',
       'other': 'अन्य',
     },
+    'नेपाल भाषा': {
+      'title1': 'व्यक्तिगत विवरण (चरण १)',
+      'title2': 'खाता सुरक्षा (चरण २)',
+      'fName': 'न्हापांग्गु नां',
+      'mName': 'दथुया नां (छ्यायेफु)',
+      'lName': 'थ्वः/थर',
+      'gender': 'लिङ्ग ल्ययादिसँ',
+      'dob': 'बुगु मिति',
+      'email': 'इमेल वा फोन नम्बर',
+      'pass': 'पासवर्ड तयार यानादिसँ',
+      'next': 'लिपांग्गु',
+      'btn': 'साइन अप यानादिसँ',
+      'hasAcc': 'न्हापां नं खाता दु ला?',
+      'link': 'लगइन यायेगु',
+      'male': 'मिजं',
+      'female': 'मिसा',
+      'other': 'गुगुं नं मेगु',
+    },
     'हिन्दी': {
       'title1': 'व्यक्तिगत विवरण (चरण १)',
       'title2': 'खाता सुरक्षा (चरण २)',
@@ -677,16 +720,36 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
             try {
               String clean = formattedDate.split(' ')[0];
               int year = int.parse(clean.split('-')[0]);
-              if (formattedDate.contains('BS') || formattedDate.contains('Hijri')) {
-                year -= (_lang == 'नेपाली' ? 57 : 0);
+              
+              if (formattedDate.contains('वि.सं.')) {
+                year -= 57;
+              } else if (formattedDate.contains('ने.सं.')) {
+                year -= 923;
               }
+
               int month = int.parse(clean.split('-')[1]);
               int day = int.parse(clean.split('-')[2]);
               DateTime parsed = DateTime(year, month, day);
               
               DateTime today = DateTime.now();
-              int ageY = today.year - parsed.year;
-              _ageString = 'उमेर / Age: लगभग $ageY वर्ष';
+              
+              // उमेर वर्ष र दिनमा सही रूपमा निकाल्ने
+              Duration difference = today.difference(parsed);
+              int ageYears = difference.inDays ~/ 365;
+              int ageDays = difference.inDays % 365;
+
+              // भाषा अनुसार उमेरको ढाँचा सेट गर्ने
+              if (_lang == 'नेपाली') {
+                _ageString = 'उमेर: $ageYears वर्ष र $ageDays दिन';
+              } else if (_lang == 'नेपाल भाषा') {
+                _ageString = 'उमेर: $ageYears दँ व $ageDays दिं';
+              } else if (_lang == 'हिन्दी') {
+                _ageString = 'आयु: $ageYears वर्ष और $ageDays दिन';
+              } else if (_lang == 'Urdu') {
+                _ageString = 'عمر: $ageYears سال اور $ageDays دن';
+              } else {
+                _ageString = 'Age: $ageYears years and $ageDays days';
+              }
             } catch (_) {
               _ageString = '';
             }
@@ -934,6 +997,7 @@ class _ThaloNavigationScreenState extends State<ThaloNavigationScreen> {
   final Map<String, String> _texts = {
     'English': 'Welcome to Thalo Home Screen!',
     'नेपाली': 'थलो होम स्क्रिनमा स्वागत छ!',
+    'नेपाल भाषा': 'थलो होम स्क्रिनय् सुस्वागतम्!',
     'हिन्दी': 'थलो होम स्क्रीन में आपका स्वागत है!',
     'Urdu': 'تھلو ہوم اسکرین میں خوش آمدید!',
   };
