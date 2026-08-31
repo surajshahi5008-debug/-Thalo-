@@ -54,6 +54,24 @@ Widget buildLangBar(String currentLang, Function(String) onSelected) {
   );
 }
 
+// ================= Helper: Localized Month Names =================
+List<String> getLocalizedMonths(String langCode, String calendarType) {
+  if (calendarType == 'वि.सं.') {
+    return ['वैशाख', 'जेठ', 'आषाढ', 'श्रावण', 'भाद्र', 'आश्विन', 'कार्तिक', 'मार्गशीर्ष', 'पौष', 'माघ', 'फाल्गुन', 'चैत्र'];
+  } else if (calendarType == 'ने.सं.') {
+    return ['छलागा', 'चौला', 'बछला', 'तछला', 'दिल्ला', 'गुंला', 'ञला', 'कला', 'थिला', 'प्वंला', 'अछला', 'तियाँ'];
+  }
+  
+  switch (langCode) {
+    case 'नेपाली':
+      return ['वैशाख', 'जेठ', 'आषाढ', 'श्रावण', 'भाद्र', 'आश्विन', 'कार्तिक', 'मार्गशीर्ष', 'पौष', 'माघ', 'फाल्गुन', 'चैत्र'];
+    case 'हिन्दी':
+      return ['जनवरी', 'फरवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'];
+    default:
+      return ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  }
+}
+
 // ================= Dynamic Calendar Picker Dialog =================
 class DynamicCalendarPickerDialog extends StatefulWidget {
   final String appLanguage;
@@ -119,7 +137,6 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
     List<int> days = List.generate(32, (index) => index + 1);
     bool hasToggle = primaryCalendarName != null;
 
-    // भाषा अनुसारको शुद्ध शब्द ('पुष्टि गर्नुहोस्')
     String confirmText = 'Confirm';
     if (widget.appLanguage == 'नेपाली') {
       confirmText = 'पुष्टि गर्नुहोस्';
@@ -131,6 +148,8 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
       confirmText = 'تصدیق کریں';
     }
 
+    List<String> localizedMonthNames = getLocalizedMonths(widget.appLanguage, activeCalendarType);
+
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       content: SizedBox(
@@ -138,6 +157,7 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // --- सुधार गरिएको क्यालेन्डर स्विच बटन (स्पष्ट कन्ट्रास्टसहित) ---
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -147,12 +167,12 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
                       GestureDetector(
                         onTap: () => setState(() {
                           activeCalendarType = primaryCalendarName!;
-                          selectedYear = currentBaseYear + 57;
+                          selectedYear = widget.appLanguage == 'नेपाल भाषा' ? currentBaseYear + 923 : currentBaseYear + 57;
                         }),
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                           decoration: BoxDecoration(
-                            color: activeCalendarType == primaryCalendarName ? Colors.black87 : Colors.grey[200],
+                            color: activeCalendarType == primaryCalendarName ? Colors.black87 : Colors.grey[300],
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -174,10 +194,16 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                         decoration: BoxDecoration(
-                          color: activeCalendarType == 'AD' ? Colors.black87 : Colors.grey[200],
+                          color: activeCalendarType == 'AD' ? Colors.black87 : Colors.grey[300],
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text('AD', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        child: Text(
+                          'AD',
+                          style: TextStyle(
+                            color: activeCalendarType == 'AD' ? Colors.white : Colors.black87,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -193,6 +219,7 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
               ],
             ),
             const SizedBox(height: 24),
+            // --- महिनाको नाम स्थानीयकरण गरिएको ड्रपडाउन ---
             Row(
               children: [
                 Expanded(
@@ -212,7 +239,7 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  flex: 1,
+                  flex: 2,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(10)),
@@ -220,7 +247,10 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
                       child: DropdownButton<int>(
                         value: selectedMonth,
                         isExpanded: true,
-                        items: months.map((m) => DropdownMenuItem(value: m, child: Text('$m'))).toList(),
+                        items: months.map((m) => DropdownMenuItem(
+                          value: m, 
+                          child: Text(localizedMonthNames[m - 1], overflow: TextOverflow.ellipsis),
+                        )).toList(),
                         onChanged: (val) => setState(() => selectedMonth = val!),
                       ),
                     ),
@@ -268,7 +298,7 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
   }
 }
 
-// ================= Verification Notice Screen (Email Link or Phone OTP) =================
+// ================= Verification Notice Screen (नेपाल भाषासहित) =================
 class ThaloVerificationNoticeScreen extends StatelessWidget {
   final String contactInfo;
   final String lang;
@@ -292,6 +322,13 @@ class ThaloVerificationNoticeScreen extends StatelessWidget {
             ? 'हामीले तपाईंको इमेलमा भेरिफिकेसन लिङ्क पठाएका छौं। कृपया इमेल खोलेर लिङ्कमा क्लिक गर्नुहोस्।' 
             : 'हामीले तपाईंको फोन नम्बरमा SMS मार्फत ६ अंकको OTP पठाएका छौं।',
         'btn': 'गृह पृष्ठमा जानुहोस्',
+      },
+      'नेपाल भाषा': {
+        'title': isEmail ? 'जिगु इमेल निश्चित यानादिसँ' : 'जिगु फोन नम्बर निश्चित यानादिसँ',
+        'desc': isEmail 
+            ? 'जिपिं जिगु इमेलय् भेरिफिकेसन लिंक छ्वयाबियागु दु। छगु इमेल स्वयाः भेरिफाइ यानादिसँ।' 
+            : 'जिपिं जिगु फोन नम्बरय् SMS पाखें ६ अंकया OTP छ्वयाबियागु दु।',
+        'btn': 'छेँय् वनेगु',
       },
       'हिन्दी': {
         'title': isEmail ? 'अपना ईमेल सत्यापित करें' : 'अपना फोन सत्यापित करें',
@@ -628,22 +665,36 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
 
               int month = int.parse(clean.split('-')[1]);
               int day = int.parse(clean.split('-')[2]);
+              
               DateTime parsed = DateTime(year, month, day);
               DateTime today = DateTime.now();
-              Duration difference = today.difference(parsed);
-              int ageYears = difference.inDays ~/ 365;
-              int ageDays = difference.inDays % 365;
+
+              // --- सुधार गरिएको सही वर्ष, महिना र दिन गणना लजिक ---
+              int ageYears = today.year - parsed.year;
+              int ageMonths = today.month - parsed.month;
+              int ageDays = today.day - parsed.day;
+
+              if (ageDays < 0) {
+                ageMonths -= 1;
+                DateTime prevMonth = DateTime(today.year, today.month, 0);
+                ageDays += prevMonth.day;
+              }
+
+              if (ageMonths < 0) {
+                ageYears -= 1;
+                ageMonths += 12;
+              }
 
               if (_lang == 'नेपाली') {
-                _ageString = 'उमेर: $ageYears वर्ष र $ageDays दिन';
+                _ageString = 'उमेर: $ageYears वर्ष, $ageMonths महिना र $ageDays दिन';
               } else if (_lang == 'नेपाल भाषा') {
-                _ageString = 'उमेर: $ageYears दँ व $ageDays दिं';
+                _ageString = 'उमेर: $ageYears दँ, $ageMonths महिना व $ageDays दिं';
               } else if (_lang == 'हिन्दी') {
-                _ageString = 'आयु: $ageYears वर्ष और $ageDays दिन';
+                _ageString = 'आयु: $ageYears वर्ष, $ageMonths महीने और $ageDays दिन';
               } else if (_lang == 'Urdu') {
-                _ageString = 'عمر: $ageYears سال اور $ageDays دن';
+                _ageString = 'عمر: $ageYears سال، $ageMonths مہینے اور $ageDays دن';
               } else {
-                _ageString = 'Age: $ageYears years and $ageDays days';
+                _ageString = 'Age: $ageYears years, $ageMonths months and $ageDays days';
               }
             } catch (_) {
               _ageString = '';
@@ -858,7 +909,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
   }
 }
 
-// ================= ThaloNavigationScreen =================
+// ================= ThaloNavigationScreen (भाषाको लाइन हटाइएको) =================
 class ThaloNavigationScreen extends StatefulWidget {
   final String lang;
   const ThaloNavigationScreen({super.key, required this.lang});
@@ -889,13 +940,32 @@ class _ThaloNavigationScreenState extends State<ThaloNavigationScreen> {
     return Directionality(
       textDirection: _lang == 'Urdu' ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Thalo Home'),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: Colors.black),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: () {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ThaloLoginScreen()),
+                  (route) => false,
+                );
+              },
+            )
+          ],
+        ),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(_texts[_lang]!, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 30),
-              buildLangBar(_lang, (l) => setState(() => _lang = l)),
+              const SizedBox(height: 10),
+              Text('Current App Language: $_lang', style: const TextStyle(color: Colors.grey)),
+              // नोट: यहाँ तलतर्फ भएको भाषा परिवर्तन गर्ने बार (buildLangBar) हटाइएको छ।
             ],
           ),
         ),
