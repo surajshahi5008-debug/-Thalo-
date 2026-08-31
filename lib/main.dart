@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,21 +36,35 @@ class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  String _formatEmail(String input) {
+    String cleaned = input.trim();
+    if (!cleaned.contains('@')) {
+      return '$cleaned@thalo.app';
+    }
+    return cleaned;
+  }
+
+  // जुनसुकै भाषाका अक्षरहरू (Nepali, Hindi, Urdu आदि) लाई Firebase मा सुरक्षित राख्न Base64 मा रूपान्तरण गर्ने
+  String _securePassword(String rawPassword) {
+    Codec<String, String> stringToBase64 = utf8.fuse(base64);
+    String encoded = stringToBase64.encode(rawPassword);
+    // Firebase को कम्तीमा ६ character को नियम पूरा गर्न र सुरक्षित बनाउन
+    return 'Thalo_$encoded';
+  }
+
   Future<User?> login({required String email, required String password}) async {
     try {
-      String finalEmail = email.trim();
-      if (!finalEmail.contains('@')) {
-        finalEmail = '$finalEmail@thalo.app';
-      }
+      String finalEmail = _formatEmail(email);
+      String finalPassword = _securePassword(password);
       UserCredential credential = await _auth.signInWithEmailAndPassword(
         email: finalEmail,
-        password: password,
+        password: finalPassword,
       );
       return credential.user;
     } on FirebaseAuthException catch (e) {
       throw e.code;
     } catch (e) {
-      throw 'unknown';
+      throw e.toString();
     }
   }
 
@@ -63,14 +78,12 @@ class AuthService {
     required String password,
   }) async {
     try {
-      String finalEmail = emailOrPhone.trim();
-      if (!finalEmail.contains('@')) {
-        finalEmail = '$finalEmail@thalo.app';
-      }
+      String finalEmail = _formatEmail(emailOrPhone);
+      String finalPassword = _securePassword(password);
 
       UserCredential credential = await _auth.createUserWithEmailAndPassword(
         email: finalEmail,
-        password: password,
+        password: finalPassword,
       );
       User? user = credential.user;
       if (user != null) {
@@ -92,12 +105,12 @@ class AuthService {
     } on FirebaseAuthException catch (e) {
       throw e.code;
     } catch (e) {
-      throw 'unknown';
+      throw e.toString();
     }
   }
 }
 
-// ================= Language Helper & Error Translator =================
+// ================= Language Helper & Dynamic Error Translator =================
 Widget buildLangBar(String currentLang, Function(String) onSelected) {
   return Row(
     mainAxisAlignment: MainAxisAlignment.center,
@@ -133,7 +146,7 @@ String getLocalizedError(String errorCode, String lang) {
       'English': 'No user found with this email/phone.',
       'नेपाली': 'यो इमेल वा फोन नम्बरसँग सम्बन्धित कुनै खाता फेला परेन।',
       'हिन्दी': 'इस ईमेल या फोन से कोई उपयोगकर्ता नहीं मिला।',
-      'Urdu': 'اس ای میل یا فون کے ساتھ کوئی صارف نہیں ملا।',
+      'Urdu': 'اس ای میل یا فون کے ساتھ کوئی صارف نہیں ملا۔',
     },
     'invalid-credential': {
       'English': 'Invalid email/phone or password.',
@@ -148,10 +161,22 @@ String getLocalizedError(String errorCode, String lang) {
       'Urdu': 'یہ ای میل یا فون پہلے سے رجسٹرڈ ہے۔',
     },
     'weak-password': {
-      'English': 'The password is too weak (Min 6 chars).',
-      'नेपाली': 'पासवर्ड धेरै कमजोर भयो (कम्तीमा ६ अक्षर)।',
-      'हिन्दी': 'पासवर्ड बहुत कमज़ोर है।',
-      'Urdu': 'پاس ورڈ بہت کمزور ہے۔',
+      'English': 'The password is too weak (Min 6 characters).',
+      'नेपाली': 'पासवर्ड धेरै कमजोर भयो (कम्तीमा ६ अक्षर आवश्यक छ)।',
+      'हिन्दी': 'पासवर्ड बहुत कमज़ोर है (न्यूनतम 6 अक्षर)।',
+      'Urdu': 'پاس ورڈ بہت کمزور ہے (کم از کم 6 حروف)۔',
+    },
+    'invalid-email': {
+      'English': 'The format of the email or phone is invalid.',
+      'नेपाली': 'इमेल वा फोन नम्बरको ढाँचा मिलेन।',
+      'हिन्दी': 'ईमेल या फोन नंबर का प्रारूप अमान्य है।',
+      'Urdu': 'ای میل یا فون نمبر کا فارمیٹ غلط ہے۔',
+    },
+    'network-request-failed': {
+      'English': 'Network error. Please check your internet connection.',
+      'नेपाली': 'इन्टरनेट जडान असफल भयो। कृपया आफ्नो नेट जाँच गर्नुहोस्।',
+      'हिन्दी': 'नेटवर्क त्रुटि। कृपया अपना इंटरनेट कनेक्शन जांचें।',
+      'Urdu': 'نیٹ ورک کی خرابی۔ براہ کرم اپنا انٹرنیٹ چیک کریں۔',
     },
   };
 
@@ -237,9 +262,13 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      String message = getLocalizedError(e.toString(), _lang);
+      String message = getLocalizedError(e.toString().replaceAll('1', '').trim(), _lang);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.redAccent,
+          duration: const Duration(seconds: 4),
+        ),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -386,6 +415,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       'dob': 'Date of Birth',
       'email': 'Email or Phone Number',
       'pass': 'Create Password',
+      'passHint': 'Password must be at least 6 characters (Any language letters allowed)',
       'next': 'Next',
       'btn': 'Sign Up',
       'hasAcc': 'Already have an account?',
@@ -404,6 +434,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       'dob': 'जन्म मिति',
       'email': 'इमेल वा फोन नम्बर',
       'pass': 'पासवर्ड सिर्जना गर्नुहोस्',
+      'passHint': 'पासवर्ड कम्तीमा ६ अक्षर/अंकको हुनुपर्छ (ज जुनसुकै भाषाका अक्षर पनि राख्न सकिन्छ)',
       'next': 'अर्को',
       'btn': 'साइन अप गर्नुहोस्',
       'hasAcc': 'पहिले नै खाता छ?',
@@ -422,6 +453,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       'dob': 'जन्म तिथि',
       'email': 'ईमेल या फोन नंबर',
       'pass': 'पासवर्ड बनाएं',
+      'passHint': 'पासवर्ड कम से कम 6 वर्ण का होना चाहिए (किसी भी भाषा के अक्षर मान्य हैं)',
       'next': 'अगला',
       'btn': 'साइन अप करें',
       'hasAcc': 'पहले से खाता है?',
@@ -440,6 +472,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       'dob': 'تاریخ پیدائش',
       'email': 'ای میل یا فون نمبر',
       'pass': 'پاس ورڈ بنائیں',
+      'passHint': 'پاس ورڈ کم از کم 6 حروف کا ہونا چاہیے (کسی بھی زبان کے حروف استعمال کیے جا سکتے ہیں)',
       'next': 'اگلا',
       'btn': 'سائن اپ کریں',
       'hasAcc': 'پہلے سے اکاؤنٹ ہے؟',
@@ -490,7 +523,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       if (_lang == 'नेपाली') msg = 'कृपया लिङ्ग छान्नुहोस्';
       if (_lang == 'हिन्दी') msg = 'कृपया लिंग चुनें';
       if (_lang == 'Urdu') msg = 'براہ کرم صنف منتخب کریں';
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.orange));
     }
   }
 
@@ -516,7 +549,11 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       if (!mounted) return;
       String message = getLocalizedError(e.toString(), _lang);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.redAccent,
+          duration: const Duration(seconds: 4),
+        ),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -740,6 +777,14 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                             ),
                           ),
                           validator: (v) => (v == null || v.length < 6) ? 'Min 6 characters' : null,
+                        ),
+                        const SizedBox(height: 6),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                          child: Text(
+                            t['passHint']!,
+                            style: const TextStyle(color: Colors.grey, fontSize: 11),
+                          ),
                         ),
                         const SizedBox(height: 28),
                         ElevatedButton(
