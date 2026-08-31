@@ -1,250 +1,567 @@
 import 'package:flutter/material.dart';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  runApp(const ThaloApp());
-}
-
-// 1. Persistent Language and State Controller (सुरुदेखिको बहुभाषी स्टेट कन्ट्रोलर)
-class LanguageController extends ChangeNotifier {
-  String _currentLanguage = 'English';
-  String get currentLanguage => _currentLanguage;
-
-  void setLanguage(String lang) {
-    _currentLanguage = lang;
-    notifyListeners();
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    debugPrint("Firebase error: $e");
   }
+  runApp(const MyApp());
 }
 
-final languageController = LanguageController();
-
-class ThaloApp extends StatelessWidget {
-  const ThaloApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: languageController,
-      builder: (context, _) {
-        return MaterialApp(
-          title: 'Thalo - Multilingual Social Media',
-          debugShowCheckedModeBanner: false,
-          theme: ThemeData(
-            primarySwatch: Colors.blue,
-            scaffoldBackgroundColor: Colors.white,
-            appBarTheme: const AppBarTheme(
-              backgroundColor: Colors.blueAccent,
-              foregroundColor: Colors.white,
-            ),
-          ),
-          // 2. Firebase Auth State Routing (लगइन चेक गर्ने StreamBuilder)
-          home: StreamBuilder<User?>(
-            stream: FirebaseAuth.instance.authStateChanges(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
-                );
-              }
-              if (snapshot.hasData && snapshot.data != null) {
-                return const ThaloNavigationScreen();
-              } else {
-                return const LoginScreen();
-              }
-            },
-          ),
-        );
-      },
+    return MaterialApp(
+      title: 'Thalo',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        scaffoldBackgroundColor: Colors.white,
+      ),
+      home: const ThaloLoginScreen(),
     );
   }
 }
 
-// ----------------- 3. LOGIN SCREEN (लगइन स्क्रिन) -----------------
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
-
-  @override
-  State<LoginScreen> createState() => _LoginScreenState();
-}
-
-class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _isLoading = false;
-  String _errorMessage = '';
-
-  Future<void> _loginUser() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = '';
-    });
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-    } catch (e) {
-      setState(() {
-        _errorMessage = e.toString();
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Thalo - Login')),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Center(
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  'Welcome Back to Thalo',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.blueAccent),
-                ),
-                const SizedBox(height: 30),
-                TextField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: 'Password', border: OutlineInputBorder()),
-                ),
-                const SizedBox(height: 20),
-                if (_errorMessage.isNotEmpty)
-                  Text(_errorMessage, style: const TextStyle(color: Colors.red, fontSize: 14)),
-                const SizedBox(height: 10),
-                _isLoading
-                    ? const CircularProgressIndicator()
-                    : ElevatedButton(
-                        onPressed: _loginUser,
-                        style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(50)),
-                        child: const Text('Login', style: TextStyle(fontSize: 18)),
-                      ),
-                const SizedBox(height: 15),
-                TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const SignUpScreen()),
-                    );
-                  },
-                  child: const Text("Don't have an account? Sign Up here", style: TextStyle(fontSize: 16)),
-                ),
-              ],
+// ================= Language Bar & Localization =================
+Widget buildLangBar(String currentLang, Function(String) onSelected) {
+  return Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: ['English', 'नेपाली', 'नेपाल भाषा', 'हिन्दी', 'Urdu'].map((lang) {
+      bool isSel = currentLang == lang;
+      return GestureDetector(
+        onTap: () => onSelected(lang),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+          child: Text(
+            lang == 'English' ? lang : ' • $lang',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+              color: isSel ? const Color(0xFF3F51B5) : Colors.grey,
             ),
           ),
         ),
-      ),
-    );
+      );
+    }).toList(),
+  );
+}
+
+// ================= Number Localizer (अंकहरू भाषाअनुसार बदल्ने) =================
+String _localizeNumber(String input, String lang) {
+  if (lang != 'नेपाली' && lang != 'नेपाल भाषा' && lang != 'हिन्दी' && lang != 'Urdu') {
+    return input;
+  }
+  const english = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+  const localized = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
+  
+  String result = input;
+  for (int i = 0; i < english.length; i++) {
+    result = result.replaceAll(english[i], localized[i]);
+  }
+  return result;
+}
+
+// ================= Helper: Localized Month Names =================
+List<String> getLocalizedMonths(String langCode, String calendarType) {
+  if (calendarType == 'वि.सं.') {
+    return ['वैशाख', 'जेठ', 'आषाढ', 'श्रावण', 'भाद्र', 'आश्विन', 'कार्तिक', 'मार्गशीर्ष', 'पौष', 'माघ', 'फाल्गुन', 'चैत्र'];
+  } else if (calendarType == 'ने.सं.') {
+    return ['छलागा', 'चौला', 'बछला', 'तछला', 'दिल्ला', 'गुंला', 'ञला', 'कला', 'थिला', 'प्वंला', 'अछला', 'तियाँ'];
+  }
+  
+  switch (langCode) {
+    case 'हिन्दी':
+      return ['जनवरी', 'फरवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'];
+    case 'नेपाली':
+    case 'नेपाल भाषा':
+    case 'Urdu':
+    case 'English':
+    default:
+      return ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   }
 }
 
-// ----------------- 4. SIGN UP SCREEN (साइन अप स्क्रिन) -----------------
-class SignUpScreen extends StatefulWidget {
-  const SignUpScreen({super.key});
+// ================= Dynamic Calendar Picker Dialog =================
+class DynamicCalendarPickerDialog extends StatefulWidget {
+  final String appLanguage;
+  final Function(String formattedDate) onConfirm;
+
+  const DynamicCalendarPickerDialog({
+    super.key,
+    required this.appLanguage,
+    required this.onConfirm,
+  });
 
   @override
-  State<SignUpScreen> createState() => _SignUpScreenState();
+  State<DynamicCalendarPickerDialog> createState() => _DynamicCalendarPickerDialogState();
 }
 
-class _SignUpScreenState extends State<SignUpScreen> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _isLoading = false;
-  String _errorMessage = '';
+class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialog> {
+  String? primaryCalendarName;
+  late String activeCalendarType;
+  int selectedYear = 2080;
+  int selectedMonth = 1;
+  int selectedDay = 1;
 
-  Future<void> _signUpUser() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = '';
-    });
-    try {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-      if (mounted) {
-        Navigator.pop(context);
+  @override
+  void initState() {
+    super.initState();
+    if (widget.appLanguage == 'नेपाली') {
+      primaryCalendarName = 'वि.सं.';
+    } else if (widget.appLanguage == 'नेपाल भाषा') {
+      primaryCalendarName = 'ने.सं.';
+    } else if (widget.appLanguage == 'Urdu') {
+      primaryCalendarName = 'هجری';
+    } else {
+      primaryCalendarName = null; 
+    }
+    activeCalendarType = primaryCalendarName ?? 'AD';
+    _setToday();
+  }
+
+  void _setToday() {
+    DateTime now = DateTime.now();
+    if (primaryCalendarName != null && activeCalendarType == primaryCalendarName) {
+      if (widget.appLanguage == 'नेपाली') {
+        selectedYear = now.year + 57;
+      } else if (widget.appLanguage == 'नेपाल भाषा') {
+        selectedYear = now.year + 923;
+      } else {
+        selectedYear = now.year;
       }
-    } catch (e) {
-      setState(() {
-        _errorMessage = e.toString();
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      selectedMonth = now.month;
+      selectedDay = now.day;
+    } else {
+      selectedYear = now.year;
+      selectedMonth = now.month;
+      selectedDay = now.day;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Thalo - Sign Up')),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Center(
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+    int currentBaseYear = DateTime.now().year;
+    List<int> years = List.generate(201, (index) => (currentBaseYear - 100) + index);
+    List<int> months = List.generate(12, (index) => index + 1);
+    List<int> days = List.generate(32, (index) => index + 1);
+    bool hasToggle = primaryCalendarName != null;
+
+    String confirmText = 'Confirm';
+    if (widget.appLanguage == 'नेपाली') {
+      confirmText = 'पुष्टि गर्नुहोस्';
+    } else if (widget.appLanguage == 'नेपाल भाषा') {
+      confirmText = 'निश्चित यानादिसँ';
+    } else if (widget.appLanguage == 'हिन्दी') {
+      confirmText = 'पुष्टि करें';
+    } else if (widget.appLanguage == 'Urdu') {
+      confirmText = 'تصدیق کریں';
+    }
+
+    List<String> localizedMonthNames = getLocalizedMonths(widget.appLanguage, activeCalendarType);
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      content: SizedBox(
+        width: 320,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Create New Account',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.green),
-                ),
-                const SizedBox(height: 30),
-                TextField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: 'Password', border: OutlineInputBorder()),
-                ),
-                const SizedBox(height: 20),
-                if (_errorMessage.isNotEmpty)
-                  Text(_errorMessage, style: const TextStyle(color: Colors.red, fontSize: 14)),
-                const SizedBox(height: 10),
-                _isLoading
-                    ? const CircularProgressIndicator()
-                    : ElevatedButton(
-                        onPressed: _signUpUser,
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(50),
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
+                Row(
+                  children: [
+                    if (hasToggle) ...[
+                      GestureDetector(
+                        onTap: () => setState(() {
+                          activeCalendarType = primaryCalendarName!;
+                          selectedYear = widget.appLanguage == 'नेपाल भाषा' ? currentBaseYear + 923 : currentBaseYear + 57;
+                        }),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: activeCalendarType == primaryCalendarName ? const Color(0xFF4CAF50) : Colors.grey[300],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            primaryCalendarName!,
+                            style: TextStyle(
+                              color: activeCalendarType == primaryCalendarName ? Colors.white : Colors.black87,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
-                        child: const Text('Sign Up', style: TextStyle(fontSize: 18)),
                       ),
-                const SizedBox(height: 15),
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  child: const Text("Already have an account? Login here", style: TextStyle(fontSize: 16)),
+                      const SizedBox(width: 8),
+                    ],
+                    GestureDetector(
+                      onTap: () => setState(() {
+                        activeCalendarType = 'AD';
+                        selectedYear = currentBaseYear;
+                      }),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: activeCalendarType == 'AD' ? const Color(0xFF4CAF50) : Colors.grey[300],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'AD',
+                          style: TextStyle(
+                            color: activeCalendarType == 'AD' ? Colors.white : Colors.black87,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                GestureDetector(
+                  onTap: _setToday,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(color: const Color(0xFF4CAF50), borderRadius: BorderRadius.circular(8)),
+                    child: const Text('Today', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                  ),
                 ),
               ],
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(10)),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: years.contains(selectedYear) ? selectedYear : currentBaseYear,
+                        isExpanded: true,
+                        items: years.map((y) => DropdownMenuItem(
+                          value: y, 
+                          child: Text(_localizeNumber('$y', widget.appLanguage)),
+                        )).toList(),
+                        onChanged: (val) => setState(() => selectedYear = val!),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(10)),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: selectedMonth,
+                        isExpanded: true,
+                        items: months.map((m) => DropdownMenuItem(
+                          value: m, 
+                          child: Text(localizedMonthNames[m - 1], overflow: TextOverflow.ellipsis),
+                        )).toList(),
+                        onChanged: (val) => setState(() => selectedMonth = val!),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 1,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(10)),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: selectedDay,
+                        isExpanded: true,
+                        items: days.map((d) => DropdownMenuItem(
+                          value: d, 
+                          child: Text(_localizeNumber('$d', widget.appLanguage)),
+                        )).toList(),
+                        onChanged: (val) => setState(() => selectedDay = val!),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4CAF50),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () {
+                  String formatted = '$selectedYear-${selectedMonth.toString().padLeft(2, '0')}-${selectedDay.toString().padLeft(2, '0')} ($activeCalendarType)';
+                  widget.onConfirm(formatted);
+                  Navigator.pop(context);
+                },
+                child: Text(confirmText, style: const TextStyle(color: Colors.white)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ================= Verification Notice Screen =================
+class ThaloVerificationNoticeScreen extends StatelessWidget {
+  final String contactInfo;
+  final String lang;
+  const ThaloVerificationNoticeScreen({super.key, required this.contactInfo, required this.lang});
+
+  @override
+  Widget build(BuildContext context) {
+    bool isEmail = contactInfo.contains('@');
+
+    final Map<String, Map<String, String>> texts = {
+      'English': {
+        'title': isEmail ? 'Verify Your Email' : 'Verify Your Phone',
+        'desc': isEmail 
+            ? 'We have sent a verification link to your email. Please check your inbox and click the link to verify.' 
+            : 'We have sent a 6-digit OTP to your phone number via SMS.',
+        'btn': 'Go to Home',
+      },
+      'नेपाली': {
+        'title': isEmail ? 'तपाईंको इमेल पुष्टि गर्नुहोस्' : 'तपाईंको फोन नम्बर पुष्टि गर्नुहोस्',
+        'desc': isEmail 
+            ? 'हामीले तपाईंको इमेलमा भेरिफिकेसन लिङ्क पठाएका छौं। कृपया इमेल खोलेर लिङ्कमा क्लिक गर्नुहोस्।' 
+            : 'हामीले तपाईंको फोन नम्बरमा SMS मार्फत ६ अंकको OTP पठाएका छौं।',
+        'btn': 'गृह पृष्ठमा जानुहोस्',
+      },
+      'नेपाल भाषा': {
+        'title': isEmail ? 'जिगु इमेल निश्चित यानादिसँ' : 'जिगु फोन नम्बर निश्चित यानादिसँ',
+        'desc': isEmail 
+            ? 'जिपिं जिगु इमेलय् भेरिफिकेसन लिंक छ्वयाबियागु दु। छगु इमेल स्वयाः भेरिफाइ यानादिसँ।' 
+            : 'जिपिं जिगु फोन नम्बरय् SMS पाखें ६ अंकया OTP छ्वयाबियागु दु।',
+        'btn': 'छेँय् वनेगु',
+      },
+      'हिन्दी': {
+        'title': isEmail ? 'अपना ईमेल सत्यापित करें' : 'अपना फोन सत्यापित करें',
+        'desc': isEmail 
+            ? 'हमने आपके ईमेल पर एक सत्यापन लिंक भेजा है। कृपया अपना इनबॉक्स जांचें।' 
+            : 'हमने आपके फोन पर 6-अंक का OTP भेजा है।',
+        'btn': 'होम स्क्रीन पर जाएं',
+      },
+      'Urdu': {
+        'title': isEmail ? 'اپنا ای میل تصدیق کریں' : 'اپنا فون تصدیق کریں',
+        'desc': isEmail 
+            ? 'ہم نے آپ کے ای میل پر تصدیقی لنک بھیج دیا ہے۔' 
+            : 'ہم نے آپ کے فون پر 6 ہندسوں کا OTP بھیج دیا ہے۔',
+        'btn': 'ہوم سکرین پر جائیں',
+      }
+    };
+
+    final t = texts[lang] ?? texts['English']!;
+
+    return Directionality(
+      textDirection: lang == 'Urdu' ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        appBar: AppBar(backgroundColor: Colors.white, elevation: 0, iconTheme: const IconThemeData(color: Colors.black)),
+        body: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Icon(Icons.verified_user_outlined, size: 64, color: Color(0xFF4CAF50)),
+              const SizedBox(height: 20),
+              Text(t['title']!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              Text(t['desc']!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+              const SizedBox(height: 35),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => ThaloNavigationScreen(lang: lang)),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4CAF50),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: Text(t['btn']!, style: const TextStyle(color: Colors.white, fontSize: 16)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ================= ThaloLoginScreen (Blue & Lavender Theme) =================
+class ThaloLoginScreen extends StatefulWidget {
+  const ThaloLoginScreen({super.key});
+
+  @override
+  State<ThaloLoginScreen> createState() => _ThaloLoginScreenState();
+}
+
+class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _obscurePassword = true;
+  String _lang = 'English';
+
+  final Map<String, Map<String, String>> _texts = {
+    'English': {
+      'title': 'Log in to your account',
+      'email': 'Email or Phone Number',
+      'pass': 'Password',
+      'btn': 'Log In',
+      'noAcc': "Don't have an account?",
+      'link': 'Sign Up'
+    },
+    'नेपाली': {
+      'title': 'आफ्नो खातामा लगइन गर्नुहोस्',
+      'email': 'इमेल वा फोन नम्बर',
+      'pass': 'पासवर्ड',
+      'btn': 'लगइन गर्नुहोस्',
+      'noAcc': 'खाता छैन?',
+      'link': 'साइन अप गर्नुहोस्'
+    },
+    'नेपाल भाषा': {
+      'title': 'जिगु खाताय् लगइन यानादिसँ',
+      'email': 'इमेल वा फोन नम्बर',
+      'pass': 'पासवर्ड',
+      'btn': 'लगइन यानादिसँ',
+      'noAcc': 'खाता मदु ला?',
+      'link': 'साइन अप यायेगु'
+    },
+    'हिन्दी': {
+      'title': 'अपने खाते में लॉगिन करें',
+      'email': 'ईमेल या फोन नंबर',
+      'pass': 'पासवर्ड',
+      'btn': 'लॉगिन करें',
+      'noAcc': 'खाता नहीं है?',
+      'link': 'साइन अप करें'
+    },
+    'Urdu': {
+      'title': 'اپنے اکاؤنٹ میں لاگ ان کریں',
+      'email': 'ای میل یا فون نمبر',
+      'pass': 'پاس ورڈ',
+      'btn': 'لاگ ان کریں',
+      'noAcc': 'اکاؤنٹ نہیں ہے؟',
+      'link': 'سائن اپ کریں'
+    },
+  };
+
+  void _submit() {
+    if (!_formKey.currentState!.validate()) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => ThaloNavigationScreen(lang: _lang)),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = _texts[_lang]!;
+    return Directionality(
+      textDirection: _lang == 'Urdu' ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFFE8EAF6), Color(0xFFF3E5F5)], // Lavender & Light Blue tint
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'Thalo',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 42,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF3F51B5), // Deep Blue Accent
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(t['title']!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.black54, fontSize: 14)),
+                    const SizedBox(height: 35),
+                    TextFormField(
+                      controller: _emailController,
+                      decoration: InputDecoration(
+                        hintText: t['email'],
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                        prefixIcon: const Icon(Icons.person_outline, color: Color(0xFF3F51B5)),
+                      ),
+                      validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      decoration: InputDecoration(
+                        hintText: t['pass'],
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                        prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF3F51B5)),
+                        suffixIcon: IconButton(
+                          icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: const Color(0xFF3F51B5)),
+                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                        ),
+                      ),
+                      validator: (v) => (v == null || v.isEmpty) ? 'Enter password' : null,
+                    ),
+                    const SizedBox(height: 28),
+                    ElevatedButton(
+                      onPressed: _submit,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF3F51B5), // Blue Button
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Text(t['btn']!, style: const TextStyle(color: Colors.white, fontSize: 16)),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(t['noAcc']!, style: const TextStyle(color: Colors.black54, fontSize: 13)),
+                        TextButton(
+                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ThaloRegisterScreen())),
+                          child: Text(t['link']!, style: const TextStyle(color: Color(0xFF3F51B5), fontWeight: FontWeight.bold, fontSize: 13)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    buildLangBar(_lang, (l) => setState(() => _lang = l)),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
@@ -253,278 +570,583 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 }
 
-// ----------------- 5. MAIN NAVIGATION & HOME SCREEN (मुख्य स्क्रिनहरू) -----------------
+// ================= ThaloRegisterScreen (Green Theme) =================
+class ThaloRegisterScreen extends StatefulWidget {
+  const ThaloRegisterScreen({super.key});
+
+  @override
+  State<ThaloRegisterScreen> createState() => _ThaloRegisterScreenState();
+}
+
+class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
+  int _currentStep = 1;
+  final _formKey1 = GlobalKey<FormState>();
+  final _formKey2 = GlobalKey<FormState>();
+
+  final _firstNameC = TextEditingController();
+  final _middleNameC = TextEditingController();
+  final _lastNameC = TextEditingController();
+  final _emailOrPhoneC = TextEditingController();
+  final _passC = TextEditingController();
+  final _dobC = TextEditingController();
+
+  String? _selectedGender;
+  String _ageString = '';
+  String _birthdayMessage = '';
+  String _birthdayWish = '';
+  bool _obscurePassword = true;
+  String _lang = 'English';
+
+  final Map<String, Map<String, String>> _texts = {
+    'English': {
+      'title1': 'Personal Details (Step 1)',
+      'title2': 'Account Security (Step 2)',
+      'fName': 'First Name',
+      'mName': 'Middle Name (Optional)',
+      'lName': 'Last Name',
+      'gender': 'Select Gender',
+      'dob': 'Date of Birth',
+      'email': 'Email or Phone Number',
+      'pass': 'Create Password',
+      'next': 'Next',
+      'btn': 'Verify & Sign Up',
+      'hasAcc': 'Already have an account?',
+      'link': 'Log In',
+      'male': 'Male',
+      'female': 'Female',
+      'other': 'Other',
+    },
+    'नेपाली': {
+      'title1': 'व्यक्तिगत विवरण (चरण १)',
+      'title2': 'खाता सुरक्षा (चरण २)',
+      'fName': 'पहिलो नाम',
+      'mName': 'बीचको नाम (ऐच्छिक)',
+      'lName': 'थर',
+      'gender': 'लिङ्ग छान्नुहोस्',
+      'dob': 'जन्म मिति',
+      'email': 'इमेल वा फोन नम्बर',
+      'pass': 'पासवर्ड सिर्जना गर्नुहोस्',
+      'next': 'अर्को',
+      'btn': 'पुष्टि गरी साइन अप गर्नुहोस्',
+      'hasAcc': 'पहिले नै खाता छ?',
+      'link': 'लगइन गर्नुहोस्',
+      'male': 'पुरुष',
+      'female': 'महिला',
+      'other': 'अन्य',
+    },
+    'नेपाल भाषा': {
+      'title1': 'व्यक्तिगत विवरण (चरण १)',
+      'title2': 'खाता सुरक्षा (चरण २)',
+      'fName': 'न्हापांग्गु नां',
+      'mName': 'दथुया नां (छ्यायेफु)',
+      'lName': 'थ्वः/थर',
+      'gender': 'लिङ्ग ल्ययादिसँ',
+      'dob': 'बुगु मिति',
+      'email': 'इमेल वा फोन नम्बर',
+      'pass': 'पासवर्ड तयार यानादिसँ',
+      'next': 'लिपांग्गु',
+      'btn': 'निश्चित कयाः साइन अप यानादिसँ',
+      'hasAcc': 'न्हापां नं खाता दु ला?',
+      'link': 'लगइन यायेगु',
+      'male': 'मिजं',
+      'female': 'मिसा',
+      'other': 'गुगुं नं मेगु',
+    },
+    'हिन्दी': {
+      'title1': 'व्यक्तिगत विवरण (चरण १)',
+      'title2': 'खाता सुरक्षा (चरण २)',
+      'fName': 'पहला नाम',
+      'mName': 'बीच का नाम (वैकल्पिक)',
+      'lName': 'उपनाम',
+      'gender': 'लिंग चुनें',
+      'dob': 'जन्म तिथि',
+      'email': 'ईमेल या फोन नंबर',
+      'pass': 'पासवर्ड बनाएं',
+      'next': 'अगला',
+      'btn': 'सत्यापित करें और साइन अप करें',
+      'hasAcc': 'पहले से खाता है?',
+      'link': 'लॉगिन करें',
+      'male': 'पुरुष',
+      'female': 'महिला',
+      'other': 'अन्य',
+    },
+    'Urdu': {
+      'title1': 'ذاتی تفصیلات (مرحلہ 1)',
+      'title2': 'اکاؤنٹ سیکیورٹی (مرحلہ 2)',
+      'fName': 'پہلا نام',
+      'mName': 'درمیانی نام',
+      'lName': 'آخری نام',
+      'gender': 'صنف منتخب کریں',
+      'dob': 'تاریخ پیدائش',
+      'email': 'ای میل یا فون نمبر',
+      'pass': 'پاس ورڈ بنائیں',
+      'next': 'اگلا',
+      'btn': 'تصدیق کریں اور سائن اپ کریں',
+      'hasAcc': 'پہلے سے اکاؤنٹ ہے؟',
+      'link': 'لاگ ان کریں',
+      'male': 'مرد',
+      'female': 'عورت',
+      'other': 'دیگر',
+    },
+  };
+
+  void _openDynamicCalendarPicker() {
+    showDialog(
+      context: context,
+      builder: (context) => DynamicCalendarPickerDialog(
+        appLanguage: _lang,
+        onConfirm: (formattedDate) {
+          setState(() {
+            _dobC.text = formattedDate;
+            try {
+              String clean = formattedDate.split(' ')[0];
+              int year = int.parse(clean.split('-')[0]);
+              if (formattedDate.contains('वि.सं.')) year -= 57;
+              else if (formattedDate.contains('ने.सं.')) year -= 923;
+
+              int month = int.parse(clean.split('-')[1]);
+              int day = int.parse(clean.split('-')[2]);
+              
+              DateTime parsed = DateTime(year, month, day);
+              DateTime today = DateTime.now();
+
+              int ageYears = today.year - parsed.year;
+              int ageMonths = today.month - parsed.month;
+              int ageDays = today.day - parsed.day;
+
+              if (ageDays < 0) {
+                ageMonths -= 1;
+                DateTime prevMonth = DateTime(today.year, today.month, 0);
+                ageDays += prevMonth.day;
+              }
+
+              if (ageMonths < 0) {
+                ageYears -= 1;
+                ageMonths += 12;
+              }
+
+              String yStr = _localizeNumber('$ageYears', _lang);
+              String mStr = _localizeNumber('$ageMonths', _lang);
+              String dStr = _localizeNumber('$ageDays', _lang);
+
+              if (_lang == 'नेपाली') {
+                _ageString = 'उमेर: $yStr वर्ष, $mStr महिना र $dStr दिन';
+              } else if (_lang == 'नेपाल भाषा') {
+                _ageString = 'उमेर: $yStr दँ, $mStr महिना व $dStr दिं';
+              } else if (_lang == 'हिन्दी') {
+                _ageString = 'आयु: $yStr वर्ष, $mStr महीने और $dStr दिन';
+              } else if (_lang == 'Urdu') {
+                _ageString = 'عمر: $yStr سال، $mStr مہینے اور $dStr دن';
+              } else {
+                _ageString = 'Age: $yStr years, $mStr months and $dStr days';
+              }
+
+              DateTime nextBday = DateTime(today.year, parsed.month, parsed.day);
+              if (nextBday.isBefore(today) || nextBday.isAtSameMomentAs(today)) {
+                if (!(nextBday.month == today.month && nextBday.day == today.day)) {
+                  nextBday = DateTime(today.year + 1, parsed.month, parsed.day);
+                }
+              }
+
+              int diffDays = nextBday.difference(today).inDays;
+              
+              if (parsed.month == today.month && parsed.day == today.day) {
+                int celebratingAge = today.year - parsed.year;
+                String cAgeStr = _localizeNumber('$celebratingAge', _lang);
+                
+                if (_lang == 'नेपाली') {
+                  _birthdayMessage = 'तपाईंको आज $cAgeStr औं जन्मदिन रहेको छ।';
+                  _birthdayWish = '🎉 थलोको तर्फबाट तपाईंलाई जन्मदिनको हार्दिक मंगलमय शुभकामना! 🎉';
+                } else if (_lang == 'नेपाल भाषा') {
+                  _birthdayMessage = 'जिगु थौं $cAgeStr औं बुगुन्हि जुयाच्वंगु दु।';
+                  _birthdayWish = '🎉 थलो पाखें जिगु बुगुन्हिया भिंतुना! 🎉';
+                } else if (_lang == 'हिन्दी') {
+                  _birthdayMessage = 'आपका आज $cAgeStr वां जन्मदिन है।';
+                  _birthdayWish = '🎉 थलो की ओर से आपको जन्मदिन की हार्दिक शुभकामनाएं! 🎉';
+                } else if (_lang == 'Urdu') {
+                  _birthdayMessage = 'آج آپ کی سالگرہ ہے۔';
+                  _birthdayWish = '🎉 تھلو کی طرف سے آپ کو سالگرہ بہت مبارک ہو! 🎉';
+                } else {
+                  _birthdayMessage = 'Today is your $cAgeStr-th birthday.';
+                  _birthdayWish = '🎉 Happy Birthday! Wishing you a wonderful birthday from Thalo! 🎉';
+                }
+              } else {
+                _birthdayWish = ''; 
+                int nthAge = ageYears + 1;
+                String diffStr = _localizeNumber('$diffDays', _lang);
+                String nthStr = _localizeNumber('$nthAge', _lang);
+                
+                if (_lang == 'नेपाली') {
+                  _birthdayMessage = 'तपाईंको $nthStr जन्मदिन $diffStr दिनपछि आउँदैछ।';
+                } else if (_lang == 'नेपाल भाषा') {
+                  _birthdayMessage = 'जिगु $nthStr गुगु बुगुन्हि $diffStr दिं लिपा वयाच्वंगु दु।';
+                } else if (_lang == 'हिन्दी') {
+                  _birthdayMessage = 'आपका $nthStr जन्मदिन $diffStr दिन बाद आ रहा है।';
+                } else if (_lang == 'Urdu') {
+                  _birthdayMessage = 'آپ کی اگلی سالگرہ $diffStr دن کے بعد آ رہی ہے۔';
+                } else {
+                  _birthdayMessage = 'Your $nthStr birthday is coming up in $diffStr days.';
+                }
+              }
+
+            } catch (e) {
+              _ageString = '';
+              _birthdayMessage = '';
+              _birthdayWish = '';
+            }
+          });
+        },
+      ),
+    );
+  }
+
+  void _goToStep2() {
+    if (_formKey1.currentState!.validate() && _selectedGender != null) {
+      setState(() => _currentStep = 2);
+    } else if (_selectedGender == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('कृपया लिङ्ग छान्नुहोस्'), backgroundColor: Colors.orange));
+    }
+  }
+
+  void _submit() {
+    if (!_formKey2.currentState!.validate()) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ThaloVerificationNoticeScreen(contactInfo: _emailOrPhoneC.text, lang: _lang),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = _texts[_lang]!;
+    return Directionality(
+      textDirection: _lang == 'Urdu' ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: Colors.black),
+          leading: _currentStep == 2 ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => setState(() => _currentStep = 1)) : null,
+        ),
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFFE8F5E9), Color(0xFFF1F8E9)], // Light Green tint
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: _currentStep == 1
+                  ? Form(
+                      key: _formKey1,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(t['title1']!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32)),),
+                          const SizedBox(height: 25),
+                          TextFormField(
+                            controller: _firstNameC,
+                            decoration: InputDecoration(
+                              hintText: t['fName'],
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                              prefixIcon: const Icon(Icons.person_outline, color: Color(0xFF4CAF50)),
+                            ),
+                            validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _middleNameC,
+                            decoration: InputDecoration(
+                              hintText: t['mName'],
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                              prefixIcon: const Icon(Icons.person_outline, color: Color(0xFF4CAF50)),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _lastNameC,
+                            decoration: InputDecoration(
+                              hintText: t['lName'],
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                              prefixIcon: const Icon(Icons.person_outline, color: Color(0xFF4CAF50)),
+                            ),
+                            validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+                          ),
+                          const SizedBox(height: 16),
+                          DropdownButtonFormField<String>(
+                            value: _selectedGender,
+                            decoration: InputDecoration(
+                              hintText: t['gender'],
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                              prefixIcon: const Icon(Icons.transgender, color: Color(0xFF4CAF50)),
+                            ),
+                            items: [
+                              DropdownMenuItem(value: 'Male', child: Text(t['male']!)),
+                              DropdownMenuItem(value: 'Female', child: Text(t['female']!)),
+                              DropdownMenuItem(value: 'Other', child: Text(t['other']!)),
+                            ],
+                            onChanged: (val) => setState(() => _selectedGender = val),
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _dobC,
+                            readOnly: true,
+                            onTap: _openDynamicCalendarPicker,
+                            decoration: InputDecoration(
+                              hintText: t['dob'],
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                              prefixIcon: const Icon(Icons.calendar_month, color: Color(0xFF4CAF50)),
+                            ),
+                            validator: (v) => (v == null || v.isEmpty) ? 'Select DOB' : null,
+                          ),
+                          if (_ageString.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            Text(_ageString, textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFF388E3C), fontWeight: FontWeight.w600)),
+                          ],
+                          if (_birthdayMessage.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(_birthdayMessage, textAlign: TextAlign.center, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w500, fontSize: 13)),
+                          ],
+                          if (_birthdayWish.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Text(_birthdayWish, textAlign: TextAlign.center, style: const TextStyle(color: Colors.pink, fontWeight: FontWeight.bold, fontSize: 13)),
+                          ],
+                          const SizedBox(height: 28),
+                          ElevatedButton(
+                            onPressed: _goToStep2,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF4CAF50), // Green Button
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: Text(t['next']!, style: const TextStyle(color: Colors.white, fontSize: 16)),
+                          ),
+                          const SizedBox(height: 20),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(t['hasAcc']!, style: const TextStyle(color: Colors.black54, fontSize: 13)),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: Text(t['link']!, style: const TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold, fontSize: 13)),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          buildLangBar(_lang, (l) => setState(() => _lang = l)),
+                        ],
+                      ),
+                    )
+                  : Form(
+                      key: _formKey2,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(t['title2']!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
+                          const SizedBox(height: 25),
+                          TextFormField(
+                            controller: _emailOrPhoneC,
+                            decoration: InputDecoration(
+                              hintText: t['email'],
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                              prefixIcon: const Icon(Icons.perm_identity, color: Color(0xFF4CAF50)),
+                            ),
+                            validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _passC,
+                            obscureText: _obscurePassword,
+                            decoration: InputDecoration(
+                              hintText: t['pass'],
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                              prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF4CAF50)),
+                              suffixIcon: IconButton(
+                                icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: const Color(0xFF4CAF50)),
+                                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                              ),
+                            ),
+                            validator: (v) => (v == null || v.length < 6) ? 'Min 6 characters' : null,
+                          ),
+                          const SizedBox(height: 28),
+                          ElevatedButton(
+                            onPressed: _submit,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF4CAF50), // Green Button
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: Text(t['btn']!, style: const TextStyle(color: Colors.white, fontSize: 16)),
+                          ),
+                          const SizedBox(height: 20),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(t['hasAcc']!, style: const TextStyle(color: Colors.black54, fontSize: 13)),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: Text(t['link']!, style: const TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold, fontSize: 13)),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          buildLangBar(_lang, (l) => setState(() => _lang = l)),
+                        ],
+                      ),
+                    ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ================= ThaloNavigationScreen (Animated Text & Ting Sound) =================
 class ThaloNavigationScreen extends StatefulWidget {
-  const ThaloNavigationScreen({super.key});
+  final String lang;
+  const ThaloNavigationScreen({super.key, required this.lang});
 
   @override
   State<ThaloNavigationScreen> createState() => _ThaloNavigationScreenState();
 }
 
-class _ThaloNavigationScreenState extends State<ThaloNavigationScreen>
-    with TickerProviderStateMixin {
+class _ThaloNavigationScreenState extends State<ThaloNavigationScreen> with SingleTickerProviderStateMixin {
+  late String _lang;
+  late AnimationController _controller;
   final AudioPlayer _audioPlayer = AudioPlayer();
 
-  // होम स्क्रिनका लागि एनिमेसन कन्ट्रोलरहरू ("Connect", "Create", "Be Happy")
-  late AnimationController _word1Controller;
-  late AnimationController _word2Controller;
-  late AnimationController _word3Controller;
-  late AnimationController _blinkController;
-
-  late Animation<double> _word1Scale;
-  late Animation<double> _word2Scale;
-  late Animation<double> _word3Scale;
-  late Animation<double> _blinkOpacity;
-
-  int _currentIndex = 0;
+  final Map<String, List<String>> _sentences = {
+    'English': ['Connect,', 'Create', 'and', 'Be', 'Happy'],
+    'नेपाली': ['जोडिनुहोस्,', 'सिर्जना गर्नुहोस्', 'र', 'खुसी', 'रहनुहोस्'],
+    'नेपाल भाषा': ['स्वापू', 'तयादिसँ,', 'सिर्जना', 'यानादिसँ', 'व', 'तनाः', 'च्वनादिसँ'],
+    'हिन्दी': ['जुड़ें,', 'बनाएं', 'और', 'खुश', 'रहें'],
+    'Urdu': ['جڑیں،', 'تخلیق کریں', 'اور', 'خوش', 'رہیں'],
+  };
 
   @override
   void initState() {
     super.initState();
+    _lang = widget.lang;
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2500),
+    );
 
-    _word1Controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 400));
-    _word1Scale = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _word1Controller, curve: Curves.elasticOut));
-
-    _word2Controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 400));
-    _word2Scale = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _word2Controller, curve: Curves.elasticOut));
-
-    _word3Controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 400));
-    _word3Scale = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _word3Controller, curve: Curves.elasticOut));
-
-    _blinkController = AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
-    _blinkOpacity = Tween<double>(begin: 1.0, end: 0.3).animate(CurvedAnimation(parent: _blinkController, curve: Curves.easeInOut));
-
-    _startSequence();
+    _controller.forward().whenComplete(() {
+      _playTingSound();
+    });
   }
 
-  // अडियो र एनिमेसन सिङ्क्रोनाइजेसन सिक्वेन्स
-  void _startSequence() async {
+  void _playTingSound() async {
     try {
-      await Future.delayed(const Duration(milliseconds: 300));
-      if (!mounted) return;
-      _word1Controller.forward();
-      await _audioPlayer.setVolume(0.5);
-      await _audioPlayer.play(AssetSource('ting.mp3'));
-
-      await Future.delayed(const Duration(milliseconds: 600));
-      if (!mounted) return;
-      _word2Controller.forward();
-      await _audioPlayer.setVolume(0.8);
-      await _audioPlayer.play(AssetSource('ting.mp3'));
-
-      await Future.delayed(const Duration(milliseconds: 600));
-      if (!mounted) return;
-      _word3Controller.forward();
-      await _audioPlayer.setVolume(1.0);
-      await _audioPlayer.play(AssetSource('ting.mp3'));
-
-      await Future.delayed(const Duration(milliseconds: 400));
-      if (!mounted) return;
-      _blinkController.repeat(reverse: true);
+      // सुनिश्चित गर्नुहोस् कि तपाईंको assets मा ting.mp3 फाईल राखिएको छ वा URL प्रयोग गरिएको छ।
+      await _audioPlayer.play(AssetSource('sounds/ting.mp3'));
     } catch (e) {
-      debugPrint("Audio error: $e");
+      debugPrint("Audio play error: $e");
     }
   }
 
   @override
   void dispose() {
-    _word1Controller.dispose();
-    _word2Controller.dispose();
-    _word3Controller.dispose();
-    _blinkController.dispose();
+    _controller.dispose();
     _audioPlayer.dispose();
     super.dispose();
   }
 
-  // अर्डिनल क्याल्कुलेसन प्रणाली (जस्तै ३२औं, 32nd)
-  String _getOrdinalNumber(int number, String lang) {
-    if (lang == 'Nepali' || lang == 'Hindi') {
-      return '$numberऔं';
-    } else if (lang == 'Nepal Bhasa') {
-      return '$numberगु';
-    } else {
-      if (number % 100 >= 11 && number % 100 <= 13) return '${number}th';
-      switch (number % 10) {
-        case 1: return '${number}st';
-        case 2: return '${number}nd';
-        case 3: return '${number}rd';
-        default: return '${number}th';
-      }
-    }
-  }
-
-  // डाइनामिक पात्रो मिति रूपान्तरण (AD, BS, Nepal Sambat)
-  Map<String, String> _convertCalendarDates(DateTime adDate) {
-    int bsYear = adDate.year + 56;
-    int bsMonth = adDate.month + 8;
-    if (bsMonth > 12) {
-      bsMonth -= 12;
-      bsYear += 1;
-    }
-    int nsYear = adDate.year - 880;
-    return {
-      'ad': '${adDate.year}-${adDate.month.toString().padLeft(2, '0')}-${adDate.day.toString().padLeft(2, '0')}',
-      'bs': '$bsYear-$bsMonth-${adDate.day}',
-      'ns': '$nsYear Nepal Sambat',
-    };
-  }
-
-  // बहुभाषी शब्दकोश (Multilingual Dictionary)
-  String _getLocalizedText(String key) {
-    final lang = languageController.currentLanguage;
-    final Map<String, Map<String, String>> localizedValues = {
-      'English': {
-        'connect': 'Connect', 'create': 'Create', 'be_happy': 'Be Happy',
-        'home': 'Home', 'calendar': 'Calendar', 'profile': 'Profile', 'settings': 'Settings',
-        'cal_title': 'Dynamic Calendar & Date Converter', 'profile_title': 'User Profile & Account', 'logout': 'Sign Out',
-      },
-      'Nepali': {
-        'connect': 'जोडिनुहोस्', 'create': 'सिर्जना गर्नुहोस्', 'be_happy': 'खुसी रहनुहोस्',
-        'home': 'गृहपृष्ठ', 'calendar': 'पात्रो', 'profile': 'प्रोफाइल', 'settings': 'सेटिङ्स',
-        'cal_title': 'डाइनामिक पात्रो र मिति रूपान्तरण', 'profile_title': 'प्रयोगकर्ता प्रोफाइल र खाता', 'logout': 'लगआउट गर्नुहोस्',
-      },
-      'Nepal Bhasa': {
-        'connect': 'स्वापू तयादिसँ', 'create': 'सृष्टि यानादिसँ', 'be_happy': 'हर्षित जुयादिसँ',
-        'home': 'छेँ', 'calendar': 'पात्रो', 'profile': 'विवरण', 'settings': 'मिलायेगु',
-        'cal_title': 'पात्रो व तिथि हिलाबुला', 'profile_title': 'छ्यमि प्रोफाइल व ल्याः', 'logout': 'पिहाँ वनेगु',
-      },
-      'Hindi': {
-        'connect': 'जुड़ें', 'create': 'बनाएं', 'be_happy': 'खुश रहें',
-        'home': 'होम', 'calendar': 'कैलेंडर', 'profile': 'प्रोफ़ाइल', 'settings': 'सेटिंग्स',
-        'cal_title': 'डाइनामिक कैलेंडर और तिथि रूपांतरण', 'profile_title': 'उपयोगकर्ता प्रोफ़ाइल और खाता', 'logout': 'साइन आउट',
-      },
-      'Urdu': {
-        'connect': 'جੁڑیں', 'create': 'تخلیق کریں', 'be_happy': 'خوش رہیں',
-        'home': 'ہوم', 'calendar': 'کیلنڈر', 'profile': 'پروفাইল', 'settings': 'ترتیبات',
-        'cal_title': 'ڈائنامಿಕ್ کیلنڈر اور تاریخ کی تبدیلی', 'profile_title': 'صارف پروفাইল اور اکاؤنٹ', 'logout': 'سائن آؤٹ',
-      },
-    };
-    return localizedValues[lang]?[key] ?? localizedValues['English']![key]!;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final String currentLang = languageController.currentLanguage;
-    final convertedDates = _convertCalendarDates(DateTime.now());
-    final user = FirebaseAuth.instance.currentUser;
+    List<String> words = _sentences[_lang] ?? _sentences['English']!;
 
-    final List<Widget> screens = [
-      // 1. Home Screen (होम स्क्रिन - एनिमेसन र अडियो)
-      Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ScaleTransition(scale: _word1Scale, child: Text(_getLocalizedText('connect'), style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.blueAccent))),
-            const SizedBox(height: 16),
-            ScaleTransition(scale: _word2Scale, child: Text(_getLocalizedText('create'), style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.green))),
-            const SizedBox(height: 16),
-            ScaleTransition(scale: _word3Scale, child: FadeTransition(opacity: _blinkOpacity, child: Text(_getLocalizedText('be_happy'), style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: Colors.orange)))),
+    return Directionality(
+      textDirection: _lang == 'Urdu' ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Thalo Home'),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: Colors.black),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: () {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ThaloLoginScreen()),
+                  (route) => false,
+                );
+              },
+            )
           ],
         ),
-      ),
-      // 2. Calendar Screen (पात्रो र अर्डिनल स्क्रिन)
-      Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.calendar_month, size: 64, color: Colors.indigo),
-              const SizedBox(height: 16),
-              Text(_getLocalizedText('cal_title'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-              const SizedBox(height: 20),
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      Text('AD: ${convertedDates['ad']}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-                      const Divider(),
-                      Text('BS: ${convertedDates['bs']}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-                      const Divider(),
-                      Text('NS: ${convertedDates['ns']}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text('Ordinal Age: ${_getOrdinalNumber(32, currentLang)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.deepPurple)),
-            ],
-          ),
-        ),
-      ),
-      // 3. Profile Screen (प्रोफाइल र लगआउट स्क्रिन)
-      Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const CircleAvatar(radius: 50, backgroundColor: Colors.blueAccent, child: Icon(Icons.person, size: 50, color: Colors.white)),
-              const SizedBox(height: 16),
-              Text(_getLocalizedText('profile_title'), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              Text(user?.email ?? 'user@thalo.com', style: const TextStyle(fontSize: 16, color: Colors.grey)),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: () async => await FirebaseAuth.instance.signOut(),
-                icon: const Icon(Icons.logout),
-                label: Text(_getLocalizedText('logout')),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-              ),
-            ],
-          ),
-        ),
-      ),
-      // 4. Settings Screen (भाषा छनौट गर्ने सेटिङ्स स्क्रिन)
-      Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text('Select App Language / भाषा छान्नुहोस्', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(8)),
-                child: DropdownButton<String>(
-                  value: currentLang,
-                  underline: const SizedBox(),
-                  items: ['English', 'Nepali', 'Nepal Bhasa', 'Hindi', 'Urdu']
-                      .map((lang) => DropdownMenuItem(value: lang, child: Text(lang, style: const TextStyle(fontSize: 16)))).toList(),
-                  onChanged: (val) {
-                    if (val != null) languageController.setLanguage(val);
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    ];
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, child) {
+                int totalWords = words.length;
+                double progress = _controller.value * totalWords;
+                int visibleWordCount = progress.floor();
 
-    return Scaffold(
-      appBar: AppBar(title: Text('Thalo - $currentLang'), centerTitle: true),
-      body: screens[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        type: BottomNavigationBarType.fixed,
-        onTap: (index) => setState(() => _currentIndex = index),
-        items: [
-          BottomNavigationBarItem(icon: const Icon(Icons.home), label: _getLocalizedText('home')),
-          BottomNavigationBarItem(icon: const Icon(Icons.calendar_today), label: _getNotFoundOrDefault(currentLang, 'calendar')), // safe label
-          BottomNavigationBarItem(icon: const Icon(Icons.person), label: _getLocalizedText('profile')),
-          BottomNavigationBarItem(icon: const Icon(Icons.settings), label: _getLocalizedText('settings')),
-        ],
+                return Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 8.0,
+                  runSpacing: 8.0,
+                  children: List.generate(totalWords, (index) {
+                    if (index < visibleWordCount || _controller.isCompleted) {
+                      bool isLastWord = index == totalWords - 1;
+                      return TweenAnimationBuilder<double>(
+                        tween: Tween<double>(begin: 0.0, end: 1.0),
+                        duration: const Duration(milliseconds: 400),
+                        builder: (context, value, child) {
+                          return Transform.scale(
+                            scale: value,
+                            child: Opacity(
+                              opacity: value,
+                              child: Text(
+                                words[index],
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: (isLastWord && _controller.isCompleted) 
+                                      ? Colors.pinkAccent // अन्तिम शब्द (Happy) आउँदा चम्किने
+                                      : Colors.black87,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    } else {
+                      return const SizedBox.shrink();
+                    }
+                  }),
+                );
+              },
+            ),
+          ),
+        ),
       ),
     );
-  }
-
-  // Helper to keep bottom nav labels safe
-  String _getNotFoundOrDefault(String lang, String key) {
-    return _getLocalizedText(key);
   }
 }
