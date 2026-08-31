@@ -37,8 +37,12 @@ class AuthService {
 
   Future<User?> login({required String email, required String password}) async {
     try {
+      String finalEmail = email.trim();
+      if (!finalEmail.contains('@')) {
+        finalEmail = '$finalEmail@thalo.app';
+      }
       UserCredential credential = await _auth.signInWithEmailAndPassword(
-        email: email.trim(),
+        email: finalEmail,
         password: password,
       );
       return credential.user;
@@ -48,73 +52,6 @@ class AuthService {
       throw 'unknown';
     }
   }
-
-  // Phone OTP Verification Start
-  Future<void> verifyPhoneNumber({
-    required String phoneNumber,
-    required Function(String verificationId) onCodeSent,
-    required Function(String error) onError,
-  }) async {
-    try {
-      await _auth.verifyPhoneNumber(
-        phoneNumber: phoneNumber.trim(),
-        verificationCompleted: (PhoneAuthCredential credential) async {
-          await _auth.signInWithCredential(credential);
-        },
-        verificationFailed: (FirebaseAuthException e) {
-          onError(e.message ?? 'Verification failed');
-        },
-        codeSent: (String verificationId, int? resendToken) {
-          onCodeSent(verificationId);
-        },
-        codeAutoRetrievalTimeout: (String verificationId) {},
-      );
-    } catch (e) {
-      onError(e.toString());
-    }
-  }
-
-  Future<User?> verifyOTPAndRegister({
-    required String verificationId,
-    required String smsCode,
-    required String firstName,
-    required String middleName,
-    required String lastName,
-    required String gender,
-    required String dob,
-    required String emailOrPhone,
-  }) async {
-    try {
-      PhoneAuthCredential credential = PhoneAuthProvider.credential(
-        verificationId: verificationId,
-        smsCode: smsCode.trim(),
-      );
-      UserCredential userCredential = await _auth.signInWithCredential(credential);
-      User? user = userCredential.user;
-
-      if (user != null) {
-        String fullName = '$firstName ${middleName.isNotEmpty ? '$middleName ' : ''}$lastName';
-        await user.updateDisplayName(fullName.trim());
-        await _firestore.collection('users').doc(user.uid).set({
-          'uid': user.uid,
-          'firstName': firstName.trim(),
-          'middleName': middleName.trim(),
-          'lastName': lastName.trim(),
-          'fullName': fullName.trim(),
-          'gender': gender,
-          'dob': dob,
-          'emailOrPhone': emailOrPhone.trim(),
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-      }
-      return user;
-    } on FirebaseAuthException catch (e) {
-      throw e.code;
-    } catch (e) {
-      throw 'unknown';
-    }
-  }
-  // Phone OTP Verification End
 
   Future<User?> register({
     required String firstName,
@@ -197,12 +134,6 @@ String getLocalizedError(String errorCode, String lang) {
       'नेपाली': 'यो इमेल वा फोन नम्बरसँग सम्बन्धित कुनै खाता फेला परेन।',
       'हिन्दी': 'इस ईमेल या फोन से कोई उपयोगकर्ता नहीं मिला।',
       'Urdu': 'اس ای میل یا فون کے ساتھ کوئی صارف نہیں ملا।',
-    },
-    'invalid-verification-code': {
-      'English': 'Invalid OTP code. Please try again.',
-      'नेपाली': 'अमान्य ओटीपी कोड। कृपया फेरि प्रयास गर्नुहोस्।',
-      'हिन्दी': 'अमान्य ओटीपी कोड। कृपया पुनः प्रयास करें।',
-      'Urdu': 'غلط او ٹی پی کوڈ۔ براہ کرم دوبارہ کوشش کریں۔',
     },
     'invalid-credential': {
       'English': 'Invalid email/phone or password.',
@@ -295,12 +226,8 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
     try {
-      String loginInput = _emailController.text.trim();
-      if (!loginInput.contains('@')) {
-        loginInput = '$loginInput@thalo.app';
-      }
       await AuthService().login(
-        email: loginInput,
+        email: _emailController.text,
         password: _passwordController.text,
       );
       if (!mounted) return;
@@ -422,7 +349,7 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
   }
 }
 
-// ================= ThaloRegisterScreen (Multi-step with OTP) =================
+// ================= ThaloRegisterScreen (Multi-step) =================
 class ThaloRegisterScreen extends StatefulWidget {
   const ThaloRegisterScreen({super.key});
 
@@ -434,7 +361,6 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
   int _currentStep = 1;
   final _formKey1 = GlobalKey<FormState>();
   final _formKey2 = GlobalKey<FormState>();
-  final _formKeyOtp = GlobalKey<FormState>();
 
   final _firstNameC = TextEditingController();
   final _middleNameC = TextEditingController();
@@ -442,22 +368,17 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
   final _emailOrPhoneC = TextEditingController();
   final _passC = TextEditingController();
   final _dobC = TextEditingController();
-  final _otpC = TextEditingController();
 
   String? _selectedGender;
   String _ageString = '';
   bool _obscurePassword = true;
   bool _isLoading = false;
   String _lang = 'English';
-  
-  bool _isOtpScreen = false;
-  String _verificationId = '';
 
   final Map<String, Map<String, String>> _texts = {
     'English': {
       'title1': 'Personal Details (Step 1)',
       'title2': 'Account Security (Step 2)',
-      'titleOtp': 'Enter OTP Code',
       'fName': 'First Name',
       'mName': 'Middle Name (Optional)',
       'lName': 'Last Name',
@@ -465,10 +386,8 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       'dob': 'Date of Birth',
       'email': 'Email or Phone Number',
       'pass': 'Create Password',
-      'otpHint': 'Enter 6-digit OTP',
       'next': 'Next',
       'btn': 'Sign Up',
-      'verifyBtn': 'Verify & Register',
       'hasAcc': 'Already have an account?',
       'link': 'Log In',
       'male': 'Male',
@@ -478,7 +397,6 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
     'नेपाली': {
       'title1': 'व्यक्तिगत विवरण (चरण १)',
       'title2': 'खाता सुरक्षा (चरण २)',
-      'titleOtp': 'ओटीपी कोड हाल्नुहोस्',
       'fName': 'पहिलो नाम',
       'mName': 'बीचको नाम (ऐच्छिक)',
       'lName': 'थर',
@@ -486,10 +404,8 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       'dob': 'जन्म मिति',
       'email': 'इमेल वा फोन नम्बर',
       'pass': 'पासवर्ड सिर्जना गर्नुहोस्',
-      'otpHint': '६ अंकको ओटीपी लेख्नुहोस्',
       'next': 'अर्को',
       'btn': 'साइन अप गर्नुहोस्',
-      'verifyBtn': 'भेरिफाई र रजिस्टर गर्नुहोस्',
       'hasAcc': 'पहिले नै खाता छ?',
       'link': 'लगइन गर्नुहोस्',
       'male': 'पुरुष',
@@ -499,7 +415,6 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
     'हिन्दी': {
       'title1': 'व्यक्तिगत विवरण (चरण १)',
       'title2': 'खाता सुरक्षा (चरण २)',
-      'titleOtp': 'ओटीपी कोड दर्ज करें',
       'fName': 'पहला नाम',
       'mName': 'बीच का नाम (वैकल्पिक)',
       'lName': 'उपनाम',
@@ -507,10 +422,8 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       'dob': 'जन्म तिथि',
       'email': 'ईमेल या फोन नंबर',
       'pass': 'पासवर्ड बनाएं',
-      'otpHint': '6-अंकों का ओटीपी दर्ज करें',
       'next': 'अगला',
       'btn': 'साइन अप करें',
-      'verifyBtn': 'सत्यापित और रजिस्टर करें',
       'hasAcc': 'पहले से खाता है?',
       'link': 'लॉगिन करें',
       'male': 'पुरुष',
@@ -520,7 +433,6 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
     'Urdu': {
       'title1': 'ذاتی تفصیلات (مرحلہ 1)',
       'title2': 'اکاؤنٹ سیکیورٹی (مرحلہ 2)',
-      'titleOtp': 'او ٹی پی درج کریں',
       'fName': 'پہلا نام',
       'mName': 'درمیانی نام',
       'lName': 'آخری نام',
@@ -528,10 +440,8 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       'dob': 'تاریخ پیدائش',
       'email': 'ای میل یا فون نمبر',
       'pass': 'پاس ورڈ بنائیں',
-      'otpHint': '6 ہندسوں کا او ٹی پی',
       'next': 'اگلا',
       'btn': 'سائن اپ کریں',
-      'verifyBtn': 'تصدیق کریں',
       'hasAcc': 'پہلے سے اکاؤنٹ ہے؟',
       'link': 'لاگ ان کریں',
       'male': 'مرد',
@@ -586,32 +496,6 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
 
   void _submit() async {
     if (!_formKey2.currentState!.validate()) return;
-    
-    String input = _emailOrPhoneC.text.trim();
-    // यदि फोन नम्बर हो र @ छैन भने OTP पठाउने प्रकृया सुरु गर्ने
-    if (!input.contains('@')) {
-      setState(() => _isLoading = true);
-      String formattedPhone = input.startsWith('+') ? input : '+977$input'; // नेपालको कोड राख्न सकिन्छ
-      await AuthService().verifyPhoneNumber(
-        phoneNumber: formattedPhone,
-        onCodeSent: (verId) {
-          setState(() {
-            _verificationId = verId;
-            _isOtpScreen = true;
-            _isLoading = false;
-          });
-        },
-        onError: (err) {
-          setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('OTP Error: $err')),
-          );
-        },
-      );
-      return;
-    }
-
-    // इमेलबाट रजिस्टर गर्दा सीधै गर्ने
     setState(() => _isLoading = true);
     try {
       await AuthService().register(
@@ -639,36 +523,6 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
     }
   }
 
-  void _verifyOtpAndComplete() async {
-    if (!_formKeyOtp.currentState!.validate()) return;
-    setState(() => _isLoading = true);
-    try {
-      await AuthService().verifyOTPAndRegister(
-        verificationId: _verificationId,
-        smsCode: _otpC.text,
-        firstName: _firstNameC.text,
-        middleName: _middleNameC.text,
-        lastName: _lastNameC.text,
-        gender: _selectedGender ?? '',
-        dob: _dobC.text,
-        emailOrPhone: _emailOrPhoneC.text,
-      );
-      if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const ThaloNavigationScreen()),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      String message = getLocalizedError(e.toString(), _lang);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final t = _texts[_lang]!;
@@ -679,52 +533,217 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
           backgroundColor: Colors.white,
           elevation: 0,
           iconTheme: const IconThemeData(color: Colors.black),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () {
-              if (_isOtpScreen) {
-                setState(() => _isOtpScreen = false);
-              } else if (_currentStep == 2) {
-                setState(() => _currentStep = 1);
-              } else {
-                Navigator.pop(context);
-              }
-            },
-          ),
+          leading: _currentStep == 2
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () => setState(() => _currentStep = 1),
+                )
+              : null,
         ),
         body: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
-            child: _isOtpScreen
+            child: _currentStep == 1
                 ? Form(
-                    key: _formKeyOtp,
+                    key: _formKey1,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Text(
-                          t['titleOtp']!,
+                          t['title1']!,
                           textAlign: TextAlign.center,
                           style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 25),
                         TextFormField(
-                          controller: _otpC,
-                          keyboardType: TextInputType.number,
+                          controller: _firstNameC,
                           decoration: InputDecoration(
-                            hintText: t['otpHint'],
+                            hintText: t['fName'],
                             filled: true,
                             fillColor: const Color(0xfff5f6f8),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide.none,
                             ),
-                            prefixIcon: const Icon(Icons.lock_clock, color: Colors.grey),
+                            prefixIcon: const Icon(Icons.person_outline, color: Colors.grey),
                           ),
-                          validator: (v) => (v == null || v.length < 6) ? 'Enter valid OTP' : null,
+                          validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _middleNameC,
+                          decoration: InputDecoration(
+                            hintText: t['mName'],
+                            filled: true,
+                            fillColor: const Color(0xfff5f6f8),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            prefixIcon: const Icon(Icons.person_outline, color: Colors.grey),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _lastNameC,
+                          decoration: InputDecoration(
+                            hintText: t['lName'],
+                            filled: true,
+                            fillColor: const Color(0xfff5f6f8),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            prefixIcon: const Icon(Icons.person_outline, color: Colors.grey),
+                          ),
+                          validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          value: _selectedGender,
+                          decoration: InputDecoration(
+                            hintText: t['gender'],
+                            filled: true,
+                            fillColor: const Color(0xfff5f6f8),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            prefixIcon: const Icon(Icons.transgender, color: Colors.grey),
+                          ),
+                          items: [
+                            DropdownMenuItem(value: 'Male', child: Text(t['male']!)),
+                            DropdownMenuItem(value: 'Female', child: Text(t['female']!)),
+                            DropdownMenuItem(value: 'Other', child: Text(t['other']!)),
+                          ],
+                          onChanged: (val) => setState(() => _selectedGender = val),
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _dobC,
+                          readOnly: true,
+                          onTap: () async {
+                            DateTime? picked = await showDatePicker(
+                              context: context,
+                              initialDate: DateTime(2000),
+                              firstDate: DateTime(1940),
+                              lastDate: DateTime.now(),
+                            );
+                            if (picked != null) {
+                              _dobC.text =
+                                  "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+                              _calculateAge(picked);
+                            }
+                          },
+                          decoration: InputDecoration(
+                            hintText: t['dob'],
+                            filled: true,
+                            fillColor: const Color(0xfff5f6f8),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            prefixIcon: const Icon(Icons.cake_outlined, color: Colors.grey),
+                          ),
+                          validator: (v) => (v == null || v.isEmpty) ? 'Select DOB' : null,
+                        ),
+                        if (_ageString.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            _ageString,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.blueGrey, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                        const SizedBox(height: 28),
+                        ElevatedButton(
+                          onPressed: _goToStep2,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black87,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(t['next']!, style: const TextStyle(color: Colors.white, fontSize: 16)),
+                        ),
+                        const SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(t['hasAcc']!, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: Text(
+                                t['link']!,
+                                style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 13),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        buildLangBar(_lang, (l) {
+                          setState(() {
+                            _lang = l;
+                            if (_dobC.text.isNotEmpty) {
+                              try {
+                                DateTime parsedDate = DateTime.parse(_dobC.text);
+                                _calculateAge(parsedDate);
+                              } catch (_) {}
+                            }
+                          });
+                        }),
+                      ],
+                    ),
+                  )
+                : Form(
+                    key: _formKey2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          t['title2']!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 25),
+                        TextFormField(
+                          controller: _emailOrPhoneC,
+                          decoration: InputDecoration(
+                            hintText: t['email'],
+                            filled: true,
+                            fillColor: const Color(0xfff5f6f8),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            prefixIcon: const Icon(Icons.perm_identity, color: Colors.grey),
+                          ),
+                          validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _passC,
+                          obscureText: _obscurePassword,
+                          decoration: InputDecoration(
+                            hintText: t['pass'],
+                            filled: true,
+                            fillColor: const Color(0xfff5f6f8),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
+                            suffixIcon: IconButton(
+                              icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                            ),
+                          ),
+                          validator: (v) => (v == null || v.length < 6) ? 'Min 6 characters' : null,
                         ),
                         const SizedBox(height: 28),
                         ElevatedButton(
-                          onPressed: _isLoading ? null : _verifyOtpAndComplete,
+                          onPressed: _isLoading ? null : _submit,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.black87,
                             padding: const EdgeInsets.symmetric(vertical: 16),
@@ -734,242 +753,27 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                           ),
                           child: _isLoading
                               ? const CircularProgressIndicator(color: Colors.white)
-                              : Text(t['verifyBtn']!, style: const TextStyle(color: Colors.white, fontSize: 16)),
+                              : Text(t['btn']!, style: const TextStyle(color: Colors.white, fontSize: 16)),
                         ),
+                        const SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(t['hasAcc']!, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: Text(
+                                t['link']!,
+                                style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 13),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        buildLangBar(_lang, (l) => setState(() => _lang = l)),
                       ],
                     ),
-                  )
-                : _currentStep == 1
-                    ? Form(
-                        key: _formKey1,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Text(
-                              t['title1']!,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 25),
-                            TextFormField(
-                              controller: _firstNameC,
-                              decoration: InputDecoration(
-                                hintText: t['fName'],
-                                filled: true,
-                                fillColor: const Color(0xfff5f6f8),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide.none,
-                                ),
-                                prefixIcon: const Icon(Icons.person_outline, color: Colors.grey),
-                              ),
-                              validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
-                            ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _middleNameC,
-                              decoration: InputDecoration(
-                                hintText: t['mName'],
-                                filled: true,
-                                fillColor: const Color(0xfff5f6f8),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide.none,
-                                ),
-                                prefixIcon: const Icon(Icons.person_outline, color: Colors.grey),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _lastNameC,
-                              decoration: InputDecoration(
-                                hintText: t['lName'],
-                                filled: true,
-                                fillColor: const Color(0xfff5f6f8),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide.none,
-                                ),
-                                prefixIcon: const Icon(Icons.person_outline, color: Colors.grey),
-                              ),
-                              validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
-                            ),
-                            const SizedBox(height: 16),
-                            DropdownButtonFormField<String>(
-                              value: _selectedGender,
-                              decoration: InputDecoration(
-                                hintText: t['gender'],
-                                filled: true,
-                                fillColor: const Color(0xfff5f6f8),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide.none,
-                                ),
-                                prefixIcon: const Icon(Icons.transgender, color: Colors.grey),
-                              ),
-                              items: [
-                                DropdownMenuItem(value: 'Male', child: Text(t['male']!)),
-                                DropdownMenuItem(value: 'Female', child: Text(t['female']!)),
-                                DropdownMenuItem(value: 'Other', child: Text(t['other']!)),
-                              ],
-                              onChanged: (val) => setState(() => _selectedGender = val),
-                            ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _dobC,
-                              readOnly: true,
-                              onTap: () async {
-                                DateTime? picked = await showDatePicker(
-                                  context: context,
-                                  initialDate: DateTime(2000),
-                                  firstDate: DateTime(1940),
-                                  lastDate: DateTime.now(),
-                                );
-                                if (picked != null) {
-                                  _dobC.text =
-                                      "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
-                                  _calculateAge(picked);
-                                }
-                              },
-                              decoration: InputDecoration(
-                                hintText: t['dob'],
-                                filled: true,
-                                fillColor: const Color(0xfff5f6f8),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide.none,
-                                ),
-                                prefixIcon: const Icon(Icons.cake_outlined, color: Colors.grey),
-                              ),
-                              validator: (v) => (v == null || v.isEmpty) ? 'Select DOB' : null,
-                            ),
-                            if (_ageString.isNotEmpty) ...[
-                              const SizedBox(height: 8),
-                              Text(
-                                _ageString,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(color: Colors.blueGrey, fontWeight: FontWeight.w600),
-                              ),
-                            ],
-                            const SizedBox(height: 28),
-                            ElevatedButton(
-                              onPressed: _goToStep2,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.black87,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: Text(t['next']!, style: const TextStyle(color: Colors.white, fontSize: 16)),
-                            ),
-                            const SizedBox(height: 20),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(t['hasAcc']!, style: const TextStyle(color: Colors.grey, fontSize: 13)),
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  child: Text(
-                                    t['link']!,
-                                    style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 13),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-                            buildLangBar(_lang, (l) {
-                              setState(() {
-                                _lang = l;
-                                if (_dobC.text.isNotEmpty) {
-                                  try {
-                                    DateTime parsedDate = DateTime.parse(_dobC.text);
-                                    _calculateAge(parsedDate);
-                                  } catch (_) {}
-                                }
-                              });
-                            }),
-                          ],
-                        ),
-                      )
-                    : Form(
-                        key: _formKey2,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Text(
-                              t['title2']!,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 25),
-                            TextFormField(
-                              controller: _emailOrPhoneC,
-                              decoration: InputDecoration(
-                                hintText: t['email'],
-                                filled: true,
-                                fillColor: const Color(0xfff5f6f8),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide.none,
-                                ),
-                                prefixIcon: const Icon(Icons.perm_identity, color: Colors.grey),
-                              ),
-                              validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
-                            ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _passC,
-                              obscureText: _obscurePassword,
-                              decoration: InputDecoration(
-                                hintText: t['pass'],
-                                filled: true,
-                                fillColor: const Color(0xfff5f6f8),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide.none,
-                                ),
-                                prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
-                                suffixIcon: IconButton(
-                                  icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                                ),
-                              ),
-                              validator: (v) => (v == null || v.length < 6) ? 'Min 6 characters' : null,
-                            ),
-                            const SizedBox(height: 28),
-                            ElevatedButton(
-                              onPressed: _isLoading ? null : _submit,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.black87,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: _isLoading
-                                  ? const CircularProgressIndicator(color: Colors.white)
-                                  : Text(t['btn']!, style: const TextStyle(color: Colors.white, fontSize: 16)),
-                            ),
-                            const SizedBox(height: 20),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(t['hasAcc']!, style: const TextStyle(color: Colors.grey, fontSize: 13)),
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  child: Text(
-                                    t['link']!,
-                                    style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 13),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-                            buildLangBar(_lang, (l) => setState(() => _lang = l)),
-                          ],
-                        ),
-                      ),
+                  ),
           ),
         ),
       ),
