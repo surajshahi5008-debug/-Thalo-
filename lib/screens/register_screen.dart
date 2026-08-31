@@ -1,105 +1,273 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
-import '../widgets/lang_bar.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
 
-class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
-
-  @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    debugPrint("Firebase error: $e");
+  }
+  runApp(const MyApp());
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
-  final AuthService _authService = AuthService();
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
-  // बहु-चरण (Multi-step) कन्ट्रोलर
-  int _currentStep = 0;
-
-  // नामका इनपुट कन्ट्रोलरहरू
-  final TextEditingController _firstNameController = TextEditingController();
-  final TextEditingController _middleNameController = TextEditingController();
-  final TextEditingController _lastNameController = TextEditingController();
-
-  // इमेल र पासवर्ड कन्ट्रोलरहरू
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-
-  // लिङ्ग र जन्म मिति चरहरू
-  String? _selectedGender;
-  final List<String> _gendersEnglish = ['Male', 'Female', 'Other'];
-  final List<String> _gendersNepali = ['पुरुष', 'महिला', 'अन्य'];
-
-  DateTime? _selectedDate;
-  int? _years;
-  int? _days;
-
-  String _selectedLang = 'English';
-  bool _isLoading = false;
-
-  // जन्म मिति छान्ने र उमेर तथा दिन गणना गर्ने फंक्सन
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Thalo',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        scaffoldBackgroundColor: Colors.white,
+      ),
+      home: const ThaloLoginScreen(),
     );
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-        _calculateAgeAndDays(picked);
-      });
+  }
+}
+
+// ================= AuthService =================
+class AuthService {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  String _formatEmail(String input) {
+    String cleaned = input.trim();
+    if (!cleaned.contains('@')) {
+      return '$cleaned@thalo.app';
     }
+    return cleaned;
   }
 
-  void _calculateAgeAndDays(DateTime birthDate) {
-    DateTime today = DateTime.now();
-    
-    int years = today.year - birthDate.year;
-    int months = today.month - birthDate.month;
-    int days = today.day - birthDate.day;
-
-    if (months < 0 || (months == 0 && days < 0)) {
-      years--;
-    }
-
-    // कुल दिनको गणना
-    Duration difference = today.difference(birthDate);
-    
-    setState(() {
-      _years = years;
-      _days = difference.inDays;
-    });
+  String _securePassword(String rawPassword) {
+    Codec<String, String> stringToBase64 = utf8.fuse(base64);
+    String encoded = stringToBase64.encode(rawPassword);
+    return 'Thalo_$encoded';
   }
 
-  // दर्ता प्रक्रिया पूरा गर्ने फंक्सन
-  void _handleRegister() async {
-    setState(() => _isLoading = true);
-    
-    String firstName = _firstNameController.text.trim();
-    String middleName = _middleNameController.text.trim();
-    String lastName = _lastNameController.text.trim();
-    
-    String fullName = middleName.isEmpty 
-        ? '$firstName $lastName' 
-        : '$firstName $middleName $lastName';
-
-    String email = _emailController.text.trim();
-    String password = _passwordController.text.trim();
-
+  Future<User?> login({required String email, required String password}) async {
     try {
-      await _authService.registerWithEmailAndPassword(email, password, fullName);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Registration Successful!')),
-        );
-      }
+      String finalEmail = _formatEmail(email);
+      String finalPassword = _securePassword(password);
+      UserCredential credential = await _auth.signInWithEmailAndPassword(
+        email: finalEmail,
+        password: finalPassword,
+      );
+      return credential.user;
+    } on FirebaseAuthException catch (e) {
+      throw e.code;
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+      throw e.toString();
+    }
+  }
+
+  Future<User?> register({
+    required String firstName,
+    required String middleName,
+    required String lastName,
+    required String gender,
+    required String dob,
+    required String emailOrPhone,
+    required String password,
+  }) async {
+    try {
+      String finalEmail = _formatEmail(emailOrPhone);
+      String finalPassword = _securePassword(password);
+
+      UserCredential credential = await _auth.createUserWithEmailAndPassword(
+        email: finalEmail,
+        password: finalPassword,
+      );
+      User? user = credential.user;
+      if (user != null) {
+        String fullName = '$firstName ${middleName.isNotEmpty ? '$middleName ' : ''}$lastName';
+        await user.updateDisplayName(fullName.trim());
+        await _firestore.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'firstName': firstName.trim(),
+          'middleName': middleName.trim(),
+          'lastName': lastName.trim(),
+          'fullName': fullName.trim(),
+          'gender': gender,
+          'dob': dob,
+          'emailOrPhone': emailOrPhone.trim(),
+          'createdAt': FieldValue.serverTimestamp(),
+        });
       }
+      return user;
+    } on FirebaseAuthException catch (e) {
+      throw e.code;
+    } catch (e) {
+      throw e.toString();
+    }
+  }
+}
+
+// ================= Language Helper & Dynamic Error Translator =================
+Widget buildLangBar(String currentLang, Function(String) onSelected) {
+  return Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: ['English', 'नेपाली', 'हिन्दी', 'Urdu'].map((lang) {
+      bool isSel = currentLang == lang;
+      return GestureDetector(
+        onTap: () => onSelected(lang),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+          child: Text(
+            lang == 'English' ? lang : ' • $lang',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+              color: isSel ? Colors.black87 : Colors.grey,
+            ),
+          ),
+        ),
+      );
+    }).toList(),
+  );
+}
+
+String getLocalizedError(String errorCode, String lang) {
+  Map<String, Map<String, String>> errorMessages = {
+    'wrong-password': {
+      'English': 'Incorrect password. Please try again.',
+      'नेपाली': 'गलत पासवर्ड। कृपया फेरि प्रयास गर्नुहोस्।',
+      'हिन्दी': 'गलत पासवर्ड। कृपया पुनः प्रयास करें।',
+      'Urdu': 'गलत پاس ورڈ۔ براہ کرم دوبارہ کوشش کریں۔',
+    },
+    'user-not-found': {
+      'English': 'No user found with this email/phone.',
+      'नेपाली': 'यो इमेल वा फोन नम्बरसँग सम्बन्धित कुनै खाता फेला परेन।',
+      'हिन्दी': 'इस ईमेल या फोन से कोई उपयोगकर्ता नहीं मिला।',
+      'Urdu': 'اس ای میل یا فون کے ساتھ کوئی صارف نہیں ملا।',
+    },
+    'invalid-credential': {
+      'English': 'Invalid email/phone or password.',
+      'नेपाली': 'इमेल/फोन वा पासवर्ड मिलेन।',
+      'हिन्दी': 'अमान्य ईमेल/फोन या पासवर्ड।',
+      'Urdu': 'غلط ای میل/فون یا پاس ورڈ۔',
+    },
+    'email-already-in-use': {
+      'English': 'This email or phone is already registered.',
+      'नेपाली': 'यो इमेल वा फोन नम्बर पहिल्यै दर्ता भइसकेको छ।',
+      'हिन्दी': 'यह ईमेल या फोन पहले से पंजीकृत है।',
+      'Urdu': 'یہ ای میل یا فون پہلے سے رجسٹرڈ ہے۔',
+    },
+    'weak-password': {
+      'English': 'The password is too weak (Min 6 characters).',
+      'नेपाली': 'पासवर्ड धेरै कमजोर भयो (कम्तीमा ६ अक्षर आवश्यक छ)।',
+      'हिन्दी': 'पासवर्ड बहुत कमज़ोर है (न्यूनतम 6 अक्षर)।',
+      'Urdu': 'پاس ورڈ بہت کمزور ہے (کم از کم 6 حروف)۔',
+    },
+    'invalid-email': {
+      'English': 'The format of the email or phone is invalid.',
+      'नेपाली': 'इमेल वा फोन नम्बरको ढाँचा मिलेन।',
+      'हिन्दी': 'ईमेल या फोन नंबर का प्रारूप अमान्य है।',
+      'Urdu': 'ای میل یا فون نمبر کا فارمیٹ غلط ہے۔',
+    },
+    'network-request-failed': {
+      'English': 'Network error. Please check your internet connection.',
+      'नेपाली': 'इन्टरनेट जडान असफल भयो। कृपया आफ्नो नेट जाँच गर्नुहोस्।',
+      'हिन्दी': 'नेटवर्क त्रुटि। कृपया अपना इंटरनेट कनेक्शन जांचें।',
+      'Urdu': 'نیٹ ورک کی خرابی۔ براہ کرم اپنا انٹرنیٹ چیک کریں۔',
+    },
+  };
+
+  if (errorMessages.containsKey(errorCode) && errorMessages[errorCode]!.containsKey(lang)) {
+    return errorMessages[errorCode]![lang]!;
+  }
+
+  switch (lang) {
+    case 'नेपाली':
+      return 'त्रुटि: $errorCode';
+    case 'हिन्दी':
+      return 'त्रुटि: $errorCode';
+    case 'Urdu':
+      return 'خرابی: $errorCode';
+    default:
+      return 'Error: $errorCode';
+  }
+}
+
+// ================= ThaloLoginScreen =================
+class ThaloLoginScreen extends StatefulWidget {
+  const ThaloLoginScreen({super.key});
+
+  @override
+  State<ThaloLoginScreen> createState() => _ThaloLoginScreenState();
+}
+
+class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _obscurePassword = true;
+  bool _isLoading = false;
+  String _lang = 'English';
+
+  final Map<String, Map<String, String>> _texts = {
+    'English': {
+      'title': 'Log in to your account',
+      'email': 'Email or Phone Number',
+      'pass': 'Password',
+      'btn': 'Log In',
+      'noAcc': "Don't have an account?",
+      'link': 'Sign Up'
+    },
+    'नेपाली': {
+      'title': 'आफ्नो खातामा लगइन गर्नुहोस्',
+      'email': 'इमेल वा फोन नम्बर',
+      'pass': 'पासवर्ड',
+      'btn': 'लगइन गर्नुहोस्',
+      'noAcc': 'खाता छैन?',
+      'link': 'साइन अप गर्नुहोस्'
+    },
+    'हिन्दी': {
+      'title': 'अपने खाते में लॉगिन करें',
+      'email': 'ईमेल या फोन नंबर',
+      'pass': 'पासवर्ड',
+      'btn': 'लॉगिन करें',
+      'noAcc': 'खाता नहीं है?',
+      'link': 'साइन अप करें'
+    },
+    'Urdu': {
+      'title': 'اپنے اکاؤنٹ میں لاگ ان کریں',
+      'email': 'ای میل یا فون نمبر',
+      'pass': 'پاس ورڈ',
+      'btn': 'لاگ ان کریں',
+      'noAcc': 'اکاؤنٹ نہیں ہے؟',
+      'link': 'سائن اپ کریں'
+    },
+  };
+
+  void _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isLoading = true);
+    try {
+      await AuthService().login(
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const ThaloNavigationScreen()),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      String message = getLocalizedError(e.toString().replaceAll('1', '').trim(), _lang);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.redAccent,
+          duration: const Duration(seconds: 4),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -107,146 +275,607 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    List<String> currentGenders = _selectedLang == 'Nepali' ? _gendersNepali : _gendersEnglish;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_selectedLang == 'Nepali' ? 'थालो खाता सिर्जना गर्नुहोस्' : 'Create Thalo Account'),
-      ),
-      body: Column(
-        children: [
-          LangBar(
-            selectedLang: _selectedLang,
-            onLangChanged: (lang) => setState(() => _selectedLang = lang),
-          ),
-          Expanded(
-            child: Stepper(
-              type: StepperType.vertical,
-              currentStep: _currentStep,
-              onStepTapped: (step) => setState(() => _currentStep = step),
-              onStepContinue: () {
-                if (_currentStep < 1) {
-                  setState(() => _currentStep += 1);
-                } else {
-                  _handleRegister();
-                }
-              },
-              onStepCancel: () {
-                if (_currentStep > 0) {
-                  setState(() => _currentStep -= 1);
-                }
-              },
-              steps: [
-                // चरण १: व्यक्तिगत विवरण (Name, Gender, DOB)
-                Step(
-                  title: Text(_selectedLang == 'Nepali' ? 'व्यक्तिगत विवरण' : 'Personal Details'),
-                  content: Column(
+    final t = _texts[_lang]!;
+    return Directionality(
+      textDirection: _lang == 'Urdu' ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        body: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Thalo',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 42, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    t['title']!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.grey, fontSize: 14),
+                  ),
+                  const SizedBox(height: 35),
+                  TextFormField(
+                    controller: _emailController,
+                    decoration: InputDecoration(
+                      hintText: t['email'],
+                      filled: true,
+                      fillColor: const Color(0xfff5f6f8),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      prefixIcon: const Icon(Icons.person_outline, color: Colors.grey),
+                    ),
+                    validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    decoration: InputDecoration(
+                      hintText: t['pass'],
+                      filled: true,
+                      fillColor: const Color(0xfff5f6f8),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
+                      suffixIcon: IconButton(
+                        icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                      ),
+                    ),
+                    validator: (v) => (v == null || v.isEmpty) ? 'Enter password' : null,
+                  ),
+                  const SizedBox(height: 28),
+                  ElevatedButton(
+                    onPressed: _isLoading ? null : _submit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black87,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : Text(t['btn']!, style: const TextStyle(color: Colors.white, fontSize: 16)),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      TextField(
-                        controller: _firstNameController,
-                        decoration: InputDecoration(
-                          labelText: _selectedLang == 'Nepali' ? 'पहिलो नाम' : 'First Name',
-                          prefixIcon: const Icon(Icons.person),
+                      Text(t['noAcc']!, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                      TextButton(
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const ThaloRegisterScreen()),
+                        ),
+                        child: Text(
+                          t['link']!,
+                          style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 13),
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _middleNameController,
-                        decoration: InputDecoration(
-                          labelText: _selectedLang == 'Nepali' ? 'बुवाको वा बीचको नाम (ऐच्छिक)' : 'Middle Name (Optional)',
-                          prefixIcon: const Icon(Icons.person_outline),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _lastNameController,
-                        decoration: InputDecoration(
-                          labelText: _selectedLang == 'Nepali' ? 'थथर (लास्ट नेम)' : 'Last Name',
-                          prefixIcon: const Icon(Icons.person),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        value: _selectedGender,
-                        hint: Text(_selectedLang == 'Nepali' ? 'लिङ्ग छान्नुहोस्' : 'Select Gender'),
-                        items: currentGenders.map((String gender) {
-                          return DropdownMenuItem<String>(
-                            value: gender,
-                            child: Text(gender),
-                          );
-                        }).toList,
-                        onChanged: (String? newValue) {
-                          setState(() {
-                            _selectedGender = newValue;
-                          });
-                        },
-                        decoration: const InputDecoration(
-                          prefixIcon: Icon(Icons.wc),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              _selectedDate == null
-                                  ? (_selectedLang == 'Nepali' ? 'जन्म मिति छनौट गरिएको छैन' : 'No Date Chosen')
-                                  : '${_selectedLang == 'Nepali' ? 'जन्म मिति' : 'DOB'}: ${_selectedDate!.toLocal().toString().split(' ')[0]}',
-                            ),
-                          ),
-                          ElevatedButton(
-                            onPressed: () => _selectDate(context),
-                            child: Text(_selectedLang == 'Nepali' ? 'मिति छान्नुहोस्' : 'Pick Date'),
-                          ),
-                        ],
-                      ),
-                      if (_years != null && _days != null) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          _selectedLang == 'Nepali'
-                              ? 'उमेर: $_years वर्ष ($_days दिन)'
-                              : 'Age: $_years years ($_days days)',
-                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
-                        ),
-                      ],
                     ],
                   ),
-                  isActive: _currentStep >= 0,
-                ),
-                // चरण २: इमेल र पासवर्ड (Email & Password)
-                Step(
-                  title: Text(_selectedLang == 'Nepali' ? 'लगइन विवरण' : 'Login Credentials'),
-                  content: Column(
-                    children: [
-                      TextField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: InputDecoration(
-                          labelText: _selectedLang == 'Nepali' ? 'इमेल ठेगाना' : 'Email Address',
-                          prefixIcon: const Icon(Icons.email),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _passwordController,
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          labelText: _selectedLang == 'Nepali' ? 'पासवर्ड' : 'Password',
-                          prefixIcon: const Icon(Icons.lock),
-                        ),
-                      ),
-                      if (_isLoading) ...[
-                        const SizedBox(height: 20),
-                        const CircularProgressIndicator(),
-                      ],
-                    ],
-                  ),
-                  isActive: _currentStep >= 1,
-                ),
-              ],
+                  const SizedBox(height: 10),
+                  buildLangBar(_lang, (l) => setState(() => _lang = l)),
+                ],
+              ),
             ),
           ),
-        ],
+        ),
+      ),
+    );
+  }
+}
+
+// ================= ThaloRegisterScreen =================
+class ThaloRegisterScreen extends StatefulWidget {
+  const ThaloRegisterScreen({super.key});
+
+  @override
+  State<ThaloRegisterScreen> createState() => _ThaloRegisterScreenState();
+}
+
+class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
+  int _currentStep = 1;
+  final _formKey1 = GlobalKey<FormState>();
+  final _formKey2 = GlobalKey<FormState>();
+
+  final _firstNameC = TextEditingController();
+  final _middleNameC = TextEditingController();
+  final _lastNameC = TextEditingController();
+  final _emailOrPhoneC = TextEditingController();
+  final _passC = TextEditingController();
+  final _dobC = TextEditingController();
+
+  String? _selectedGender;
+  String _ageString = '';
+  bool _obscurePassword = true;
+  bool _isLoading = false;
+  String _lang = 'English';
+
+  final Map<String, Map<String, String>> _texts = {
+    'English': {
+      'title1': 'Personal Details (Step 1)',
+      'title2': 'Account Security (Step 2)',
+      'fName': 'First Name',
+      'mName': 'Middle Name (Optional)',
+      'lName': 'Last Name',
+      'gender': 'Select Gender',
+      'dob': 'Date of Birth',
+      'email': 'Email or Phone Number',
+      'pass': 'Create Password',
+      'passHint': 'Password must be at least 6 characters (Any language letters allowed)',
+      'next': 'Next',
+      'btn': 'Sign Up',
+      'hasAcc': 'Already have an account?',
+      'link': 'Log In',
+      'male': 'Male',
+      'female': 'Female',
+      'other': 'Other',
+      'pickerTitle': 'Select Date of Birth',
+      'cancel': 'Cancel',
+      'ok': 'OK',
+    },
+    'नेपाली': {
+      'title1': 'व्यक्तिगत विवरण (चरण १)',
+      'title2': 'खाता सुरक्षा (चरण २)',
+      'fName': 'पहिलो नाम',
+      'mName': 'बीचको नाम (ऐच्छिक)',
+      'lName': 'थर',
+      'gender': 'लिङ्ग छान्नुहोस्',
+      'dob': 'जन्म मिति',
+      'email': 'इमेल वा फोन नम्बर',
+      'pass': 'पासवर्ड सिर्जना गर्नुहोस्',
+      'passHint': 'पासवर्ड कम्तीमा ६ अक्षर/अंकको हुनुपर्छ (जुनसुकै भाषाका अक्षर पनि राख्न सकिन्छ)',
+      'next': 'अर्को',
+      'btn': 'साइन अप गर्नुहोस्',
+      'hasAcc': 'पहिले नै खाता छ?',
+      'link': 'लगइन गर्नुहोस्',
+      'male': 'पुरुष',
+      'female': 'महिला',
+      'other': 'अन्य',
+      'pickerTitle': 'जन्म मिति छान्नुहोस्',
+      'cancel': 'रद्द गर्नुहोस्',
+      'ok': 'ठीक छ',
+    },
+    'हिन्दी': {
+      'title1': 'व्यक्तिगत विवरण (चरण १)',
+      'title2': 'खाता सुरक्षा (चरण २)',
+      'fName': 'पहला नाम',
+      'mName': 'बीच का नाम (वैकल्पिक)',
+      'lName': 'उपनाम',
+      'gender': 'लिंग चुनें',
+      'dob': 'जन्म तिथि',
+      'email': 'ईमेल या फोन नंबर',
+      'pass': 'पासवर्ड बनाएं',
+      'passHint': 'पासवर्ड कम से कम 6 वर्ण का होना चाहिए (किसी भी भाषा के अक्षर मान्य हैं)',
+      'next': 'अगला',
+      'btn': 'साइन अप करें',
+      'hasAcc': 'पहले से खाता है?',
+      'link': 'लॉगिन करें',
+      'male': 'पुरुष',
+      'female': 'महिला',
+      'other': 'अन्य',
+      'pickerTitle': 'जन्म तिथि चुनें',
+      'cancel': 'रद्द करें',
+      'ok': 'ठीक है',
+    },
+    'Urdu': {
+      'title1': 'ذاتی تفصیلات (مرحلہ 1)',
+      'title2': 'اکاؤنٹ سیکیورٹی (مرحلہ 2)',
+      'fName': 'پہلا نام',
+      'mName': 'درمیانی نام',
+      'lName': 'آخری نام',
+      'gender': 'صنف منتخب کریں',
+      'dob': 'تاریخ پیدائش',
+      'email': 'ای میل یا فون نمبر',
+      'pass': 'پاس ورڈ بنائیں',
+      'passHint': 'پاس ورڈ کم از کم 6 حروف کا ہونا چاہیے (کسی بھی زبان کے حروف استعمال کیے جا سکتے ہیں)',
+      'next': 'اگلا',
+      'btn': 'سائن اپ کریں',
+      'hasAcc': 'پہلے سے اکاؤنٹ ہے؟',
+      'link': 'لاگ ان کریں',
+      'male': 'مرد',
+      'female': 'عورت',
+      'other': 'دیگر',
+      'pickerTitle': 'تاریخ پیدائش منتخب کریں',
+      'cancel': 'منسوخ کریں',
+      'ok': 'ٹھیک ہے',
+    },
+  };
+
+  void _calculateAge(DateTime dob) {
+    DateTime today = DateTime.now();
+    int years = today.year - dob.year;
+    int months = today.month - dob.month;
+    int days = today.day - dob.day;
+
+    if (days < 0) {
+      months--;
+      days += DateTime(today.year, today.month, 0).day;
+    }
+    if (months < 0) {
+      years--;
+      months += 12;
+    }
+
+    setState(() {
+      switch (_lang) {
+        case 'नेपाली':
+          _ageString = 'उमेर: $years वर्ष, $months महिना, $days दिन';
+          break;
+        case 'हिन्दी':
+          _ageString = 'आयु: $years वर्ष, $months महीने, $days दिन';
+          break;
+        case 'Urdu':
+          _ageString = 'عمر: $years سال، $months ماہ، $days دن';
+          break;
+        default:
+          _ageString = 'Age: $years years, $months months, $days days';
+      }
+    });
+  }
+
+  void _goToStep2() {
+    if (_formKey1.currentState!.validate() && _selectedGender != null) {
+      setState(() => _currentStep = 2);
+    } else if (_selectedGender == null) {
+      String msg = 'Please select gender';
+      if (_lang == 'नेपाली') msg = 'कृपया लिङ्ग छान्नुहोस्';
+      if (_lang == 'हिन्दी') msg = 'कृपया लिंग चुनें';
+      if (_lang == 'Urdu') msg = 'براہ کرم صنف منتخب کریں';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.orange));
+    }
+  }
+
+  void _submit() async {
+    if (!_formKey2.currentState!.validate()) return;
+    setState(() => _isLoading = true);
+    try {
+      await AuthService().register(
+        firstName: _firstNameC.text,
+        middleName: _middleNameC.text,
+        lastName: _lastNameC.text,
+        gender: _selectedGender ?? '',
+        dob: _dobC.text,
+        emailOrPhone: _emailOrPhoneC.text,
+        password: _passC.text,
+      );
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const ThaloNavigationScreen()),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      String message = getLocalizedError(e.toString(), _lang);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.redAccent,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = _texts[_lang]!;
+    return Directionality(
+      textDirection: _lang == 'Urdu' ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: Colors.black),
+          leading: _currentStep == 2
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () => setState(() => _currentStep = 1),
+                )
+              : null,
+        ),
+        body: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: _currentStep == 1
+                ? Form(
+                    key: _formKey1,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          t['title1']!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 25),
+                        TextFormField(
+                          controller: _firstNameC,
+                          decoration: InputDecoration(
+                            hintText: t['fName'],
+                            filled: true,
+                            fillColor: const Color(0xfff5f6f8),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            prefixIcon: const Icon(Icons.person_outline, color: Colors.grey),
+                          ),
+                          validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _middleNameC,
+                          decoration: InputDecoration(
+                            hintText: t['mName'],
+                            filled: true,
+                            fillColor: const Color(0xfff5f6f8),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            prefixIcon: const Icon(Icons.person_outline, color: Colors.grey),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _lastNameC,
+                          decoration: InputDecoration(
+                            hintText: t['lName'],
+                            filled: true,
+                            fillColor: const Color(0xfff5f6f8),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            prefixIcon: const Icon(Icons.person_outline, color: Colors.grey),
+                          ),
+                          validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          value: _selectedGender,
+                          decoration: InputDecoration(
+                            hintText: t['gender'],
+                            filled: true,
+                            fillColor: const Color(0xfff5f6f8),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            prefixIcon: const Icon(Icons.transgender, color: Colors.grey),
+                          ),
+                          items: [
+                            DropdownMenuItem(value: 'Male', child: Text(t['male']!)),
+                            DropdownMenuItem(value: 'Female', child: Text(t['female']!)),
+                            DropdownMenuItem(value: 'Other', child: Text(t['other']!)),
+                          ],
+                          onChanged: (val) => setState(() => _selectedGender = val),
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _dobC,
+                          readOnly: true,
+                          onTap: () async {
+                            DateTime? picked = await showDatePicker(
+                              context: context,
+                              initialDate: DateTime(2000),
+                              firstDate: DateTime(1940),
+                              lastDate: DateTime.now(),
+                              helpText: t['pickerTitle'],
+                              cancelText: t['cancel'],
+                              confirmText: t['ok'],
+                              fieldHintText: 'YYYY-MM-DD',
+                              fieldLabelText: t['dob'],
+                            );
+                            if (picked != null) {
+                              _dobC.text =
+                                  "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+                              _calculateAge(picked);
+                            }
+                          },
+                          decoration: InputDecoration(
+                            hintText: t['dob'],
+                            filled: true,
+                            fillColor: const Color(0xfff5f6f8),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            prefixIcon: const Icon(Icons.cake_outlined, color: Colors.grey),
+                          ),
+                          validator: (v) => (v == null || v.isEmpty) ? 'Select DOB' : null,
+                        ),
+                        if (_ageString.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            _ageString,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.blueGrey, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                        const SizedBox(height: 28),
+                        ElevatedButton(
+                          onPressed: _goToStep2,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black87,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(t['next']!, style: const TextStyle(color: Colors.white, fontSize: 16)),
+                        ),
+                        const SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(t['hasAcc']!, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: Text(
+                                t['link']!,
+                                style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 13),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        buildLangBar(_lang, (l) {
+                          setState(() {
+                            _lang = l;
+                            if (_dobC.text.isNotEmpty) {
+                              try {
+                                DateTime parsedDate = DateTime.parse(_dobC.text);
+                                _calculateAge(parsedDate);
+                              } catch (_) {}
+                            }
+                          });
+                        }),
+                      ],
+                    ),
+                  )
+                : Form(
+                    key: _formKey2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          t['title2']!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 25),
+                        TextFormField(
+                          controller: _emailOrPhoneC,
+                          decoration: InputDecoration(
+                            hintText: t['email'],
+                            filled: true,
+                            fillColor: const Color(0xfff5f6f8),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            prefixIcon: const Icon(Icons.perm_identity, color: Colors.grey),
+                          ),
+                          validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _passC,
+                          obscureText: _obscurePassword,
+                          decoration: InputDecoration(
+                            hintText: t['pass'],
+                            filled: true,
+                            fillColor: const Color(0xfff5f6f8),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
+                            suffixIcon: IconButton(
+                              icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                            ),
+                          ),
+                          validator: (v) => (v == null || v.length < 6) ? 'Min 6 characters' : null,
+                        ),
+                        const SizedBox(height: 6),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                          child: Text(
+                            t['passHint']!,
+                            style: const TextStyle(color: Colors.grey, fontSize: 11),
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+                        ElevatedButton(
+                          onPressed: _isLoading ? null : _submit,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.black87,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: _isLoading
+                              ? const CircularProgressIndicator(color: Colors.white)
+                              : Text(t['btn']!, style: const TextStyle(color: Colors.white, fontSize: 16)),
+                        ),
+                        const SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(t['hasAcc']!, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: Text(
+                                t['link']!,
+                                style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 13),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        buildLangBar(_lang, (l) => setState(() => _lang = l)),
+                      ],
+                    ),
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ================= ThaloNavigationScreen =================
+class ThaloNavigationScreen extends StatefulWidget {
+  const ThaloNavigationScreen({super.key});
+
+  @override
+  State<ThaloNavigationScreen> createState() => _ThaloNavigationScreenState();
+}
+
+class _ThaloNavigationScreenState extends State<ThaloNavigationScreen> {
+  String _lang = 'English';
+  final Map<String, String> _texts = {
+    'English': 'Welcome to Thalo Home Screen!',
+    'नेपाली': 'थलो होम स्क्रिनमा स्वागत छ!',
+    'हिन्दी': 'थलो होम स्क्रीन में आपका स्वागत है!',
+    'Urdu': 'تھلو ہوم اسکرین میں خوش آمدید!',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: _lang == 'Urdu' ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                _texts[_lang]!,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 30),
+              buildLangBar(_lang, (l) => setState(() => _lang = l)),
+            ],
+          ),
+        ),
       ),
     );
   }
