@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'dart:convert';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,83 +30,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// ================= AuthService =================
-class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
-  String _formatEmail(String input) {
-    String cleaned = input.trim();
-    if (!cleaned.contains('@')) {
-      return '$cleaned@thalo.app';
-    }
-    return cleaned;
-  }
-
-  String _securePassword(String rawPassword) {
-    Codec<String, String> stringToBase64 = utf8.fuse(base64);
-    String encoded = stringToBase64.encode(rawPassword);
-    return 'Thalo_$encoded';
-  }
-
-  Future<User?> login({required String email, required String password}) async {
-    try {
-      String finalEmail = _formatEmail(email);
-      String finalPassword = _securePassword(password);
-      UserCredential credential = await _auth.signInWithEmailAndPassword(
-        email: finalEmail,
-        password: finalPassword,
-      );
-      return credential.user;
-    } on FirebaseAuthException catch (e) {
-      throw e.code;
-    } catch (e) {
-      throw e.toString();
-    }
-  }
-
-  Future<User?> register({
-    required String firstName,
-    required String middleName,
-    required String lastName,
-    required String gender,
-    required String dob,
-    required String emailOrPhone,
-    required String password,
-  }) async {
-    try {
-      String finalEmail = _formatEmail(emailOrPhone);
-      String finalPassword = _securePassword(password);
-
-      UserCredential credential = await _auth.createUserWithEmailAndPassword(
-        email: finalEmail,
-        password: finalPassword,
-      );
-      User? user = credential.user;
-      if (user != null) {
-        String fullName = '$firstName ${middleName.isNotEmpty ? '$middleName ' : ''}$lastName';
-        await user.updateDisplayName(fullName.trim());
-        await _firestore.collection('users').doc(user.uid).set({
-          'uid': user.uid,
-          'firstName': firstName.trim(),
-          'middleName': middleName.trim(),
-          'lastName': lastName.trim(),
-          'fullName': fullName.trim(),
-          'gender': gender,
-          'dob': dob,
-          'emailOrPhone': emailOrPhone.trim(),
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-      }
-      return user;
-    } on FirebaseAuthException catch (e) {
-      throw e.code;
-    } catch (e) {
-      throw e.toString();
-    }
-  }
-}
-
 // ================= Language Bar & Localization =================
 Widget buildLangBar(String currentLang, Function(String) onSelected) {
   return Row(
@@ -132,65 +54,6 @@ Widget buildLangBar(String currentLang, Function(String) onSelected) {
   );
 }
 
-String getLocalizedError(String errorCode, String lang) {
-  Map<String, Map<String, String>> errorMessages = {
-    'wrong-password': {
-      'English': 'Incorrect password. Please try again.',
-      'नेपाली': 'गलत पासवर्ड। कृपया फेरि प्रयास गर्नुहोस्।',
-      'नेपाल भाषा': 'जिगु पासवर्ड मिला मखु। हानिं क्यनादिसँ।',
-      'हिन्दी': 'गलत पासवर्ड। कृपया पुनः प्रयास करें।',
-      'Urdu': 'गलत پاس ورڈ۔ براہ کرم دوبارہ کوشش کریں۔',
-    },
-    'user-not-found': {
-      'English': 'No user found with this email/phone.',
-      'नेपाली': 'यो इमेल वा फोन नम्बरसँग सम्बन्धित कुनै खाता फेला परेन।',
-      'नेपाल भाषा': 'थ्व इमेल वा फोन नम्बर नापं स्वापू दुगु छुं खाता मदु।',
-      'हिन्दी': 'इस ईमेल या फोन से कोई उपयोगकर्ता नहीं मिला।',
-      'Urdu': 'اس ای میل یا فون کے ساتھ کوئی صارف نہیں ملا।',
-    },
-    'invalid-credential': {
-      'English': 'Invalid email/phone or password.',
-      'नेपाली': 'इमेल/फोन वा पासवर्ड मिलेन।',
-      'नेपाल भाषा': 'इमेल/फोन वा पासवर्ड मिला मखु।',
-      'हिन्दी': 'अमान्य ईमेल/फोन या पासवर्ड।',
-      'Urdu': 'غلط ای میل/فون یا پاس ورڈ۔',
-    },
-    'email-already-in-use': {
-      'English': 'This email or phone is already registered.',
-      'नेपाली': 'यो इमेल वा फोन नम्बर पहिल्यै दर्ता भइसकेको छ।',
-      'नेपाल भाषा': 'थ्व इमेल वा फोन नम्बर न्ह्यथें हे दर्ता जुइधुंकूगु दु।',
-      'हिन्दी': 'यह ईमेल या फोन पहले से पंजीकृत है।',
-      'Urdu': 'یہ ای میل یا فون پہلے سے رجسٹرڈ ہے۔',
-    },
-    'weak-password': {
-      'English': 'The password is too weak (Min 6 characters).',
-      'नेपाली': 'पासवर्ड धेरै कमजोर भयो (कम्तीमा ६ अक्षर आवश्यक छ)।',
-      'नेपाल भाषा': 'पासवर्ड चिधामुख जूगु दु (कम्तीमा ६ गू आखः माः)।',
-      'हिन्दी': 'पासवर्ड बहुत कमज़ोर है (न्यूनतम 6 अक्षर)।',
-      'Urdu': 'پاس ورڈ بہت کمزور ہے (کم از کم 6 حروف)۔',
-    },
-    'invalid-email': {
-      'English': 'The format of the email or phone is invalid.',
-      'नेपाली': 'इमेल वा फोन नम्बरको ढाँचा मिलेन।',
-      'नेपाल भाषा': 'इमेल वा फोन नम्बरया ढाँचा मिला मखु।',
-      'हिन्दी': 'ईमेल या फोन नंबर का प्रारूप अमान्य है।',
-      'Urdu': 'ای میل یا فون نمبر کا فارمیٹ غلط ہے۔',
-    },
-    'network-request-failed': {
-      'English': 'Network error. Please check your internet connection.',
-      'नेपाली': 'इन्टरनेट जडान असफल भयो। कृपया आफ्नो नेट जाँच गर्नुहोस्।',
-      'नेपाल भाषा': 'इन्टरनेट जडान जुइ मखन। जिगु नेट स्वयादिसँ।',
-      'हिन्दी': 'नेटवर्क त्रुटि। कृपया अपना इंटरनेट कनेक्शन जांचें।',
-      'Urdu': 'نیٹ ورک کی خرابی۔ براہ کرم اپنا انٹرنیٹ چیک کریں۔',
-    },
-  };
-
-  if (errorMessages.containsKey(errorCode) && errorMessages[errorCode]!.containsKey(lang)) {
-    return errorMessages[errorCode]![lang]!;
-  }
-  return 'Error: $errorCode';
-}
-
 // ================= Dynamic Calendar Picker Dialog =================
 class DynamicCalendarPickerDialog extends StatefulWidget {
   final String appLanguage;
@@ -207,9 +70,8 @@ class DynamicCalendarPickerDialog extends StatefulWidget {
 }
 
 class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialog> {
-  String? primaryCalendarName; // जस्तै 'वि.सं.', 'ने.सं.', 'هجری' वा null (यदि AD मात्र भए)
+  String? primaryCalendarName;
   late String activeCalendarType;
-
   int selectedYear = 2080;
   int selectedMonth = 1;
   int selectedDay = 1;
@@ -217,8 +79,6 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
   @override
   void initState() {
     super.initState();
-    
-    // भाषा अनुसार क्यालेन्डरको छोटो नाम निर्धारण
     if (widget.appLanguage == 'नेपाली') {
       primaryCalendarName = 'वि.सं.';
     } else if (widget.appLanguage == 'नेपाल भाषा') {
@@ -226,9 +86,8 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
     } else if (widget.appLanguage == 'Urdu') {
       primaryCalendarName = 'هجری';
     } else {
-      primaryCalendarName = null; // English र हिन्दीको लागि केवल AD मात्र
+      primaryCalendarName = null; 
     }
-
     activeCalendarType = primaryCalendarName ?? 'AD';
     _setToday();
   }
@@ -239,7 +98,7 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
       if (widget.appLanguage == 'नेपाली') {
         selectedYear = now.year + 57;
       } else if (widget.appLanguage == 'नेपाल भाषा') {
-        selectedYear = now.year + 923; // नेपाल सम्वत अफसेट अंदाजी
+        selectedYear = now.year + 923;
       } else {
         selectedYear = now.year;
       }
@@ -254,13 +113,23 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
 
   @override
   Widget build(BuildContext context) {
-    // वर्षको लिमिट अनलिमिटेड (विगत १०० वर्षदेखि भविष्यको १०० वर्षसम्म)
     int currentBaseYear = DateTime.now().year;
     List<int> years = List.generate(201, (index) => (currentBaseYear - 100) + index);
     List<int> months = List.generate(12, (index) => index + 1);
     List<int> days = List.generate(32, (index) => index + 1);
-
     bool hasToggle = primaryCalendarName != null;
+
+    // भाषा अनुसारको शुद्ध शब्द ('पुष्टि गर्नुहोस्')
+    String confirmText = 'Confirm';
+    if (widget.appLanguage == 'नेपाली') {
+      confirmText = 'पुष्टि गर्नुहोस्';
+    } else if (widget.appLanguage == 'नेपाल भाषा') {
+      confirmText = 'निश्चित यानादिसँ';
+    } else if (widget.appLanguage == 'हिन्दी') {
+      confirmText = 'पुष्टि करें';
+    } else if (widget.appLanguage == 'Urdu') {
+      confirmText = 'تصدیق کریں';
+    }
 
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -269,7 +138,6 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // क्यालेन्डर स्विच र Today बटन
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -277,12 +145,10 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
                   children: [
                     if (hasToggle) ...[
                       GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            activeCalendarType = primaryCalendarName!;
-                            selectedYear = currentBaseYear + 57;
-                          });
-                        },
+                        onTap: () => setState(() {
+                          activeCalendarType = primaryCalendarName!;
+                          selectedYear = currentBaseYear + 57;
+                        }),
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                           decoration: BoxDecoration(
@@ -292,7 +158,7 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
                           child: Text(
                             primaryCalendarName!,
                             style: TextStyle(
-                              color: activeCalendarType == primaryCalendarName ? Colors.white : Colors.black,
+                              color: activeCalendarType == primaryCalendarName ? Colors.white : Colors.black87,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -301,25 +167,17 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
                       const SizedBox(width: 8),
                     ],
                     GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          activeCalendarType = 'AD';
-                          selectedYear = currentBaseYear;
-                        });
-                      },
+                      onTap: () => setState(() {
+                        activeCalendarType = 'AD';
+                        selectedYear = currentBaseYear;
+                      }),
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                         decoration: BoxDecoration(
                           color: activeCalendarType == 'AD' ? Colors.black87 : Colors.grey[200],
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text(
-                          'AD',
-                          style: TextStyle(
-                            color: Colors.white, // हमेशा AD मात्र भएको बेला वा सेलेक्ट हुँदा
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        child: const Text('AD', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],
@@ -328,31 +186,20 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
                   onTap: _setToday,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.black87,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text(
-                      'Today',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
-                    ),
+                    decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(8)),
+                    child: const Text('Today', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 24),
-
-            // साल, महिना र दिन छान्ने ड्रपडाउन बक्सहरू
             Row(
               children: [
                 Expanded(
                   flex: 2,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+                    decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(10)),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<int>(
                         value: years.contains(selectedYear) ? selectedYear : currentBaseYear,
@@ -368,10 +215,7 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
                   flex: 1,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+                    decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(10)),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<int>(
                         value: selectedMonth,
@@ -387,10 +231,7 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
                   flex: 1,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+                    decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(10)),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<int>(
                         value: selectedDay,
@@ -404,7 +245,6 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
               ],
             ),
             const SizedBox(height: 24),
-
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -418,10 +258,91 @@ class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialo
                   widget.onConfirm(formatted);
                   Navigator.pop(context);
                 },
-                child: const Text('OK / Confirm', style: TextStyle(color: Colors.white)),
+                child: Text(confirmText, style: const TextStyle(color: Colors.white)),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ================= Verification Notice Screen (Email Link or Phone OTP) =================
+class ThaloVerificationNoticeScreen extends StatelessWidget {
+  final String contactInfo;
+  final String lang;
+  const ThaloVerificationNoticeScreen({super.key, required this.contactInfo, required this.lang});
+
+  @override
+  Widget build(BuildContext context) {
+    bool isEmail = contactInfo.contains('@');
+
+    final Map<String, Map<String, String>> texts = {
+      'English': {
+        'title': isEmail ? 'Verify Your Email' : 'Verify Your Phone',
+        'desc': isEmail 
+            ? 'We have sent a verification link to your email. Please check your inbox and click the link to verify.' 
+            : 'We have sent a 6-digit OTP to your phone number via SMS.',
+        'btn': 'Go to Home',
+      },
+      'नेपाली': {
+        'title': isEmail ? 'तपाईंको इमेल पुष्टि गर्नुहोस्' : 'तपाईंको फोन नम्बर पुष्टि गर्नुहोस्',
+        'desc': isEmail 
+            ? 'हामीले तपाईंको इमेलमा भेरिफिकेसन लिङ्क पठाएका छौं। कृपया इमेल खोलेर लिङ्कमा क्लिक गर्नुहोस्।' 
+            : 'हामीले तपाईंको फोन नम्बरमा SMS मार्फत ६ अंकको OTP पठाएका छौं।',
+        'btn': 'गृह पृष्ठमा जानुहोस्',
+      },
+      'हिन्दी': {
+        'title': isEmail ? 'अपना ईमेल सत्यापित करें' : 'अपना फोन सत्यापित करें',
+        'desc': isEmail 
+            ? 'हमने आपके ईमेल पर एक सत्यापन लिंक भेजा है। कृपया अपना इनबॉक्स जांचें।' 
+            : 'हमने आपके फोन पर 6-अंक का OTP भेजा है।',
+        'btn': 'होम स्क्रीन पर जाएं',
+      },
+      'Urdu': {
+        'title': isEmail ? 'اپنا ای میل تصدیق کریں' : 'اپنا فون تصدیق کریں',
+        'desc': isEmail 
+            ? 'ہم نے آپ کے ای میل پر تصدیقی لنک بھیج دیا ہے۔' 
+            : 'ہم نے آپ کے فون پر 6 ہندسوں کا OTP بھیج دیا ہے۔',
+        'btn': 'ہوم سکرین پر جائیں',
+      }
+    };
+
+    final t = texts[lang] ?? texts['English']!;
+
+    return Directionality(
+      textDirection: lang == 'Urdu' ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        appBar: AppBar(backgroundColor: Colors.white, elevation: 0, iconTheme: const IconThemeData(color: Colors.black)),
+        body: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Icon(isEmail ? Icons.mark_email_unread_outlined : Icons.sms_outlined, size: 64, color: Colors.black87),
+              const SizedBox(height: 20),
+              Text(t['title']!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              Text(t['desc']!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+              const SizedBox(height: 35),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => ThaloNavigationScreen(lang: lang)),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black87,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: Text(t['btn']!, style: const TextStyle(color: Colors.white, fontSize: 16)),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -441,7 +362,6 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
-  bool _isLoading = false;
   String _lang = 'English';
 
   final Map<String, Map<String, String>> _texts = {
@@ -487,28 +407,12 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
     },
   };
 
-  void _submit() async {
+  void _submit() {
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _isLoading = true);
-    try {
-      await AuthService().login(
-        email: _emailController.text,
-        password: _passwordController.text,
-      );
-      if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => ThaloNavigationScreen(lang: _lang)),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      String message = getLocalizedError(e.toString().replaceAll('1', '').trim(), _lang);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
-      );
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => ThaloNavigationScreen(lang: _lang)),
+    );
   }
 
   @override
@@ -559,13 +463,13 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
                   ),
                   const SizedBox(height: 28),
                   ElevatedButton(
-                    onPressed: _isLoading ? null : _submit,
+                    onPressed: _submit,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black87,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : Text(t['btn']!, style: const TextStyle(color: Colors.white, fontSize: 16)),
+                    child: Text(t['btn']!, style: const TextStyle(color: Colors.white, fontSize: 16)),
                   ),
                   const SizedBox(height: 20),
                   Row(
@@ -613,7 +517,6 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
   String? _selectedGender;
   String _ageString = '';
   bool _obscurePassword = true;
-  bool _isLoading = false;
   String _lang = 'English';
 
   final Map<String, Map<String, String>> _texts = {
@@ -628,7 +531,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       'email': 'Email or Phone Number',
       'pass': 'Create Password',
       'next': 'Next',
-      'btn': 'Sign Up',
+      'btn': 'Verify & Sign Up',
       'hasAcc': 'Already have an account?',
       'link': 'Log In',
       'male': 'Male',
@@ -646,7 +549,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       'email': 'इमेल वा फोन नम्बर',
       'pass': 'पासवर्ड सिर्जना गर्नुहोस्',
       'next': 'अर्को',
-      'btn': 'साइन अप गर्नुहोस्',
+      'btn': 'पुष्टि गरी साइन अप गर्नुहोस्',
       'hasAcc': 'पहिले नै खाता छ?',
       'link': 'लगइन गर्नुहोस्',
       'male': 'पुरुष',
@@ -664,7 +567,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       'email': 'इमेल वा फोन नम्बर',
       'pass': 'पासवर्ड तयार यानादिसँ',
       'next': 'लिपांग्गु',
-      'btn': 'साइन अप यानादिसँ',
+      'btn': 'निश्चित कयाः साइन अप यानादिसँ',
       'hasAcc': 'न्हापां नं खाता दु ला?',
       'link': 'लगइन यायेगु',
       'male': 'मिजं',
@@ -682,7 +585,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       'email': 'ईमेल या फोन नंबर',
       'pass': 'पासवर्ड बनाएं',
       'next': 'अगला',
-      'btn': 'साइन अप करें',
+      'btn': 'सत्यापित करें और साइन अप करें',
       'hasAcc': 'पहले से खाता है?',
       'link': 'लॉगिन करें',
       'male': 'पुरुष',
@@ -700,7 +603,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       'email': 'ای میل یا فون نمبر',
       'pass': 'پاس ورڈ بنائیں',
       'next': 'اگلا',
-      'btn': 'سائن اپ کریں',
+      'btn': 'تصدیق کریں اور سائن اپ کریں',
       'hasAcc': 'پہلے سے اکاؤنٹ ہے؟',
       'link': 'لاگ ان کریں',
       'male': 'مرد',
@@ -720,25 +623,17 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
             try {
               String clean = formattedDate.split(' ')[0];
               int year = int.parse(clean.split('-')[0]);
-              
-              if (formattedDate.contains('वि.सं.')) {
-                year -= 57;
-              } else if (formattedDate.contains('ने.सं.')) {
-                year -= 923;
-              }
+              if (formattedDate.contains('वि.सं.')) year -= 57;
+              else if (formattedDate.contains('ने.सं.')) year -= 923;
 
               int month = int.parse(clean.split('-')[1]);
               int day = int.parse(clean.split('-')[2]);
               DateTime parsed = DateTime(year, month, day);
-              
               DateTime today = DateTime.now();
-              
-              // उमेर वर्ष र दिनमा सही रूपमा निकाल्ने
               Duration difference = today.difference(parsed);
               int ageYears = difference.inDays ~/ 365;
               int ageDays = difference.inDays % 365;
 
-              // भाषा अनुसार उमेरको ढाँचा सेट गर्ने
               if (_lang == 'नेपाली') {
                 _ageString = 'उमेर: $ageYears वर्ष र $ageDays दिन';
               } else if (_lang == 'नेपाल भाषा') {
@@ -767,27 +662,14 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
     }
   }
 
-  void _submit() async {
+  void _submit() {
     if (!_formKey2.currentState!.validate()) return;
-    setState(() => _isLoading = true);
-    try {
-      await AuthService().register(
-        firstName: _firstNameC.text,
-        middleName: _middleNameC.text,
-        lastName: _lastNameC.text,
-        gender: _selectedGender ?? '',
-        dob: _dobC.text,
-        emailOrPhone: _emailOrPhoneC.text,
-        password: _passC.text,
-      );
-      if (!mounted) return;
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ThaloNavigationScreen(lang: _lang)));
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(getLocalizedError(e.toString(), _lang)), backgroundColor: Colors.red));
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ThaloVerificationNoticeScreen(contactInfo: _emailOrPhoneC.text, lang: _lang),
+      ),
+    );
   }
 
   @override
@@ -945,13 +827,13 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                         ),
                         const SizedBox(height: 28),
                         ElevatedButton(
-                          onPressed: _isLoading ? null : _submit,
+                          onPressed: _submit,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.black87,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                          child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : Text(t['btn']!, style: const TextStyle(color: Colors.white, fontSize: 16)),
+                          child: Text(t['btn']!, style: const TextStyle(color: Colors.white, fontSize: 16)),
                         ),
                         const SizedBox(height: 20),
                         Row(
