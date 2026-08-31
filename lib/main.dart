@@ -44,11 +44,9 @@ class AuthService {
     return cleaned;
   }
 
-  // जुनसुकै भाषाका अक्षरहरू (Nepali, Hindi, Urdu आदि) लाई Firebase मा सुरक्षित राख्न Base64 मा रूपान्तरण गर्ने
   String _securePassword(String rawPassword) {
     Codec<String, String> stringToBase64 = utf8.fuse(base64);
     String encoded = stringToBase64.encode(rawPassword);
-    // Firebase को कम्तीमा ६ character को नियम पूरा गर्न र सुरक्षित बनाउन
     return 'Thalo_$encoded';
   }
 
@@ -110,7 +108,7 @@ class AuthService {
   }
 }
 
-// ================= Language Helper & Dynamic Error Translator =================
+// ================= Language Bar & Localization =================
 Widget buildLangBar(String currentLang, Function(String) onSelected) {
   return Row(
     mainAxisAlignment: MainAxisAlignment.center,
@@ -146,7 +144,7 @@ String getLocalizedError(String errorCode, String lang) {
       'English': 'No user found with this email/phone.',
       'नेपाली': 'यो इमेल वा फोन नम्बरसँग सम्बन्धित कुनै खाता फेला परेन।',
       'हिन्दी': 'इस ईमेल या फोन से कोई उपयोगकर्ता नहीं मिला।',
-      'Urdu': 'اس ای میل یا فون کے ساتھ کوئی صارف نہیں ملا۔',
+      'Urdu': 'اس ای میل یا فون کے ساتھ کوئی صارف نہیں ملا।',
     },
     'invalid-credential': {
       'English': 'Invalid email/phone or password.',
@@ -183,16 +181,233 @@ String getLocalizedError(String errorCode, String lang) {
   if (errorMessages.containsKey(errorCode) && errorMessages[errorCode]!.containsKey(lang)) {
     return errorMessages[errorCode]![lang]!;
   }
+  return 'Error: $errorCode';
+}
 
-  switch (lang) {
-    case 'नेपाली':
-      return 'त्रुटि: $errorCode';
-    case 'हिन्दी':
-      return 'त्रुटि: $errorCode';
-    case 'Urdu':
-      return 'خرابی: $errorCode';
-    default:
-      return 'Error: $errorCode';
+// ================= Dynamic Calendar Picker Dialog =================
+class DynamicCalendarPickerDialog extends StatefulWidget {
+  final String appLanguage;
+  final Function(String formattedDate) onConfirm;
+
+  const DynamicCalendarPickerDialog({
+    super.key,
+    required this.appLanguage,
+    required this.onConfirm,
+  });
+
+  @override
+  State<DynamicCalendarPickerDialog> createState() => _DynamicCalendarPickerDialogState();
+}
+
+class _DynamicCalendarPickerDialogState extends State<DynamicCalendarPickerDialog> {
+  late String primaryCalendarName;
+  late String activeCalendarType;
+
+  int selectedYear = 2080;
+  int selectedMonth = 1;
+  int selectedDay = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    // भाषा अनुसार स्थानीय क्यालेन्डर नाम छुट्याउने
+    if (widget.appLanguage == 'नेपाली') {
+      primaryCalendarName = 'BS';
+    } else if (widget.appLanguage == 'Urdu') {
+      primaryCalendarName = 'Hijri';
+    } else if (widget.appLanguage == 'हिन्दी') {
+      primaryCalendarName = 'VS';
+    } else {
+      primaryCalendarName = 'Local';
+    }
+
+    activeCalendarType = primaryCalendarName;
+    _setToday();
+  }
+
+  void _setToday() {
+    DateTime now = DateTime.now();
+    if (activeCalendarType == primaryCalendarName) {
+      selectedYear = now.year + (widget.appLanguage == 'नेपाली' ? 57 : 0);
+      selectedMonth = now.month;
+      selectedDay = now.day;
+    } else {
+      selectedYear = now.year;
+      selectedMonth = now.month;
+      selectedDay = now.day;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    List<int> years = activeCalendarType == primaryCalendarName
+        ? List.generate(85, (index) => 2000 + index)
+        : List.generate(80, (index) => 1950 + index);
+
+    List<int> months = List.generate(12, (index) => index + 1);
+    List<int> days = List.generate(32, (index) => index + 1);
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      content: SizedBox(
+        width: 320,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // माथिल्लो भागमा भाषा अनुसारको क्यालेन्डर टगल र Today बटन
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          activeCalendarType = primaryCalendarName;
+                          selectedYear = 2080;
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: activeCalendarType == primaryCalendarName ? Colors.black87 : Colors.grey[200],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          primaryCalendarName,
+                          style: TextStyle(
+                            color: activeCalendarType == primaryCalendarName ? Colors.white : Colors.black,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          activeCalendarType = 'AD';
+                          selectedYear = 2000;
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: activeCalendarType == 'AD' ? Colors.black87 : Colors.grey[200],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'AD',
+                          style: TextStyle(
+                            color: activeCalendarType == 'AD' ? Colors.white : Colors.black,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                GestureDetector(
+                  onTap: _setToday,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.black87,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      'Today',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // साल, महिना र दिन छान्ने ड्रपडाउन बक्सहरू (तस्बिरको ढाँचा अनुसार)
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: selectedYear,
+                        isExpanded: true,
+                        items: years.map((y) => DropdownMenuItem(value: y, child: Text('$y'))).toList(),
+                        onChanged: (val) => setState(() => selectedYear = val!),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 1,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: selectedMonth,
+                        isExpanded: true,
+                        items: months.map((m) => DropdownMenuItem(value: m, child: Text('$m'))).toList(),
+                        onChanged: (val) => setState(() => selectedMonth = val!),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 1,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: selectedDay,
+                        isExpanded: true,
+                        items: days.map((d) => DropdownMenuItem(value: d, child: Text('$d'))).toList(),
+                        onChanged: (val) => setState(() => selectedDay = val!),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black87,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () {
+                  String formatted = '$selectedYear-${selectedMonth.toString().padLeft(2, '0')}-${selectedDay.toString().padLeft(2, '0')} ($activeCalendarType)';
+                  widget.onConfirm(formatted);
+                  Navigator.pop(context);
+                },
+                child: const Text('OK / Confirm', style: TextStyle(color: Colors.white)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -258,17 +473,13 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const ThaloNavigationScreen()),
+        MaterialPageRoute(builder: (_) => ThaloNavigationScreen(lang: _lang)),
       );
     } catch (e) {
       if (!mounted) return;
       String message = getLocalizedError(e.toString().replaceAll('1', '').trim(), _lang);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Colors.redAccent,
-          duration: const Duration(seconds: 4),
-        ),
+        SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -289,17 +500,9 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
-                    'Thalo',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 42, fontWeight: FontWeight.bold),
-                  ),
+                  const Text('Thalo', textAlign: TextAlign.center, style: TextStyle(fontSize: 42, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 5),
-                  Text(
-                    t['title']!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.grey, fontSize: 14),
-                  ),
+                  Text(t['title']!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 14)),
                   const SizedBox(height: 35),
                   TextFormField(
                     controller: _emailController,
@@ -307,10 +510,7 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
                       hintText: t['email'],
                       filled: true,
                       fillColor: const Color(0xfff5f6f8),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                       prefixIcon: const Icon(Icons.person_outline, color: Colors.grey),
                     ),
                     validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
@@ -323,10 +523,7 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
                       hintText: t['pass'],
                       filled: true,
                       fillColor: const Color(0xfff5f6f8),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                       prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
                       suffixIcon: IconButton(
                         icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
@@ -341,13 +538,9 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black87,
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: _isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : Text(t['btn']!, style: const TextStyle(color: Colors.white, fontSize: 16)),
+                    child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : Text(t['btn']!, style: const TextStyle(color: Colors.white, fontSize: 16)),
                   ),
                   const SizedBox(height: 20),
                   Row(
@@ -355,14 +548,8 @@ class _ThaloLoginScreenState extends State<ThaloLoginScreen> {
                     children: [
                       Text(t['noAcc']!, style: const TextStyle(color: Colors.grey, fontSize: 13)),
                       TextButton(
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const ThaloRegisterScreen()),
-                        ),
-                        child: Text(
-                          t['link']!,
-                          style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 13),
-                        ),
+                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ThaloRegisterScreen())),
+                        child: Text(t['link']!, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 13)),
                       ),
                     ],
                   ),
@@ -415,7 +602,6 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       'dob': 'Date of Birth',
       'email': 'Email or Phone Number',
       'pass': 'Create Password',
-      'passHint': 'Password must be at least 6 characters (Any language letters allowed)',
       'next': 'Next',
       'btn': 'Sign Up',
       'hasAcc': 'Already have an account?',
@@ -434,7 +620,6 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       'dob': 'जन्म मिति',
       'email': 'इमेल वा फोन नम्बर',
       'pass': 'पासवर्ड सिर्जना गर्नुहोस्',
-      'passHint': 'पासवर्ड कम्तीमा ६ अक्षर/अंकको हुनुपर्छ (ज जुनसुकै भाषाका अक्षर पनि राख्न सकिन्छ)',
       'next': 'अर्को',
       'btn': 'साइन अप गर्नुहोस्',
       'hasAcc': 'पहिले नै खाता छ?',
@@ -453,7 +638,6 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       'dob': 'जन्म तिथि',
       'email': 'ईमेल या फोन नंबर',
       'pass': 'पासवर्ड बनाएं',
-      'passHint': 'पासवर्ड कम से कम 6 वर्ण का होना चाहिए (किसी भी भाषा के अक्षर मान्य हैं)',
       'next': 'अगला',
       'btn': 'साइन अप करें',
       'hasAcc': 'पहले से खाता है?',
@@ -472,7 +656,6 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
       'dob': 'تاریخ پیدائش',
       'email': 'ای میل یا فون نمبر',
       'pass': 'پاس ورڈ بنائیں',
-      'passHint': 'پاس ورڈ کم از کم 6 حروف کا ہونا چاہیے (کسی بھی زبان کے حروف استعمال کیے جا سکتے ہیں)',
       'next': 'اگلا',
       'btn': 'سائن اپ کریں',
       'hasAcc': 'پہلے سے اکاؤنٹ ہے؟',
@@ -483,47 +666,41 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
     },
   };
 
-  void _calculateAge(DateTime dob) {
-    DateTime today = DateTime.now();
-    int years = today.year - dob.year;
-    int months = today.month - dob.month;
-    int days = today.day - dob.day;
-
-    if (days < 0) {
-      months--;
-      days += DateTime(today.year, today.month, 0).day;
-    }
-    if (months < 0) {
-      years--;
-      months += 12;
-    }
-
-    setState(() {
-      switch (_lang) {
-        case 'नेपाली':
-          _ageString = 'उमेर: $years वर्ष, $months महिना, $days दिन';
-          break;
-        case 'हिन्दी':
-          _ageString = 'आयु: $years वर्ष, $months महीने, $days दिन';
-          break;
-        case 'Urdu':
-          _ageString = 'عمر: $years سال، $months ماہ، $days دن';
-          break;
-        default:
-          _ageString = 'Age: $years years, $months months, $days days';
-      }
-    });
+  void _openDynamicCalendarPicker() {
+    showDialog(
+      context: context,
+      builder: (context) => DynamicCalendarPickerDialog(
+        appLanguage: _lang,
+        onConfirm: (formattedDate) {
+          setState(() {
+            _dobC.text = formattedDate;
+            try {
+              String clean = formattedDate.split(' ')[0];
+              int year = int.parse(clean.split('-')[0]);
+              if (formattedDate.contains('BS') || formattedDate.contains('Hijri')) {
+                year -= (_lang == 'नेपाली' ? 57 : 0);
+              }
+              int month = int.parse(clean.split('-')[1]);
+              int day = int.parse(clean.split('-')[2]);
+              DateTime parsed = DateTime(year, month, day);
+              
+              DateTime today = DateTime.now();
+              int ageY = today.year - parsed.year;
+              _ageString = 'उमेर / Age: लगभग $ageY वर्ष';
+            } catch (_) {
+              _ageString = '';
+            }
+          });
+        },
+      ),
+    );
   }
 
   void _goToStep2() {
     if (_formKey1.currentState!.validate() && _selectedGender != null) {
       setState(() => _currentStep = 2);
     } else if (_selectedGender == null) {
-      String msg = 'Please select gender';
-      if (_lang == 'नेपाली') msg = 'कृपया लिङ्ग छान्नुहोस्';
-      if (_lang == 'हिन्दी') msg = 'कृपया लिंग चुनें';
-      if (_lang == 'Urdu') msg = 'براہ کرم صنف منتخب کریں';
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.orange));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('कृपया लिङ्ग छान्नुहोस्'), backgroundColor: Colors.orange));
     }
   }
 
@@ -541,20 +718,10 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
         password: _passC.text,
       );
       if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const ThaloNavigationScreen()),
-      );
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ThaloNavigationScreen(lang: _lang)));
     } catch (e) {
       if (!mounted) return;
-      String message = getLocalizedError(e.toString(), _lang);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Colors.redAccent,
-          duration: const Duration(seconds: 4),
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(getLocalizedError(e.toString(), _lang)), backgroundColor: Colors.red));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -570,12 +737,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
           backgroundColor: Colors.white,
           elevation: 0,
           iconTheme: const IconThemeData(color: Colors.black),
-          leading: _currentStep == 2
-              ? IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: () => setState(() => _currentStep = 1),
-                )
-              : null,
+          leading: _currentStep == 2 ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => setState(() => _currentStep = 1)) : null,
         ),
         body: Center(
           child: SingleChildScrollView(
@@ -586,11 +748,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(
-                          t['title1']!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                        ),
+                        Text(t['title1']!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 25),
                         TextFormField(
                           controller: _firstNameC,
@@ -598,10 +756,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                             hintText: t['fName'],
                             filled: true,
                             fillColor: const Color(0xfff5f6f8),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                             prefixIcon: const Icon(Icons.person_outline, color: Colors.grey),
                           ),
                           validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
@@ -613,10 +768,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                             hintText: t['mName'],
                             filled: true,
                             fillColor: const Color(0xfff5f6f8),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                             prefixIcon: const Icon(Icons.person_outline, color: Colors.grey),
                           ),
                         ),
@@ -627,10 +779,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                             hintText: t['lName'],
                             filled: true,
                             fillColor: const Color(0xfff5f6f8),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                             prefixIcon: const Icon(Icons.person_outline, color: Colors.grey),
                           ),
                           validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
@@ -642,10 +791,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                             hintText: t['gender'],
                             filled: true,
                             fillColor: const Color(0xfff5f6f8),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                             prefixIcon: const Icon(Icons.transgender, color: Colors.grey),
                           ),
                           items: [
@@ -659,38 +805,19 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                         TextFormField(
                           controller: _dobC,
                           readOnly: true,
-                          onTap: () async {
-                            DateTime? picked = await showDatePicker(
-                              context: context,
-                              initialDate: DateTime(2000),
-                              firstDate: DateTime(1940),
-                              lastDate: DateTime.now(),
-                            );
-                            if (picked != null) {
-                              _dobC.text =
-                                  "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
-                              _calculateAge(picked);
-                            }
-                          },
+                          onTap: _openDynamicCalendarPicker,
                           decoration: InputDecoration(
                             hintText: t['dob'],
                             filled: true,
                             fillColor: const Color(0xfff5f6f8),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                            prefixIcon: const Icon(Icons.cake_outlined, color: Colors.grey),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                            prefixIcon: const Icon(Icons.calendar_month, color: Colors.grey),
                           ),
                           validator: (v) => (v == null || v.isEmpty) ? 'Select DOB' : null,
                         ),
                         if (_ageString.isNotEmpty) ...[
                           const SizedBox(height: 8),
-                          Text(
-                            _ageString,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(color: Colors.blueGrey, fontWeight: FontWeight.w600),
-                          ),
+                          Text(_ageString, textAlign: TextAlign.center, style: const TextStyle(color: Colors.blueGrey, fontWeight: FontWeight.w600)),
                         ],
                         const SizedBox(height: 28),
                         ElevatedButton(
@@ -698,9 +825,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.black87,
                             padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                           child: Text(t['next']!, style: const TextStyle(color: Colors.white, fontSize: 16)),
                         ),
@@ -711,25 +836,12 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                             Text(t['hasAcc']!, style: const TextStyle(color: Colors.grey, fontSize: 13)),
                             TextButton(
                               onPressed: () => Navigator.pop(context),
-                              child: Text(
-                                t['link']!,
-                                style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 13),
-                              ),
+                              child: Text(t['link']!, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 13)),
                             ),
                           ],
                         ),
                         const SizedBox(height: 10),
-                        buildLangBar(_lang, (l) {
-                          setState(() {
-                            _lang = l;
-                            if (_dobC.text.isNotEmpty) {
-                              try {
-                                DateTime parsedDate = DateTime.parse(_dobC.text);
-                                _calculateAge(parsedDate);
-                              } catch (_) {}
-                            }
-                          });
-                        }),
+                        buildLangBar(_lang, (l) => setState(() => _lang = l)),
                       ],
                     ),
                   )
@@ -738,11 +850,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(
-                          t['title2']!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                        ),
+                        Text(t['title2']!, textAlign: TextAlign.center, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 25),
                         TextFormField(
                           controller: _emailOrPhoneC,
@@ -750,10 +858,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                             hintText: t['email'],
                             filled: true,
                             fillColor: const Color(0xfff5f6f8),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                             prefixIcon: const Icon(Icons.perm_identity, color: Colors.grey),
                           ),
                           validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
@@ -766,10 +871,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                             hintText: t['pass'],
                             filled: true,
                             fillColor: const Color(0xfff5f6f8),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                             prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
                             suffixIcon: IconButton(
                               icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
@@ -778,27 +880,15 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                           ),
                           validator: (v) => (v == null || v.length < 6) ? 'Min 6 characters' : null,
                         ),
-                        const SizedBox(height: 6),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                          child: Text(
-                            t['passHint']!,
-                            style: const TextStyle(color: Colors.grey, fontSize: 11),
-                          ),
-                        ),
                         const SizedBox(height: 28),
                         ElevatedButton(
                           onPressed: _isLoading ? null : _submit,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.black87,
                             padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                          child: _isLoading
-                              ? const CircularProgressIndicator(color: Colors.white)
-                              : Text(t['btn']!, style: const TextStyle(color: Colors.white, fontSize: 16)),
+                          child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : Text(t['btn']!, style: const TextStyle(color: Colors.white, fontSize: 16)),
                         ),
                         const SizedBox(height: 20),
                         Row(
@@ -807,10 +897,7 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
                             Text(t['hasAcc']!, style: const TextStyle(color: Colors.grey, fontSize: 13)),
                             TextButton(
                               onPressed: () => Navigator.pop(context),
-                              child: Text(
-                                t['link']!,
-                                style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 13),
-                              ),
+                              child: Text(t['link']!, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 13)),
                             ),
                           ],
                         ),
@@ -828,14 +915,22 @@ class _ThaloRegisterScreenState extends State<ThaloRegisterScreen> {
 
 // ================= ThaloNavigationScreen =================
 class ThaloNavigationScreen extends StatefulWidget {
-  const ThaloNavigationScreen({super.key});
+  final String lang;
+  const ThaloNavigationScreen({super.key, required this.lang});
 
   @override
   State<ThaloNavigationScreen> createState() => _ThaloNavigationScreenState();
 }
 
 class _ThaloNavigationScreenState extends State<ThaloNavigationScreen> {
-  String _lang = 'English';
+  late String _lang;
+
+  @override
+  void initState() {
+    super.initState();
+    _lang = widget.lang;
+  }
+
   final Map<String, String> _texts = {
     'English': 'Welcome to Thalo Home Screen!',
     'नेपाली': 'थलो होम स्क्रिनमा स्वागत छ!',
@@ -852,10 +947,7 @@ class _ThaloNavigationScreenState extends State<ThaloNavigationScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                _texts[_lang]!,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
+              Text(_texts[_lang]!, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 30),
               buildLangBar(_lang, (l) => setState(() => _lang = l)),
             ],
