@@ -6,7 +6,9 @@ workflows:
       events:
         - push
       branch_patterns:
-        - main
+        - pattern: main
+          include: true
+          source: true
     environment:
       flutter: stable
     scripts:
@@ -22,13 +24,11 @@ workflows:
           python3 - <<'PYEOF'
           import json
 
-          # Read the real package name from google-services.json
           with open("android/app/google-services.json") as f:
               data = json.load(f)
               package_name = data["client"][0]["client_info"]["android_client_info"]["package_name"]
               print("Using package name:", package_name)
 
-          # 1. Register the google-services plugin in settings.gradle.kts
           settings_path = "android/settings.gradle.kts"
           try:
               with open(settings_path) as f:
@@ -43,12 +43,11 @@ workflows:
           except FileNotFoundError:
               pass
 
-          # 2. Apply the plugin + fix applicationId/namespace in app-level build.gradle.kts
           app_gradle_kts = "android/app/build.gradle.kts"
           with open(app_gradle_kts) as f:
               content = f.read()
 
-          if "id(\"com.google.gms.google-services\") not in content:
+          if "id(\"com.google.gms.google-services\")" not in content:
               content = content.replace(
                   "plugins {",
                   "plugins {\n    id(\"com.google.gms.google-services\")"
