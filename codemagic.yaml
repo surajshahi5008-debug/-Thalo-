@@ -2,16 +2,18 @@ workflows:
   android-workflow:
     name: Thalo Android Build
     max_build_duration: 30
-
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - main
     environment:
       flutter: stable
-
     scripts:
       - name: Create Android project
         script: |
           set -e
           flutter create --platforms=android --org com.thalo --project-name app .
-
       - name: Configure Firebase for Android
         script: |
           set -e
@@ -23,8 +25,8 @@ workflows:
           # Read the real package name from google-services.json
           with open("android/app/google-services.json") as f:
               data = json.load(f)
-          package_name = data["client"][0]["client_info"]["android_client_info"]["package_name"]
-          print("Using package name:", package_name)
+              package_name = data["client"][0]["client_info"]["android_client_info"]["package_name"]
+              print("Using package name:", package_name)
 
           # 1. Register the google-services plugin in settings.gradle.kts
           settings_path = "android/settings.gradle.kts"
@@ -33,9 +35,8 @@ workflows:
                   content = f.read()
               if "com.google.gms.google-services" not in content:
                   content = content.replace(
-                      'id("com.android.application") version',
-                      'id("com.google.gms.google-services") version "4.4.2" apply false\n    id("com.android.application") version',
-                      1,
+                      "id(\"com.android.application\") version",
+                      "id(\"com.google.gms.google-services\") version \"4.4.2\" apply false\n    id(\"com.android.application\") version"
                   )
                   with open(settings_path, "w") as f:
                       f.write(content)
@@ -47,11 +48,10 @@ workflows:
           with open(app_gradle_kts) as f:
               content = f.read()
 
-          if 'id("com.google.gms.google-services")' not in content:
+          if "id(\"com.google.gms.google-services\") not in content:
               content = content.replace(
-                  'plugins {',
-                  'plugins {\n    id("com.google.gms.google-services")',
-                  1,
+                  "plugins {",
+                  "plugins {\n    id(\"com.google.gms.google-services\")"
               )
 
           import re
@@ -61,12 +61,10 @@ workflows:
           with open(app_gradle_kts, "w") as f:
               f.write(content)
           PYEOF
-
       - name: Build Thalo APK
         script: |
           set -e
           flutter pub get
           flutter build apk --release
-
     artifacts:
       - build/app/outputs/flutter-apk/app-release.apk
