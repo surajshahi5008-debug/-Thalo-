@@ -38,15 +38,42 @@ class MainRouter extends StatefulWidget {
 
 class _MainRouterState extends State<MainRouter> {
   int _currentIndex = 0;
-
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const LoginScreen(),
-    const RegisterScreen(),
-  ];
+  String currentLang = 'ne';
+  String selectedDate = '२०८३/०५/१६';
 
   @override
   Widget build(BuildContext context) {
+    final List<Widget> _screens = [
+      HomeScreen(
+        currentLang: currentLang,
+        onLanguageChanged: (lang) {
+          setState(() {
+            currentLang = lang;
+          });
+        },
+        onNotificationTap: (notif) {},
+        selectedDate: selectedDate,
+        onCalendarTap: () {},
+        onLogout: () {},
+      ),
+      LoginScreen(
+        currentLang: currentLang,
+        onLanguageChanged: (lang) {
+          setState(() {
+            currentLang = lang;
+          });
+        },
+      ),
+      RegisterScreen(
+        currentLang: currentLang,
+        onLanguageChanged: (lang) {
+          setState(() {
+            currentLang = lang;
+          });
+        },
+      ),
+    ];
+
     return Scaffold(
       body: _screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
