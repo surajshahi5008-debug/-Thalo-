@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:thalo/screens/login_screen.dart';
 import 'package:thalo/screens/register_screen.dart';
@@ -16,6 +15,9 @@ class ThaloApp extends StatefulWidget {
 }
 
 class _ThaloAppState extends State<ThaloApp> {
+  // हालको भाषा सेट गर्ने भेरिएबल (डिफल्टमा नेपाली 'ne' वा अंग्रेजी 'en' राख्न सकिन्छ)
+  String currentLang = 'ne';
+
   void _handleNotificationTap(String? payload) {
     debugPrint("Notification tapped with payload: $payload");
   }
@@ -32,9 +34,11 @@ class _ThaloAppState extends State<ThaloApp> {
       initialRoute: '/login',
       routes: {
         '/login': (context) => LoginScreen(
+              currentLang: currentLang,
               onNotificationTap: _handleNotificationTap,
             ),
         '/register': (context) => RegisterScreen(
+              currentLang: currentLang,
               onNotificationTap: _handleNotificationTap,
             ),
       },
