@@ -44,13 +44,13 @@ class _AuthWrapperState extends State<AuthWrapper> {
   String? _selectedGender;
   bool _acceptTerms = false;
 
-  // जन्म मिति र क्यालेन्डर स्विचका लागि भेरिएबलहरू
+  // जन्म मिति र स्मार्ट क्यालेन्डर स्विचका लागि भेरिएबलहरू
   String _selectedCalendar = 'वि.सं.'; 
   int _selectedYear = 2080;
   int _selectedMonth = 8;
   int _selectedDay = 31;
 
-  // भाषा अनुसार शुद्ध शब्दहरू र क्यालेन्डर सर्टकटहरू
+  // भाषा अनुसार शुद्ध शब्दहरू, क्यालेन्डर सर्टकटहरू र पुष्टि गर्ने बटन (OK) को अनुवाद
   Map<String, Map<String, String>> get _localizedValues => {
         'English': {
           'loginAppBar': 'Thalo - Login',
@@ -74,7 +74,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'terms': 'I accept the Terms & Conditions',
           'registerButton': 'Sign Up',
           'hasAccount': 'Already have an account? Login here',
-          'calToggle': '', // अङ्ग्रेजीमा पनि सर्टकट देखाइने छैन
+          'okButton': 'OK',
+          'cancelButton': 'Cancel',
         },
         'नेपाली': {
           'loginAppBar': 'थलो - लगइन',
@@ -98,7 +99,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'terms': 'म सर्त तथा नियमहरू (Terms & Conditions) स्वीकार गर्दछु',
           'registerButton': 'साइन अप',
           'hasAccount': 'पहिले नै खाता छ? यहाँ लगइन गर्नुहोस्',
-          'calToggle': 'वि.सं./AD',
+          'okButton': 'ठीक छ',
+          'cancelButton': 'रद्द गर्नुहोस्',
         },
         'नेपाल भाषा': {
           'loginAppBar': 'थलो - लगइन',
@@ -122,7 +124,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'terms': 'शर्त स्वीकार यानाच्वना',
           'registerButton': 'साइन अप',
           'hasAccount': 'न्हापां नं खाता दुसा? थन लगइन यानादिसँ',
-          'calToggle': 'ने.सं./AD',
+          'okButton': 'थुगु',
+          'cancelButton': 'मखु',
         },
         'हिन्दी': {
           'loginAppBar': 'थलो - लॉगिन',
@@ -146,7 +149,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'terms': 'मैं नियम और शर्तें स्वीकार करता हूँ',
           'registerButton': 'साइन अप',
           'hasAccount': 'पहले से खाता है? यहाँ लॉगिन करें',
-          'calToggle': '', // हिन्दीमा क्यालेन्डर सर्टकट देखाइने छैन
+          'okButton': 'ठीक है',
+          'cancelButton': 'रद्द करें',
         },
         'اردو': {
           'loginAppBar': 'تھلو - لاگ ان',
@@ -170,12 +174,38 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'terms': 'میں شرائط و ضوابط قبول کرتا ہوں',
           'registerButton': 'سائن اپ',
           'hasAccount': 'پہلے سے اکاؤنٹ ہے؟ یہاں لاگ ان کریں',
-          'calToggle': 'هجری/AD',
+          'okButton': 'ٹھیک ہے',
+          'cancelButton': 'منسوخ کریں',
         },
       };
 
   String _getText(String key) {
     return _localizedValues[_currentLang]?[key] ?? _localizedValues['नेपाली']![key]!;
+  }
+
+  // अङ्कहरूलाई सम्बन्धित भाषाको लिपिमा रूपान्तरण गर्ने फङ्सन (Nepali/Hindi/Urdu digits converter)
+  String _formatNumber(int number) {
+    String numStr = number.toString();
+    if (_currentLang == 'नेपाली' || _currentLang == 'नेपाल भाषा') {
+      const englishDigits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+      const nepaliDigits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
+      for (int i = 0; i < 10; i++) {
+        numStr = numStr.replaceAll(englishDigits[i], nepaliDigits[i]);
+      }
+    } else if (_currentLang == 'हिन्दी') {
+      const englishDigits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+      const hindiDigits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
+      for (int i = 0; i < 10; i++) {
+        numStr = numStr.replaceAll(englishDigits[i], hindiDigits[i]);
+      }
+    } else if (_currentLang == 'اردو') {
+      const englishDigits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+      const urduDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+      for (int i = 0; i < 10; i++) {
+        numStr = numStr.replaceAll(englishDigits[i], urduDigits[i]);
+      }
+    }
+    return numStr;
   }
 
   // भाषा छान्ने तेर्सो (Horizontal) विजेट
@@ -216,7 +246,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
     );
   }
 
-  // जन्म मिति छान्ने पपअप डायलॉग (असीमित वर्ष र छनोट गरिएका भाषामा मात्र क्यालेन्डर स्विच सहित)
+  // जन्म मिति छान्ने पपअप डायलॉग
   void _showDatePickerDialog() {
     showDialog(
       context: context,
@@ -228,7 +258,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(_getText('dob'), style: const TextStyle(fontSize: 16)),
-                  // हिन्दी र अंग्रेजी बाहेक अन्य भाषामा मात्र क्यालेन्डर स्विच बटन देखाउने
+                  // दायाँ-बायाँ स्पष्ट देखिने गरी राखिएको क्यालेन्डर स्विच बटन
                   if (_currentLang != 'हिन्दी' && _currentLang != 'English')
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
@@ -247,7 +277,20 @@ class _AuthWrapperState extends State<AuthWrapper> {
                           }
                         });
                       },
-                      child: Text(_selectedCalendar, style: const TextStyle(color: Colors.blue, fontSize: 11)),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _selectedCalendar,
+                            style: const TextStyle(color: Colors.blue, fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                          const Text(' | ', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                          Text(
+                            _selectedCalendar == 'AD' ? 'लोकल' : 'AD',
+                            style: const TextStyle(color: Colors.blueGrey, fontSize: 10),
+                          ),
+                        ],
+                      ),
                     ),
                 ],
               ),
@@ -258,14 +301,17 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   children: [
                     Row(
                       children: [
-                        // वर्ष (Year) - पूर्ण रूपमा असीमित दायरा
+                        // वर्ष (Year)
                         Expanded(
                           flex: 2,
                           child: DropdownButton<int>(
                             isExpanded: true,
                             value: _selectedYear,
                             items: List.generate(2001, (index) => 1000 + index)
-                                .map((year) => DropdownMenuItem(value: year, child: Text('$year', style: const TextStyle(fontSize: 13))))
+                                .map((year) => DropdownMenuItem(
+                                      value: year,
+                                      child: Text(_formatNumber(year), style: const TextStyle(fontSize: 13)),
+                                    ))
                                 .toList(),
                             onChanged: (val) {
                               if (val != null) setDialogState(() => _selectedYear = val);
@@ -284,7 +330,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
                               if (_currentLang == 'हिन्दी' || _currentLang == 'English' || _currentLang == 'اردو') {
                                 const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
                                 monthName = months[month - 1];
-                              } else if (_currentLang == 'नेपाली' || _currentLang == 'नेपाल भाषा') {
+                              } else if (_currentLang == 'नेपाल भाषा') {
+                                const nepalBhasaMonths = ['चिल्ला', 'दिल्ला', 'गुंला', 'ञला', 'चौला', 'बछला', 'तंला', 'देवा', 'कछला', 'इला', 'थिल्ला', 'प्वंला'];
+                                monthName = nepalBhasaMonths[month - 1];
+                              } else if (_currentLang == 'नेपाली') {
                                 const nepMonths = ['बैशाख', 'जेठ', 'आषाढ', 'श्रावण', 'भाद्र', 'आश्विन', 'कार्तिक', 'मंसिर', 'पुष', 'माघ', 'फागुन', 'चैत'];
                                 monthName = nepMonths[month - 1];
                               }
@@ -303,7 +352,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
                             isExpanded: true,
                             value: _selectedDay,
                             items: List.generate(32, (index) => index + 1)
-                                .map((day) => DropdownMenuItem(value: day, child: Text('$day', style: const TextStyle(fontSize: 13))))
+                                .map((day) => DropdownMenuItem(
+                                      value: day,
+                                      child: Text(_formatNumber(day), style: const TextStyle(fontSize: 13)),
+                                    ))
                                 .toList(),
                             onChanged: (val) {
                               if (val != null) setDialogState(() => _selectedDay = val);
@@ -318,7 +370,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('रद्द गर्नुहोस्'),
+                  child: Text(_getText('cancelButton')),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
@@ -326,7 +378,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                     setState(() {});
                     Navigator.pop(context);
                   },
-                  child: const Text('ठीक छ (OK)', style: TextStyle(color: Colors.white)),
+                  child: Text(_getText('okButton'), style: const TextStyle(color: Colors.white)),
                 ),
               ],
             );
@@ -456,8 +508,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
                     child: TextField(
                       decoration: InputDecoration(
                         labelText: (_currentLang == 'हिन्दी' || _currentLang == 'English')
-                            ? '${_getText('dob')} : $_selectedYear-$_selectedMonth-$_selectedDay'
-                            : '${_getText('dob')} ($_selectedCalendar) : $_selectedYear-$_selectedMonth-$_selectedDay',
+                            ? '${_getText('dob')} : ${_formatNumber(_selectedYear)}-${_formatNumber(_selectedMonth)}-${_formatNumber(_selectedDay)}'
+                            : '${_getText('dob')} ($_selectedCalendar) : ${_formatNumber(_selectedYear)}-${_formatNumber(_selectedMonth)}-${_formatNumber(_selectedDay)}',
                         border: const OutlineInputBorder(),
                         suffixIcon: const Icon(Icons.calendar_today),
                       ),
@@ -497,7 +549,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
         ),
       );
     } else if (_currentIndex == 11) {
-      // ----------------- REGISTER STEP 2 (Gender - 3 Options, Contact, Terms) -----------------
+      // ----------------- REGISTER STEP 2 -----------------
       return Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.blue,
