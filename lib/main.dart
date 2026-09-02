@@ -38,17 +38,66 @@ class MainRouter extends StatefulWidget {
 
 class _MainRouterState extends State<MainRouter> {
   int _currentIndex = 0;
-
-  final List<Widget> _screens = [
-    const HomeScreen(currentlang: 'en'),
-    const LoginScreen(currentlang: 'en'),
-    const RegisterScreen(currentlang: 'en'),
-  ];
+  String _currentLang = 'ne'; // डीफल्ट भाषा
+  final String _selectedDate = 'आज';
 
   @override
   Widget build(BuildContext context) {
+    final List<Widget> screens = [
+      HomeScreen(
+        currentLang: _currentLang,
+        onLanguageChanged: (lang) {
+          setState(() {
+            _currentLang = lang;
+          });
+        },
+        onNotificationTap: (val) {},
+        selectedDate: _selectedDate,
+        onCalendarTap: () {},
+        onLogout: () {},
+      ),
+      LoginScreen(
+        currentLang: _currentLang,
+        onLanguageChanged: (lang) {
+          setState(() {
+            _currentLang = lang;
+          });
+        },
+        onNotificationTap: (val) {},
+        onLoginSuccess: () {
+          setState(() {
+            _currentIndex = 0; // लगइन भएपछि होम पेजमा जाने
+          });
+        },
+        goToRegister: () {
+          setState(() {
+            _currentIndex = 2; // रजिस्टर पेजमा जाने
+          });
+        },
+      ),
+      RegisterScreen(
+        currentLang: _currentLang,
+        onLanguageChanged: (lang) {
+          setState(() {
+            _currentLang = lang;
+          });
+        },
+        onNotificationTap: (val) {},
+        onRegisterSuccess: () {
+          setState(() {
+            _currentIndex = 0; // रजिस्टर भएपछि होम पेजमा जाने
+          });
+        },
+        goToLogin: () {
+          setState(() {
+            _currentIndex = 1; // लगइन पेजमा जाने
+          });
+        },
+      ),
+    ];
+
     return Scaffold(
-      body: _screens[_currentIndex],
+      body: screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         selectedItemColor: AppColors.primaryBlue,
