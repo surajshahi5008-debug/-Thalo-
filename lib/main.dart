@@ -35,22 +35,18 @@ class AuthWrapper extends StatefulWidget {
 }
 
 class _AuthWrapperState extends State<AuthWrapper> {
-  // 0: Login, 1: Register Step 1, 11: Register Step 2, 2: Home
   int _currentIndex = 0;
   String _currentLang = 'नेपाली';
   final String _selectedDate = 'आज';
 
-  // साइन अप स्टेप २ का लागि भेरिएबलहरू
   String? _selectedGender;
   bool _acceptTerms = false;
 
-  // जन्म मिति र स्मार्ट क्यालेन्डर स्विचका लागि भेरिएबलहरू (डिफल्ट आजको वास्तविक मिति सेट गर्न)
   String _selectedCalendar = 'वि.सं.'; 
   late int _selectedYear;
   late int _selectedMonth;
   late int _selectedDay;
 
-  // उमेर र जन्मदिनको शुभकामनासम्बन्धी भेरिएबलहरू
   String _ageResultText = '';
   String _birthdayWishText = '';
   bool _showBirthdayWish = false;
@@ -61,7 +57,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
     _setCurrentDate();
   }
 
-  // आजको वास्तविक मिति क्यालेन्डर र भाषा अनुसार सेट गर्ने फङ्सन
   void _setCurrentDate() {
     DateTime now = DateTime.now();
     if (_currentLang == 'English' || _selectedCalendar == 'AD') {
@@ -79,6 +74,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
       _selectedMonth = now.month;
       _selectedDay = now.day;
       _selectedCalendar = 'ने.सं.';
+    } else if (_currentLang == 'اردو') {
+      _selectedYear = now.year;
+      _selectedMonth = now.month;
+      _selectedDay = now.day;
+      _selectedCalendar = 'هجری';
     } else {
       _selectedYear = now.year;
       _selectedMonth = now.month;
@@ -86,7 +86,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
     }
   }
 
-  // भाषा अनुसार शुद्ध शब्दहरू र अनुवादहरू
   Map<String, Map<String, String>> get _localizedValues => {
         'English': {
           'loginAppBar': 'Thalo - Login',
@@ -197,7 +196,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'noAccount': 'اکاؤنٹ نہیں ہے؟ یہاں رجسٹر کریں',
           'registerAppBar': 'تھلو - سائن اپ',
           'registerTitle': 'نیا اکاؤنٹ بنائیں',
-          'firstName': 'पहला نام',
+          'firstName': 'پہلا نام',
           'middleName': 'درمیانی نام',
           'lastName': 'آخری نام',
           'dob': 'تاریخ پیدائش',
@@ -219,7 +218,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
     return _localizedValues[_currentLang]?[key] ?? _localizedValues['नेपाली']![key]!;
   }
 
-  // भाषा र क्यालेन्डर अनुसार अङ्कहरूलाई सम्बन्धित लिपिमा बदल्ने फङ्सन
   String _formatNumber(int number) {
     if (_selectedCalendar == 'AD' || _currentLang == 'English') {
       return number.toString();
@@ -248,10 +246,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
     return numStr;
   }
 
-  // उमेर र जन्मदिनको हिसाब गर्ने सटीक लजिक
   void _calculateAgeAndBirthday() {
     DateTime now = DateTime.now();
-    int currentY = (_selectedCalendar == 'AD') ? now.year : now.year + (_selectedCalendar == 'वि.सं.' ? 57 : 1120);
+    int currentY = (_selectedCalendar == 'AD') ? now.year : now.year + (_selectedCalendar == 'वि.सं.' ? 57 : (_selectedCalendar == 'ने.सं.' ? 1120 : 0));
     int currentM = now.month;
     int currentD = now.day;
 
@@ -275,9 +272,12 @@ class _AuthWrapperState extends State<AuthWrapper> {
     String yStr = _formatNumber(years);
     String mStr = _formatNumber(months);
     String dStr = _formatNumber(days);
-    int totalAgeYears = years > 0 ? years : 1;
-    String ageOrdinalStr = _formatNumber(totalAgeYears);
+    
+    // उमेरमा १ वर्ष जोडेर सही आगामी जन्मदिनको क्रम संख्या (Dynamic Ordinal Number) निकालिएको
+    int nextBirthdayAge = years + 1;
+    String nextAgeOrdinalStr = _formatNumber(nextBirthdayAge);
 
+    // भाषा अनुसार उमेरको टेक्स्ट सेट गरिएको
     if (_currentLang == 'नेपाली') {
       _ageResultText = 'तपाईंको उमेर: $yStr वर्ष, $mStr महिना, र $dStr दिन भयो।';
     } else if (_currentLang == 'नेपाल भाषा') {
@@ -290,10 +290,19 @@ class _AuthWrapperState extends State<AuthWrapper> {
       _ageResultText = 'Age: $yStr years, $mStr months, and $dStr days old.';
     }
 
-    // जन्मदिन परेको वा नपरेको जाँच्ने
     if (_selectedMonth == currentM && _selectedDay == currentD) {
       setState(() {
-        _birthdayWishText = 'आज तपाईंको $ageOrdinalStr औं जन्म दिन हो!';
+        if (_currentLang == 'नेपाली') {
+          _birthdayWishText = 'आज तपाईंको $nextAgeOrdinalStr औं जन्मदिन हो! 🎂';
+        } else if (_currentLang == 'नेपाल भाषा') {
+          _birthdayWishText = 'थौं छगु $nextAgeOrdinalStr गूगु बुगुन्हि खः! 🎂';
+        } else if (_currentLang == 'हिन्दी') {
+          _birthdayWishText = 'आज आपका $nextAgeOrdinalStr वाँ जन्मदिन है! 🎂';
+        } else if (_currentLang == 'اردو') {
+          _birthdayWishText = 'آج آپ کی $nextAgeOrdinalStr ویں سالگرہ ہے! 🎂';
+        } else {
+          _birthdayWishText = 'Today is your $nextAgeOrdinalStr birthday! 🎂';
+        }
         _showBirthdayWish = true;
       });
 
@@ -301,15 +310,15 @@ class _AuthWrapperState extends State<AuthWrapper> {
         if (mounted) {
           setState(() {
             if (_currentLang == 'नेपाली') {
-              _birthdayWishText = 'थलो परिवारको तर्फबाट तपाईंलाई जन्मदिनको हार्दिक मङ्गलमय शुभकामना! 🎂';
+              _birthdayWishText = 'थलो परिवारको तर्फबाट तपाईंलाई जन्मदिनको हार्दिक मङ्गलमय शुभकामना! 🎉';
             } else if (_currentLang == 'नेपाल भाषा') {
-              _birthdayWishText = 'थलो परिवारया पाखें छितः बुगुन्हिया तःजिगु शुभकामना! 🎂';
+              _birthdayWishText = 'थलो परिवारया पाखें छितः बुगुन्हिया तःजिगु शुभकामना! 🎉';
             } else if (_currentLang == 'हिन्दी') {
-              _birthdayWishText = 'थलो परिवार की ओर से आपको जन्मदिन की हार्दिक शुभकामनाएँ! 🎂';
+              _birthdayWishText = 'थलो परिवार की ओर से आपको जन्मदिन की हार्दिक शुभकामनाएँ! 🎉';
             } else if (_currentLang == 'اردو') {
-              _birthdayWishText = 'تھلو خاندان کی طرف سے آپ کو سالگرہ کی بہت بہت مبارکباد! 🎂';
+              _birthdayWishText = 'تھلو خاندان کی طرف سے آپ کو سالگرہ کی بہت بہت مبارکباد! 🎉';
             } else {
-              _birthdayWishText = 'Happy Birthday from the Thalo Family! 🎂';
+              _birthdayWishText = 'Happy Birthday from the Thalo Family! 🎉';
             }
           });
         }
@@ -322,15 +331,15 @@ class _AuthWrapperState extends State<AuthWrapper> {
       setState(() {
         _showBirthdayWish = false;
         if (_currentLang == 'नेपाली') {
-          _birthdayWishText = 'तपाईंको $ageOrdinalStr औं जन्म दिन आउन $remStr दिन बाँकी छ।';
+          _birthdayWishText = 'तपाईंको $nextAgeOrdinalStr औं जन्मदिन आउन $remStr दिन बाँकी छ।';
         } else if (_currentLang == 'नेपाल भाषा') {
-          _birthdayWishText = 'छगु बुगुन्हि वयेत $remStr न्हिं ल्यं दु।';
+          _birthdayWishText = 'छगु $nextAgeOrdinalStr गूगु बुगुन्हि वयेत $remStr न्हिं ल्यं दु।';
         } else if (_currentLang == 'हिन्दी') {
-          _birthdayWishText = 'आपका जन्मदिन आने में $remStr दिन बाकी हैं।';
+          _birthdayWishText = 'आपका $nextAgeOrdinalStr वाँ जन्मदिन आने में $remStr दिन बाकी हैं।';
         } else if (_currentLang == 'اردو') {
-          _birthdayWishText = 'آپ کی سالگرہ میں $remStr دن باقی ہیں۔';
+          _birthdayWishText = 'آپ کی $nextAgeOrdinalStr ویں سالگرہ میں $remStr دن باقی ہیں۔';
         } else {
-          _birthdayWishText = '$remStr days remaining for your next birthday.';
+          _birthdayWishText = '$remStr days remaining for your $nextAgeOrdinalStr birthday.';
         }
       });
     }
@@ -344,7 +353,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
         children: ['English', 'नेपाली', 'नेपाल भाषा', 'हिन्दी', 'اردو'].map((lang) {
           final isSelected = _currentLang == lang;
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6.0),
+            padding: constغي symmetric(horizontal: 6.0),
             child: GestureDetector(
               onTap: () {
                 setState(() {
@@ -359,6 +368,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
                     _selectedCalendar = 'वि.सं.';
                   }
                   _setCurrentDate();
+                  if (_ageResultText.isNotEmpty) {
+                    _calculateAgeAndBirthday();
+                  }
                 });
               },
               child: Text(
@@ -396,12 +408,31 @@ class _AuthWrapperState extends State<AuthWrapper> {
                       ),
                       onPressed: () {
                         setDialogState(() {
+                          DateTime now = DateTime.now();
                           if (_currentLang == 'नेपाली') {
-                            _selectedCalendar = (_selectedCalendar == 'वि.सं.') ? 'AD' : 'वि.सं.';
+                            if (_selectedCalendar == 'वि.सं.') {
+                              _selectedCalendar = 'AD';
+                              _selectedYear = now.year;
+                            } else {
+                              _selectedCalendar = 'वि.सं.';
+                              _selectedYear = now.year + 57;
+                            }
                           } else if (_currentLang == 'नेपाल भाषा') {
-                            _selectedCalendar = (_selectedCalendar == 'ने.सं.') ? 'AD' : 'ने.सं.';
+                            if (_selectedCalendar == 'ने.सं.') {
+                              _selectedCalendar = 'AD';
+                              _selectedYear = now.year;
+                            } else {
+                              _selectedCalendar = 'ने.सं.';
+                              _selectedYear = now.year + 1120;
+                            }
                           } else if (_currentLang == 'اردو') {
-                            _selectedCalendar = (_selectedCalendar == 'هجری') ? 'AD' : 'هجری';
+                            if (_selectedCalendar == 'هجری') {
+                              _selectedCalendar = 'AD';
+                              _selectedYear = now.year;
+                            } else {
+                              _selectedCalendar = 'هجری';
+                              _selectedYear = now.year;
+                            }
                           }
                         });
                       },
@@ -429,6 +460,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   children: [
                     Row(
                       children: [
+                        // वर्ष
                         Expanded(
                           flex: 2,
                           child: DropdownButton<int>(
@@ -447,6 +479,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                           ),
                         ),
                         const SizedBox(width: 8),
+                        // महिना
                         Expanded(
                           flex: 2,
                           child: DropdownButton<int>(
@@ -454,8 +487,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
                             value: _selectedMonth,
                             menuMaxHeight: 200,
                             items: List.generate(12, (index) => index + 1).map((month) {
-                              String monthName = '$month';
-                              if (_selectedCalendar == 'AD' || _currentLang == 'English' || _currentLang == 'हिन्दी') {
+                              String monthName = _formatNumber(month);
+                              if (_selectedCalendar == 'AD' || _currentLang == 'English' || _currentLang == 'हिन्दी' || _currentLang == 'اردو') {
                                 const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
                                 monthName = months[month - 1];
                               } else if (_selectedCalendar == 'ने.सं.' && _currentLang == 'नेपाल भाषा') {
@@ -473,6 +506,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                           ),
                         ),
                         const SizedBox(width: 8),
+                        // गते
                         Expanded(
                           flex: 1,
                           child: DropdownButton<int>(
