@@ -24,39 +24,30 @@ class ThaloApp extends StatelessWidget {
         primaryColor: AppColors.primaryBlue,
         scaffoldBackgroundColor: AppColors.backgroundLight,
       ),
-      home: const MainRouter(),
+      home: const AuthWrapper(),
     );
   }
 }
 
-class MainRouter extends StatefulWidget {
-  const MainRouter({super.key});
+// यो विजेटले लगइन भएको छ कि छैन भनेर छुट्याउँछ र सही स्क्रिन देखाउँछ
+class AuthWrapper extends StatefulWidget {
+  const AuthWrapper({super.key});
 
   @override
-  State<MainRouter> createState() => _MainRouterState();
+  State<AuthWrapper> createState() => _AuthWrapperState();
 }
 
-class _MainRouterState extends State<MainRouter> {
+class _AuthWrapperState extends State<AuthWrapper> {
+  // 0: Login, 1: Register, 2: Home
   int _currentIndex = 0;
-  String _currentLang = 'ne'; // डीफल्ट भाषा
+  String _currentLang = 'ne';
   final String _selectedDate = 'आज';
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> screens = [
-      HomeScreen(
-        currentLang: _currentLang,
-        onLanguageChanged: (lang) {
-          setState(() {
-            _currentLang = lang;
-          });
-        },
-        onNotificationTap: (val) {},
-        selectedDate: _selectedDate,
-        onCalendarTap: () {},
-        onLogout: () {},
-      ),
-      LoginScreen(
+    // यदि लगइन वा रजिस्टर छैन भने तिनै देखाउने, भएन भने होम पेज देखाउने
+    if (_currentIndex == 0) {
+      return LoginScreen(
         currentLang: _currentLang,
         onLanguageChanged: (lang) {
           setState(() {
@@ -66,16 +57,17 @@ class _MainRouterState extends State<MainRouter> {
         onNotificationTap: (val) {},
         onLoginSuccess: () {
           setState(() {
-            _currentIndex = 0; // लगइन भएपछि होम पेजमा जाने
+            _currentIndex = 2; // लगइन भएपछि Home मा जाने
           });
         },
         goToRegister: () {
           setState(() {
-            _currentIndex = 2; // रजिस्टर पेजमा जाने
+            _currentIndex = 1; // Register मा जाने
           });
         },
-      ),
-      RegisterScreen(
+      );
+    } else if (_currentIndex == 1) {
+      return RegisterScreen(
         currentLang: _currentLang,
         onLanguageChanged: (lang) {
           setState(() {
@@ -85,43 +77,32 @@ class _MainRouterState extends State<MainRouter> {
         onNotificationTap: (val) {},
         onRegisterSuccess: () {
           setState(() {
-            _currentIndex = 0; // रजिस्टर भएपछि होम पेजमा जाने
+            _currentIndex = 2; // रजिस्टर भएपछि Home मा जाने
           });
         },
         goToLogin: () {
           setState(() {
-            _currentIndex = 1; // लगइन पेजमा जाने
+            _currentIndex = 0; // Login मा फर्कने
           });
         },
-      ),
-    ];
-
-    return Scaffold(
-      body: screens[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        selectedItemColor: AppColors.primaryBlue,
-        unselectedItemColor: AppColors.textDark.withOpacity(0.6),
-        onTap: (index) {
+      );
+    } else {
+      return HomeScreen(
+        currentLang: _currentLang,
+        onLanguageChanged: (lang) {
           setState(() {
-            _currentIndex = index;
+            _currentLang = lang;
           });
         },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.login),
-            label: 'Login',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.app_registration),
-            label: 'Register',
-          ),
-        ],
-      ),
-    );
+        onNotificationTap: (val) {},
+        selectedDate: _selectedDate,
+        onCalendarTap: () {},
+        onLogout: () {
+          setState(() {
+            _currentIndex = 0; // लगर आउट गरेर फेरि Login मा पठाउने
+          });
+        },
+      );
+    }
   }
 }
