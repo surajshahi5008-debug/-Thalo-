@@ -35,7 +35,7 @@ class AuthWrapper extends StatefulWidget {
 }
 
 class _AuthWrapperState extends State<AuthWrapper> {
-  int _currentIndex = 0; // 0: Login, 1: Register Step 1, 11: Register Step 2, 12: OTP Verification, 2: Home
+  int _currentIndex = 0; // 0: Login, 1: Reg Step 1, 11: Reg Step 2, 12: OTP/Link Verification, 2: Home
   String _currentLang = 'नेपाली';
   final String _selectedDate = 'आज';
 
@@ -54,11 +54,24 @@ class _AuthWrapperState extends State<AuthWrapper> {
   // Controllers and Error States
   final TextEditingController _loginEmailController = TextEditingController();
   final TextEditingController _loginPasswordController = TextEditingController();
+  
+  // Registration Controllers
+  final TextEditingController _regFirstNameController = TextEditingController();
+  final TextEditingController _regMiddleNameController = TextEditingController();
+  final TextEditingController _regLastNameController = TextEditingController();
   final TextEditingController _regPhoneEmailController = TextEditingController();
   final TextEditingController _regPasswordController = TextEditingController();
-  final TextEditingController _otpController = TextEditingController();
+  final TextEditingController _phoneOtpController = TextEditingController();
   
   String _loginErrorMessage = '';
+  
+  // Password Visibility Toggles
+  bool _obscureLoginPassword = true;
+  bool _obscureRegPassword = true;
+
+  // Auto-saved credentials mockup variables
+  String _savedEmailOrPhone = '';
+  String _savedPassword = '';
 
   @override
   void initState() {
@@ -70,9 +83,12 @@ class _AuthWrapperState extends State<AuthWrapper> {
   void dispose() {
     _loginEmailController.dispose();
     _loginPasswordController.dispose();
+    _regFirstNameController.dispose();
+    _regMiddleNameController.dispose();
+    _regLastNameController.dispose();
     _regPhoneEmailController.dispose();
     _regPasswordController.dispose();
-    _otpController.dispose();
+    _phoneOtpController.dispose();
     super.dispose();
   }
 
@@ -113,6 +129,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'passwordLabel': 'Password',
           'loginButton': 'Login',
           'noAccount': "Don't have an account? Sign Up here",
+          'forgotPassword': 'Forgot Password / Username?',
           'registerAppBar': 'Thalo - Sign Up',
           'registerTitle': 'Create New Account',
           'firstName': 'First Name',
@@ -126,13 +143,15 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'other': 'Other',
           'phoneOrEmail': 'Email or Phone Number',
           'terms': 'I accept the Terms & Conditions',
-          'registerButton': 'Sign Up & Send OTP',
+          'registerButton': 'Sign Up & Send Verification',
           'hasAccount': 'Already have an account? Login here',
           'okButton': 'OK',
           'cancelButton': 'Cancel',
-          'otpTitle': 'OTP Verification',
-          'otpSubtitle': 'Enter the 6-digit code sent to your Email & Phone',
+          'verificationTitle': 'Account Verification',
+          'verificationSubtitle': 'Email link sent to your email & SMS OTP sent to your phone.',
           'verifyButton': 'Verify & Complete',
+          'smsOtpLabel': 'Enter Phone SMS OTP (6-digit)',
+          'emailLinkNotice': 'Please also check your inbox and click the Email Verification Link.',
           'errEmailNotRegistered': 'This email is not registered in Thalo.',
           'errPhoneNotRegistered': 'This phone number is not registered in Thalo.',
           'errIncorrectPassword': 'Password is incorrect.',
@@ -144,6 +163,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'passwordLabel': 'पासवर्ड',
           'loginButton': 'लगइन',
           'noAccount': 'खाता छैन? यहाँ रजिस्टर गर्नुहोस्',
+          'forgotPassword': 'पासवर्ड वा युजरनेम बिर्सनुभयो?',
           'registerAppBar': 'थलो - साइन अप',
           'registerTitle': 'नयाँ खाता खोल्नुहोस्',
           'firstName': 'पहिलो नाम',
@@ -157,13 +177,15 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'other': 'अन्य',
           'phoneOrEmail': 'इमेल वा फोन नम्बर',
           'terms': 'म सर्त तथा नियमहरू स्वीकार गर्दछु',
-          'registerButton': 'साइन अप र OTP पठाउनुहोस्',
+          'registerButton': 'साइन अप र भेरिफिकेसन पठाउनुहोस्',
           'hasAccount': 'पहिले नै खाता छ? यहाँ लगइन गर्नुहोस्',
           'okButton': 'ठीक छ',
           'cancelButton': 'रद्द गर्नुहोस्',
-          'otpTitle': 'OTP प्रमाणीकरण',
-          'otpSubtitle': 'तपाईको इमेल र फोनमा आएको ६-अङ्कको कोड हाल्नुहोस्',
+          'verificationTitle': 'खाता प्रमाणीकरण',
+          'verificationSubtitle': 'तपाईको इमेलमा लिङ्क पठाइएको छ र फोनमा SMS OTP पठाइएको छ।',
           'verifyButton': 'प्रमाणित गरी पूरा गर्नुहोस्',
+          'smsOtpLabel': 'फोनको SMS OTP कोड हाल्नुहोस् (६-अङ्क)',
+          'emailLinkNotice': 'कृपया इमेल बक्स खोलेर इमेल भेरिफिकेसन लिङ्कमा पनि क्लिक गर्नुहोस्।',
           'errEmailNotRegistered': 'यो इमेल थलोमा दर्ता भएको छैन।',
           'errPhoneNotRegistered': 'यो फोन नम्बर थलोमा दर्ता भएको छैन।',
           'errIncorrectPassword': 'पासवर्ड मिलेन।',
@@ -175,6 +197,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'passwordLabel': 'पासवर्ड',
           'loginButton': 'लगइन',
           'noAccount': 'खाता मदुगु? थन रजिस्टर यानादिसँ',
+          'forgotPassword': 'पासवर्ड वा युजरनेम मंकाःगु ला?',
           'registerAppBar': 'थलो - साइन अप',
           'registerTitle': 'न्हूगु खाता तयेगु',
           'firstName': 'पुलां नामं',
@@ -188,13 +211,15 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'other': 'मेगु',
           'phoneOrEmail': 'इमेल वा फोन नम्बर',
           'terms': 'शर्त स्वीकार यानाच्वना',
-          'registerButton': 'साइन अप व OTP छ्वयादिसँ',
+          'registerButton': 'साइन अप व प्रमाणीकरण छ्वयादिसँ',
           'hasAccount': 'न्हापां नं खाता दुसा? थन लगइन यानादिसँ',
           'okButton': 'थुगु',
           'cancelButton': 'मखु',
-          'otpTitle': 'OTP प्रमाणीकरण',
-          'otpSubtitle': 'छगु इमेल व फोनय् वःगु कोड तयादिसँ',
+          'verificationTitle': 'खाता प्रमाणीकरण',
+          'verificationSubtitle': 'इमेलय् लिङ्क व फोनय् SMS OTP छ्वया तःगु दु।',
           'verifyButton': 'रुजु याना क्वचायेकेगु',
+          'smsOtpLabel': 'फोनया SMS OTP कोड तयादिसँ',
+          'emailLinkNotice': 'इमेल स्वयाः भेरिफिकेसन लिङ्कय् नं क्लिक यानादिसँ।',
           'errEmailNotRegistered': 'थ्व इमेल थलोस दर्ता मजू।',
           'errPhoneNotRegistered': 'थ्व फोन नम्बर थलोस दर्ता मजू।',
           'errIncorrectPassword': 'पासवर्ड मिले मजू।',
@@ -206,6 +231,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'passwordLabel': 'पासवर्ड',
           'loginButton': 'लॉग इन',
           'noAccount': 'खाता नहीं है? यहाँ रजिस्टर करें',
+          'forgotPassword': 'पासवर्ड या यूजरनेम भूल गए?',
           'registerAppBar': 'थलो - साइन अप',
           'registerTitle': 'नया खाता बनाएं',
           'firstName': 'पहला नाम',
@@ -219,13 +245,15 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'other': 'अन्य',
           'phoneOrEmail': 'ईमेल या फोन नंबर',
           'terms': 'मैं नियम और शर्तें स्वीकार करता हूँ',
-          'registerButton': 'साइन अप और OTP भेजें',
+          'registerButton': 'साइन अप और सत्यापन भेजें',
           'hasAccount': 'पहले से खाता है? यहाँ लॉगिन करें',
           'okButton': 'ठीक है',
           'cancelButton': 'रद्द करें',
-          'otpTitle': 'OTP सत्यापन',
-          'otpSubtitle': 'अपने ईमेल और फोन पर प्राप्त 6-अंकों का कोड दर्ज करें',
+          'verificationTitle': 'खाता सत्यापन',
+          'verificationSubtitle': 'आपके ईमेल पर लिंक और फोन पर SMS OTP भेजा गया है।',
           'verifyButton': 'सत्यापित करें और पूर्ण करें',
+          'smsOtpLabel': 'फोन का SMS OTP कोड दर्ज करें (6-अंक)',
+          'emailLinkNotice': 'कृपया अपना ईमेल खोलकर सत्यापन लिंक पर भी क्लिक करें।',
           'errEmailNotRegistered': 'यह ईमेल थलो में पंजीकृत नहीं है।',
           'errPhoneNotRegistered': 'यह फोन नंबर थलो में पंजीकृत नहीं है।',
           'errIncorrectPassword': 'पासवर्ड गलत है।',
@@ -237,6 +265,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'passwordLabel': 'پاس ورڈ',
           'loginButton': 'لاگ ان',
           'noAccount': 'اکاؤنٹ نہیں ہے؟ یہاں رجسٹر کریں',
+          'forgotPassword': 'پاس ورڈ یا یوزر نیم بھول گئے؟',
           'registerAppBar': 'تھلو - سائن اپ',
           'registerTitle': 'نیا اکاؤنٹ بنائیں',
           'firstName': 'پہلا نام',
@@ -250,13 +279,15 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'other': 'دیگر',
           'phoneOrEmail': 'ای میل یا فون نمبر',
           'terms': 'میں شرائط و ضوابط قبول کرتا ہوں',
-          'registerButton': 'سائن اپ اور OTP بھیجیں',
+          'registerButton': 'سائن اپ اور تصدیق بھیجیں',
           'hasAccount': 'پہلے سے اکاؤنٹ ہے؟ یہاں لاگ ان کریں',
           'okButton': 'ٹھیک ہے',
           'cancelButton': 'منسوخ کریں',
-          'otpTitle': 'او ٹی پی تصدیق',
-          'otpSubtitle': 'اپنی ای میل اور فون پر موصول ہونے والا 6 ہندسوں کا کوڈ درج کریں',
+          'verificationTitle': 'اکاؤنٹ کی تصدیق',
+          'verificationSubtitle': 'آپ کی ای میل پر لنک اور فون پر SMS OTP بھیج دیا گیا ہے۔',
           'verifyButton': 'تصدیق کریں اور مکمل کریں',
+          'smsOtpLabel': 'فون کا SMS OTP کوڈ درج کریں',
+          'emailLinkNotice': 'براہ کرم ای میل کھول کر تصدیقی لنک پر بھی کلک کریں۔',
           'errEmailNotRegistered': 'یہ ای میل تھلو میں رجسٹرڈ نہیں ہے۔',
           'errPhoneNotRegistered': 'یہ فون نمبر تھلو میں رجسٹرڈ نہیں ہے۔',
           'errIncorrectPassword': 'پاس ورڈ درست نہیں ہے۔',
@@ -372,7 +403,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
     }
   }
 
-  // Handle Login Validation Logic as requested
+  // Handle Login Validation Logic & Auto-Save Credentials
   void _handleLogin() {
     String input = _loginEmailController.text.trim();
     String password = _loginPasswordController.text;
@@ -383,7 +414,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
         return;
       }
 
-      // Mock database check: Let's assume valid registered test account is "test@thalo.com" or "9800000000" with password "123456"
       bool isEmail = input.contains('@');
       
       if (isEmail && input != 'test@thalo.com') {
@@ -394,8 +424,25 @@ class _AuthWrapperState extends State<AuthWrapper> {
         _loginErrorMessage = _getText('errIncorrectPassword');
       } else {
         _loginErrorMessage = '';
+        // Auto-save credentials for user convenience
+        _savedEmailOrPhone = input;
+        _savedPassword = password;
         _currentIndex = 2; // Success -> Go to Home
       }
+    });
+  }
+
+  void _handleSuccessfulRegistration() {
+    // Auto-save registration credentials
+    _savedEmailOrPhone = _regPhoneEmailController.text.trim();
+    _savedPassword = _regPasswordController.text;
+    
+    // Automatically populate login field for smooth transition
+    _loginEmailController.text = _savedEmailOrPhone;
+    _loginPasswordController.text = _savedPassword;
+
+    setState(() {
+      _currentIndex = 2; // Go to Home
     });
   }
 
@@ -629,10 +676,37 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 const SizedBox(height: 16),
                 TextField(
                   controller: _loginPasswordController,
-                  obscureText: true,
+                  obscureText: _obscureLoginPassword,
                   decoration: InputDecoration(
                     labelText: _getText('passwordLabel'),
                     border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscureLoginPassword ? Icons.visibility_off : Icons.visibility,
+                        color: Colors.grey,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscureLoginPassword = !_obscureLoginPassword;
+                        });
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
+                      // Forgot password option prompt or navigation
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(_getText('forgotPassword'))),
+                      );
+                    },
+                    child: Text(
+                      _getText('forgotPassword'),
+                      style: const TextStyle(fontSize: 12, color: Colors.blueGrey),
+                    ),
                   ),
                 ),
                 if (_loginErrorMessage.isNotEmpty) ...[
@@ -642,7 +716,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                     style: const TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.bold),
                   ),
                 ],
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
                   height: 48,
@@ -701,16 +775,19 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   ),
                 ),
                 const SizedBox(height: 25),
-                const TextField(
-                  decoration: InputDecoration(labelText: 'First Name', border: OutlineInputBorder()),
+                TextField(
+                  controller: _regFirstNameController,
+                  decoration: InputDecoration(labelText: _getText('firstName'), border: const OutlineInputBorder()),
                 ),
                 const SizedBox(height: 16),
-                const TextField(
-                  decoration: InputDecoration(labelText: 'Middle Name (Optional)', border: OutlineInputBorder()),
+                TextField(
+                  controller: _regMiddleNameController,
+                  decoration: InputDecoration(labelText: _getText('middleName'), border: const OutlineInputBorder()),
                 ),
                 const SizedBox(height: 16),
-                const TextField(
-                  decoration: InputDecoration(labelText: 'Last Name', border: OutlineInputBorder()),
+                TextField(
+                  controller: _regLastNameController,
+                  decoration: InputDecoration(labelText: _getText('lastName'), border: const OutlineInputBorder()),
                 ),
                 const SizedBox(height: 16),
                 GestureDetector(
@@ -831,10 +908,21 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 const SizedBox(height: 16),
                 TextField(
                   controller: _regPasswordController,
-                  obscureText: true,
+                  obscureText: _obscureRegPassword,
                   decoration: InputDecoration(
                     labelText: _getText('passwordLabel'),
                     border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscureRegPassword ? Icons.visibility_off : Icons.visibility,
+                        color: Colors.grey,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscureRegPassword = !_obscureRegPassword;
+                        });
+                      },
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -868,13 +956,13 @@ class _AuthWrapperState extends State<AuthWrapper> {
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
                     onPressed: _acceptTerms
                         ? () {
-                            // Proceed to OTP Verification Step
+                            // Proceed to separated verification screen
                             setState(() {
                               _currentIndex = 12;
                             });
                           }
                         : null,
-                    child: Text(_getText('registerButton'), style: const TextStyle(color: Colors.white, fontSize: 16)),
+                    child: Text(_getText('registerButton'), style: const TextStyle(color: Colors.white, fontSize: 15)),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -885,46 +973,67 @@ class _AuthWrapperState extends State<AuthWrapper> {
         ),
       );
     } 
-    // 12: OTP Verification Screen (Email & SMS OTP)
+    // 12: Verification Screen (Email Link + SMS OTP)
     else if (_currentIndex == 12) {
       return Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.blue,
-          title: Text(_getText('otpTitle'), style: const TextStyle(color: Colors.white)),
+          title: Text(_getText('verificationTitle'), style: const TextStyle(color: Colors.white)),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () => setState(() => _currentIndex = 11),
           ),
         ),
         body: SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.lock_clock, size: 60, color: Colors.green),
+                const Icon(Icons.verified_user, size: 60, color: Colors.green),
                 const SizedBox(height: 20),
                 Text(
-                  _getText('otpTitle'),
+                  _getText('verificationTitle'),
                   style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.green),
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  _getText('otpSubtitle'),
+                  _getText('verificationSubtitle'),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 14, color: Colors.blueGrey),
+                  style: const TextStyle(fontSize: 13, color: Colors.blueGrey),
                 ),
-                const SizedBox(height: 30),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.amber[50],
+                    border: Border.all(color: Colors.amber.shade300),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.mark_email_read, color: Colors.orange),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _getText('emailLinkNotice'),
+                          style: const TextStyle(fontSize: 12, color: Colors.black87),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
                 TextField(
-                  controller: _otpController,
+                  controller: _phoneOtpController,
                   keyboardType: TextInputType.number,
                   maxLength: 6,
-                  decoration: const InputDecoration(
-                    labelText: 'Enter 6-digit OTP Code',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: _getText('smsOtpLabel'),
+                    border: const OutlineInputBorder(),
                     counterText: '',
                   ),
-                  style: const TextStyle(fontSize: 20, letterSpacing: 8),
+                  style: const TextStyle(fontSize: 18, letterSpacing: 6),
                 ),
                 const SizedBox(height: 24),
                 SizedBox(
@@ -932,12 +1041,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   height: 48,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                    onPressed: () {
-                      // After successful verification, go to Home or Login
-                      setState(() {
-                        _currentIndex = 2;
-                      });
-                    },
+                    onPressed: _handleSuccessfulRegistration,
                     child: Text(_getText('verifyButton'), style: const TextStyle(color: Colors.white, fontSize: 16)),
                   ),
                 ),
@@ -963,7 +1067,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
         onCalendarTap: () {},
         onLogout: () {
           setState(() {
-            _loginEmailController.clear();
+            // Keep or clear auto-saved depending on user choice, clearing password for security on explicit logout
             _loginPasswordController.clear();
             _loginErrorMessage = '';
             _currentIndex = 0;
