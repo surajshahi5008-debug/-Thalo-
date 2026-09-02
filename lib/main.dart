@@ -12,20 +12,8 @@ void main() async {
   runApp(const ThaloApp());
 }
 
-class ThaloApp extends StatefulWidget {
-  const ThaloApp({Key? key}) : super(key: key);
-
-  @override
-  State<ThaloApp> createState() => _ThaloAppState();
-}
-
-class _ThaloAppState extends State<ThaloApp> {
-  String currentLang = 'ne';
-  String selectedDate = '२०८३/०५/१६';
-
-  void _handleNotificationTap(String? payload) {
-    debugPrint("Notification tapped with payload: $payload");
-  }
+class ThaloApp extends StatelessWidget {
+  const ThaloApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -35,67 +23,56 @@ class _ThaloAppState extends State<ThaloApp> {
       theme: ThemeData(
         primaryColor: AppColors.primaryBlue,
         scaffoldBackgroundColor: AppColors.backgroundLight,
-        useMaterial3: true,
       ),
-      initialRoute: '/login',
-      routes: {
-        '/login': (context) => LoginScreen(
-              currentLang: currentLang,
-              onLanguageChanged: (lang) {
-                setState(() {
-                  currentLang = lang;
-                  if (lang == 'en') {
-                    selectedDate = '2026/09/02';
-                  } else {
-                    selectedDate = '२०८३/०५/१६';
-                  }
-                });
-              },
-              onNotificationTap: _handleNotificationTap,
-              onLoginSuccess: () {
-                Navigator.pushReplacementNamed(context, '/home');
-              },
-              goToRegister: () {
-                Navigator.pushNamed(context, '/register');
-              },
-            ),
-        '/register': (context) => RegisterScreen(
-              currentLang: currentLang,
-              onLanguageChanged: (lang) {
-                setState(() {
-                  currentLang = lang;
-                  if (lang == 'en') {
-                    selectedDate = '2026/09/02';
-                  } else {
-                    selectedDate = '२०८३/०५/१६';
-                  }
-                });
-              },
-              onNotificationTap: _handleNotificationTap,
-              onRegisterSuccess: () {
-                Navigator.pushReplacementNamed(context, '/home');
-              },
-              goToLogin: () {
-                Navigator.pop(context);
-              },
-            ),
-        '/home': (context) => HomeScreen(
-              currentLang: currentLang,
-              onLanguageChanged: (lang) {
-                setState(() {
-                  currentLang = lang;
-                });
-              },
-              onNotificationTap: _handleNotificationTap,
-              selectedDate: selectedDate,
-              onCalendarTap: () {
-                // क्यालेन्डर खोल्ने वा मिति छान्ने लजिक
-              },
-              onLogout: () {
-                Navigator.pushReplacementNamed(context, '/login');
-              },
-            ),
-      },
+      home: const MainRouter(),
+    );
+  }
+}
+
+class MainRouter extends StatefulWidget {
+  const MainRouter({super.key});
+
+  @override
+  State<MainRouter> createState() => _MainRouterState();
+}
+
+class _MainRouterState extends State<MainRouter> {
+  int _currentIndex = 0;
+
+  final List<Widget> _screens = [
+    const HomeScreen(),
+    const LoginScreen(),
+    const RegisterScreen(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _screens[_currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        selectedItemColor: AppColors.primaryBlue,
+        unselectedItemColor: AppColors.textDark.withOpacity(0.6),
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.login),
+            label: 'Login',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.app_registration),
+            label: 'Register',
+          ),
+        ],
+      ),
     );
   }
 }
