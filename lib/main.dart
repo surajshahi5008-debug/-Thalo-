@@ -20,7 +20,6 @@ class ThaloApp extends StatefulWidget {
 }
 
 class _ThaloAppState extends State<ThaloApp> {
-  // भाषा र क्यालेन्डरको स्टेट
   String currentLang = 'ne';
   String selectedDate = '२०८३/०५/१६';
 
@@ -45,7 +44,6 @@ class _ThaloAppState extends State<ThaloApp> {
               onLanguageChanged: (lang) {
                 setState(() {
                   currentLang = lang;
-                  // भाषा अनुसार क्यालेन्डर वा मिति ढाँचा मिलाउने
                   if (lang == 'en') {
                     selectedDate = '2026/09/02';
                   } else {
@@ -54,7 +52,9 @@ class _ThaloAppState extends State<ThaloApp> {
                 });
               },
               onNotificationTap: _handleNotificationTap,
-              onLoginSuccess: () {},
+              onLoginSuccess: () {
+                Navigator.pushReplacementNamed(context, '/home');
+              },
               goToRegister: () {
                 Navigator.pushNamed(context, '/register');
               },
@@ -72,7 +72,9 @@ class _ThaloAppState extends State<ThaloApp> {
                 });
               },
               onNotificationTap: _handleNotificationTap,
-              onRegisterSuccess: () {},
+              onRegisterSuccess: () {
+                Navigator.pushReplacementNamed(context, '/home');
+              },
               goToLogin: () {
                 Navigator.pop(context);
               },
@@ -87,7 +89,7 @@ class _ThaloAppState extends State<ThaloApp> {
               onNotificationTap: _handleNotificationTap,
               selectedDate: selectedDate,
               onCalendarTap: () {
-                // क्यालेन्डर खोल्ने वा मितի छान्ने लजिक यहाँ बस्छ
+                // क्यालेन्डर खोल्ने लजिक
               },
               onLogout: () {
                 Navigator.pushReplacementNamed(context, '/login');
