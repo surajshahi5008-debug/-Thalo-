@@ -37,12 +37,17 @@ class AuthWrapper extends StatefulWidget {
 }
 
 class _AuthWrapperState extends State<AuthWrapper> {
-  // 0: Login, 1: Register, 2: Home
+  // 0: Login, 1: Register Step 1, 11: Register Step 2, 2: Home
   int _currentIndex = 0;
   String _currentLang = 'नेपाली';
   final String _selectedDate = 'आज';
 
-  // ५ वटै भाषाका लागि लोकलाइजेसन म्याप
+  // साइन अप स्टेप २ का लागि भेरिएबलहरू
+  String? _selectedGender;
+  bool _acceptTerms = false;
+  String _contactType = 'email'; // email वा phone
+
+  // ५ वटै भाषाका लागि पूर्ण लोकलाइजेसन म्याप
   Map<String, Map<String, String>> get _localizedValues => {
         'English': {
           'loginAppBar': 'Thalo - Login',
@@ -53,11 +58,19 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'noAccount': "Don't have an account? Sign Up here",
           'registerAppBar': 'Thalo - Sign Up',
           'registerTitle': 'Create New Account',
+          'firstName': 'First Name',
+          'middleName': 'Middle Name (Optional)',
+          'lastName': 'Last Name',
+          'dob': 'Date of Birth',
+          'nextButton': 'Next',
+          'gender': 'Select Gender',
+          'male': 'Male',
+          'female': 'Female',
+          'other': 'Other',
+          'phoneOrEmail': 'Email or Phone Number',
+          'terms': 'I accept the Terms & Conditions',
           'registerButton': 'Sign Up',
           'hasAccount': 'Already have an account? Login here',
-          'homeTitle': 'Home Page',
-          'placeholder': "What's on your mind...",
-          'postBtn': 'Post',
         },
         'नेपाली': {
           'loginAppBar': 'थलो - लगइन',
@@ -68,11 +81,19 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'noAccount': 'खाता छैन? यहाँ रजिस्टर गर्नुहोस्',
           'registerAppBar': 'थलो - साइन अप',
           'registerTitle': 'नयाँ खाता खोल्नुहोस्',
+          'firstName': 'पहिलो नाम',
+          'middleName': 'बीचको नाम (ऐच्छिक)',
+          'lastName': 'थर',
+          'dob': 'जन्म मिति',
+          'nextButton': 'अर्को',
+          'gender': 'लिङ्ग छान्नुहोस्',
+          'male': 'पुरुष',
+          'female': 'महिला',
+          'other': 'अन्य',
+          'phoneOrEmail': 'इमेल वा फोन नम्बर',
+          'terms': 'म सर्त तथा नियमहरू (Terms & Conditions) स्वीकार गर्दछु',
           'registerButton': 'साइन अप',
           'hasAccount': 'पहिले नै खाता छ? यहाँ लगइन गर्नुहोस्',
-          'homeTitle': 'गृह पृष्ठ (Home)',
-          'placeholder': 'तपाईको मनमा के छ लेख्नुहोस्...',
-          'postBtn': 'पोस्ट',
         },
         'नेपाल भाषा': {
           'loginAppBar': 'थलो - लगइन',
@@ -83,11 +104,19 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'noAccount': 'खाता मदुगु? थन रजिस्टर यानादिसँ',
           'registerAppBar': 'थलो - साइन अप',
           'registerTitle': 'न्हूगु खाता तयेगु',
+          'firstName': 'पुलां नामं',
+          'middleName': 'दथुया नामं',
+          'lastName': 'थथर',
+          'dob': 'बुगु मिति',
+          'nextButton': 'लिउ',
+          'gender': 'लिङ्ग ल्ययादिसँ',
+          'male': 'मिसा/मिजं',
+          'female': 'मिसा',
+          'other': 'मेगु',
+          'phoneOrEmail': 'इमेल वा फोन नम्बर',
+          'terms': 'शर्त स्वीकार यानाच्वना',
           'registerButton': 'साइन अप',
           'hasAccount': 'न्हापां नं खाता दुसा? थन लगइन यानादिसँ',
-          'homeTitle': 'छेँ पौ (Home)',
-          'placeholder': 'जिगः मतिइ छु दु च्वयादिसँ...',
-          'postBtn': 'पोस्ट',
         },
         'हिन्दी': {
           'loginAppBar': 'थलो - लॉगिन',
@@ -98,11 +127,19 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'noAccount': 'खाता नहीं है? यहाँ रजिस्टर करें',
           'registerAppBar': 'थलो - साइन अप',
           'registerTitle': 'नया खाता बनाएं',
+          'firstName': 'पहला नाम',
+          'middleName': 'बीच का नाम (वैकल्पिक)',
+          'lastName': 'उपनाम',
+          'dob': 'जन्म तिथि',
+          'nextButton': 'अगला',
+          'gender': 'लिंग चुनें',
+          'male': 'पुरुष',
+          'female': 'महिला',
+          'other': 'अन्य',
+          'phoneOrEmail': 'ईमेल या फोन नंबर',
+          'terms': 'मैं नियम और शर्तें स्वीकार करता हूँ',
           'registerButton': 'साइन अप',
           'hasAccount': 'पहले से खाता है? यहाँ लॉगिन करें',
-          'homeTitle': 'होम पेज (Home)',
-          'placeholder': 'आपके मन में क्या है लिखें...',
-          'postBtn': 'पोस्ट',
         },
         'اردو': {
           'loginAppBar': 'تھلو - لاگ ان',
@@ -113,11 +150,19 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'noAccount': 'اکاؤنٹ نہیں ہے؟ یہاں رجسٹر کریں',
           'registerAppBar': 'تھلو - سائن اپ',
           'registerTitle': 'نیا اکاؤنٹ بنائیں',
+          'firstName': 'پہلا نام',
+          'middleName': 'درمیانی نام',
+          'lastName': 'آخری نام',
+          'dob': 'تاریخ پیدائش',
+          'nextButton': 'اگلا',
+          'gender': 'جنس منتخب کریں',
+          'male': 'مرد',
+          'female': 'عورت',
+          'other': 'دیگر',
+          'phoneOrEmail': 'ای میل یا فون نمبر',
+          'terms': 'میں شرائط و ضوابط قبول کرتا ہوں',
           'registerButton': 'سائن اپ',
           'hasAccount': 'پہلے سے اکاؤنٹ ہے؟ یہاں لاگ ان کریں',
-          'homeTitle': 'ہوم پیج (Home)',
-          'placeholder': 'آپ کے ذہن میں کیا ہے...',
-          'postBtn': 'پوسٹ',
         },
       };
 
@@ -125,10 +170,41 @@ class _AuthWrapperState extends State<AuthWrapper> {
     return _localizedValues[_currentLang]?[key] ?? _localizedValues['नेपाली']![key]!;
   }
 
+  // भाषा छान्ने तेर्सो (Horizontal) विजेट
+  Widget _buildLanguageSelector() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: ['English', 'नेपाली', 'नेपाल भाषा', 'हिन्दी', 'اردو'].map((lang) {
+          final isSelected = _currentLang == lang;
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6.0),
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _currentLang = lang;
+                });
+              },
+              child: Text(
+                lang,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: isSelected ? Colors.blue : Colors.grey[700],
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_currentIndex == 0) {
-      // Login Screen (नीलो एप बार र नीलो शीर्षक)
+      // ----------------- LOGIN SCREEN -----------------
       return Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.blue,
@@ -171,7 +247,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                     ),
                     onPressed: () {
                       setState(() {
-                        _currentIndex = 2; // होम पेजमा जाने
+                        _currentIndex = 2; // Home
                       });
                     },
                     child: Text(_getText('loginButton'), style: const TextStyle(color: Colors.purple, fontSize: 16)),
@@ -181,76 +257,69 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 TextButton(
                   onPressed: () {
                     setState(() {
-                      _currentIndex = 1; // रजिस्टर पेजमा जाने
+                      _currentIndex = 1; // Register Step 1
                     });
                   },
                   child: Text(_getText('noAccount'), style: const TextStyle(color: Colors.purple, fontSize: 14)),
                 ),
                 const SizedBox(height: 30),
-                // तल तेर्सो (Horizontal) रूपमा सानो अक्षरमा भाषा छान्ने सेक्सन
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: ['English', 'नेपाली', 'नेपाल भाषा', 'हिन्दी', 'اردو'].map((lang) {
-                      final isSelected = _currentLang == lang;
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 6.0),
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _currentLang = lang;
-                            });
-                          },
-                          child: Text(
-                            lang,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              color: isSelected ? Colors.blue : Colors.grey[700],
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
+                _buildLanguageSelector(),
               ],
             ),
           ),
         ),
       );
     } else if (_currentIndex == 1) {
-      // Register/Sign Up Screen (नीलो एप बार, हरियो शीर्षक र हरियो बटन)
+      // ----------------- REGISTER STEP 1 (Name & DOB) -----------------
       return Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.blue,
           title: Text(_getText('registerAppBar'), style: const TextStyle(color: Colors.white)),
-          automaticallyImplyLeading: false,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              setState(() {
+                _currentIndex = 0; // Back to Login
+              });
+            },
+          ),
         ),
         body: SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   _getText('registerTitle'),
                   style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green),
                 ),
-                const SizedBox(height: 30),
+                const SizedBox(height: 25),
                 TextField(
                   decoration: InputDecoration(
-                    labelText: _getText('emailLabel'),
+                    labelText: _getText('firstName'),
                     border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 16),
                 TextField(
-                  obscureText: true,
                   decoration: InputDecoration(
-                    labelText: _getText('passwordLabel'),
+                    labelText: _getText('middleName'),
                     border: const OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  decoration: InputDecoration(
+                    labelText: _getText('lastName'),
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  decoration: InputDecoration(
+                    labelText: _getText('dob'),
+                    border: const OutlineInputBorder(),
+                    suffixIcon: const Icon(Icons.calendar_today),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -263,57 +332,144 @@ class _AuthWrapperState extends State<AuthWrapper> {
                     ),
                     onPressed: () {
                       setState(() {
-                        _currentIndex = 2; // होम पेजमा जाने
+                        _currentIndex = 11; // Go to Register Step 2
                       });
                     },
-                    child: Text(_getText('registerButton'), style: const TextStyle(color: Colors.white, fontSize: 16)),
+                    child: Text(_getText('nextButton'), style: const TextStyle(color: Colors.white, fontSize: 16)),
                   ),
                 ),
                 const SizedBox(height: 16),
                 TextButton(
                   onPressed: () {
                     setState(() {
-                      _currentIndex = 0; // लगइन पेजमा फर्कने
+                      _currentIndex = 0;
                     });
                   },
                   child: Text(_getText('hasAccount'), style: const TextStyle(color: Colors.purple, fontSize: 14)),
                 ),
-                const SizedBox(height: 30),
-                // तल तेर्सो (Horizontal) रूपमा सानो अक्षरमा भाषा छान्ने सेक्सन
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: ['English', 'नेपाली', 'नेपाल भाषा', 'हिन्दी', 'اردو'].map((lang) {
-                      final isSelected = _currentLang == lang;
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 6.0),
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _currentLang = lang;
-                            });
-                          },
-                          child: Text(
-                            lang,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              color: isSelected ? Colors.blue : Colors.grey[700],
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                const SizedBox(height: 20),
+                _buildLanguageSelector(),
+              ],
+            ),
+          ),
+        ),
+      );
+    } else if (_currentIndex == 11) {
+      // ----------------- REGISTER STEP 2 (Gender, Contact, Terms) -----------------
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.blue,
+          title: Text(_getText('registerAppBar'), style: const TextStyle(color: Colors.white)),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              setState(() {
+                _currentIndex = 1; // Back to Step 1
+              });
+            },
+          ),
+        ),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Text(
+                    _getText('registerTitle'),
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green),
                   ),
                 ),
+                const SizedBox(height: 25),
+                Text(_getText('gender'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                Row(
+                  children: [
+                    Expanded(
+                      child: RadioListTile<String>(
+                        title: Text(_getText('male'), style: const TextStyle(fontSize: 13)),
+                        value: 'Male',
+                        groupValue: _selectedGender,
+                        onChanged: (val) => setState(() => _selectedGender = val),
+                      ),
+                    ),
+                    Expanded(
+                      child: RadioListTile<String>(
+                        title: Text(_getText('female'), style: const TextStyle(fontSize: 13)),
+                        value: 'Female',
+                        groupValue: _selectedGender,
+                        onChanged: (val) => setState(() => _selectedGender = val),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  decoration: InputDecoration(
+                    labelText: _getText('phoneOrEmail'),
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: _getText('passwordLabel'),
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                // सानो नीलो बक्स भित्र Terms & Conditions को चेकबक्स
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    border: Border.all(color: Colors.blue.shade200),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Checkbox(
+                        value: _acceptTerms,
+                        onChanged: (val) => setState(() => _acceptTerms = val ?? false),
+                      ),
+                      Expanded(
+                        child: Text(
+                          _getText('terms'),
+                          style: const TextStyle(fontSize: 12, color: Colors.blueGrey),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                    ),
+                    onPressed: _acceptTerms
+                        ? () {
+                            // यहाँ OTP वा इमेल भेरिफिकेसन ट्रिगर गर्न सकिन्छ
+                            setState(() {
+                              _currentIndex = 2; // Home
+                            });
+                          }
+                        : null, // नियम स्वीकार नगरेसम्म बटन डिसेबल हुन्छ
+                    child: Text(_getText('registerButton'), style: const TextStyle(color: Colors.white, fontSize: 16)),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Center(child: _buildLanguageSelector()),
               ],
             ),
           ),
         ),
       );
     } else {
-      // Home Screen (लगइन पछि मात्र खुल्ने र नोटिफिकेसन आइकन देखाउने)
+      // ----------------- HOME SCREEN -----------------
       return HomeScreen(
         currentLang: _currentLang,
         onLanguageChanged: (lang) {
@@ -326,7 +482,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
         onCalendarTap: () {},
         onLogout: () {
           setState(() {
-            _currentIndex = 0; // लगआउट गरेर फेरि Login मा पठाउने
+            _currentIndex = 0; // Logout to Login
           });
         },
       );
