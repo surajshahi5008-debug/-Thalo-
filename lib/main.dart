@@ -35,7 +35,7 @@ class AuthWrapper extends StatefulWidget {
 }
 
 class _AuthWrapperState extends State<AuthWrapper> {
-  int _currentIndex = 0;
+  int _currentIndex = 0; // 0: Login, 1: Register Step 1, 11: Register Step 2, 12: OTP Verification, 2: Home
   String _currentLang = 'नेपाली';
   final String _selectedDate = 'आज';
 
@@ -51,10 +51,29 @@ class _AuthWrapperState extends State<AuthWrapper> {
   String _birthdayWishText = '';
   bool _showBirthdayWish = false;
 
+  // Controllers and Error States
+  final TextEditingController _loginEmailController = TextEditingController();
+  final TextEditingController _loginPasswordController = TextEditingController();
+  final TextEditingController _regPhoneEmailController = TextEditingController();
+  final TextEditingController _regPasswordController = TextEditingController();
+  final TextEditingController _otpController = TextEditingController();
+  
+  String _loginErrorMessage = '';
+
   @override
   void initState() {
     super.initState();
     _setCurrentDate();
+  }
+
+  @override
+  void dispose() {
+    _loginEmailController.dispose();
+    _loginPasswordController.dispose();
+    _regPhoneEmailController.dispose();
+    _regPasswordController.dispose();
+    _otpController.dispose();
+    super.dispose();
   }
 
   void _setCurrentDate() {
@@ -107,10 +126,16 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'other': 'Other',
           'phoneOrEmail': 'Email or Phone Number',
           'terms': 'I accept the Terms & Conditions',
-          'registerButton': 'Sign Up',
+          'registerButton': 'Sign Up & Send OTP',
           'hasAccount': 'Already have an account? Login here',
           'okButton': 'OK',
           'cancelButton': 'Cancel',
+          'otpTitle': 'OTP Verification',
+          'otpSubtitle': 'Enter the 6-digit code sent to your Email & Phone',
+          'verifyButton': 'Verify & Complete',
+          'errEmailNotRegistered': 'This email is not registered in Thalo.',
+          'errPhoneNotRegistered': 'This phone number is not registered in Thalo.',
+          'errIncorrectPassword': 'Password is incorrect.',
         },
         'नेपाली': {
           'loginAppBar': 'थलो - लगइन',
@@ -132,10 +157,16 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'other': 'अन्य',
           'phoneOrEmail': 'इमेल वा फोन नम्बर',
           'terms': 'म सर्त तथा नियमहरू स्वीकार गर्दछु',
-          'registerButton': 'साइन अप',
+          'registerButton': 'साइन अप र OTP पठाउनुहोस्',
           'hasAccount': 'पहिले नै खाता छ? यहाँ लगइन गर्नुहोस्',
           'okButton': 'ठीक छ',
           'cancelButton': 'रद्द गर्नुहोस्',
+          'otpTitle': 'OTP प्रमाणीकरण',
+          'otpSubtitle': 'तपाईको इमेल र फोनमा आएको ६-अङ्कको कोड हाल्नुहोस्',
+          'verifyButton': 'प्रमाणित गरी पूरा गर्नुहोस्',
+          'errEmailNotRegistered': 'यो इमेल थलोमा दर्ता भएको छैन।',
+          'errPhoneNotRegistered': 'यो फोन नम्बर थलोमा दर्ता भएको छैन।',
+          'errIncorrectPassword': 'पासवर्ड मिलेन।',
         },
         'नेपाल भाषा': {
           'loginAppBar': 'थलो - लगइन',
@@ -157,10 +188,16 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'other': 'मेगु',
           'phoneOrEmail': 'इमेल वा फोन नम्बर',
           'terms': 'शर्त स्वीकार यानाच्वना',
-          'registerButton': 'साइन अप',
+          'registerButton': 'साइन अप व OTP छ्वयादिसँ',
           'hasAccount': 'न्हापां नं खाता दुसा? थन लगइन यानादिसँ',
           'okButton': 'थुगु',
           'cancelButton': 'मखु',
+          'otpTitle': 'OTP प्रमाणीकरण',
+          'otpSubtitle': 'छगु इमेल व फोनय् वःगु कोड तयादिसँ',
+          'verifyButton': 'रुजु याना क्वचायेकेगु',
+          'errEmailNotRegistered': 'थ्व इमेल थलोस दर्ता मजू।',
+          'errPhoneNotRegistered': 'थ्व फोन नम्बर थलोस दर्ता मजू।',
+          'errIncorrectPassword': 'पासवर्ड मिले मजू।',
         },
         'हिन्दी': {
           'loginAppBar': 'थलो - लॉगिन',
@@ -182,10 +219,16 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'other': 'अन्य',
           'phoneOrEmail': 'ईमेल या फोन नंबर',
           'terms': 'मैं नियम और शर्तें स्वीकार करता हूँ',
-          'registerButton': 'साइन अप',
+          'registerButton': 'साइन अप और OTP भेजें',
           'hasAccount': 'पहले से खाता है? यहाँ लॉगिन करें',
           'okButton': 'ठीक है',
           'cancelButton': 'रद्द करें',
+          'otpTitle': 'OTP सत्यापन',
+          'otpSubtitle': 'अपने ईमेल और फोन पर प्राप्त 6-अंकों का कोड दर्ज करें',
+          'verifyButton': 'सत्यापित करें और पूर्ण करें',
+          'errEmailNotRegistered': 'यह ईमेल थलो में पंजीकृत नहीं है।',
+          'errPhoneNotRegistered': 'यह फोन नंबर थलो में पंजीकृत नहीं है।',
+          'errIncorrectPassword': 'पासवर्ड गलत है।',
         },
         'اردو': {
           'loginAppBar': 'تھلو - لاگ ان',
@@ -207,10 +250,16 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'other': 'دیگر',
           'phoneOrEmail': 'ای میل یا فون نمبر',
           'terms': 'میں شرائط و ضوابط قبول کرتا ہوں',
-          'registerButton': 'سائن اپ',
+          'registerButton': 'سائن اپ اور OTP بھیجیں',
           'hasAccount': 'پہلے سے اکاؤنٹ ہے؟ یہاں لاگ ان کریں',
           'okButton': 'ٹھیک ہے',
           'cancelButton': 'منسوخ کریں',
+          'otpTitle': 'او ٹی پی تصدیق',
+          'otpSubtitle': 'اپنی ای میل اور فون پر موصول ہونے والا 6 ہندسوں کا کوڈ درج کریں',
+          'verifyButton': 'تصدیق کریں اور مکمل کریں',
+          'errEmailNotRegistered': 'یہ ای میل تھلو میں رجسٹرڈ نہیں ہے۔',
+          'errPhoneNotRegistered': 'یہ فون نمبر تھلو میں رجسٹرڈ نہیں ہے۔',
+          'errIncorrectPassword': 'پاس ورڈ درست نہیں ہے۔',
         },
       };
 
@@ -222,7 +271,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
     if (_selectedCalendar == 'AD' || _currentLang == 'English') {
       return number.toString();
     }
-    
     String numStr = number.toString();
     if (_currentLang == 'नेपाली' || _currentLang == 'नेपाल भाषा') {
       const englishDigits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
@@ -264,7 +312,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
       years--;
       months += 12;
     }
-
     if (years < 0) years = 0;
     if (months < 0) months = 0;
     if (days < 0) days = 0;
@@ -303,24 +350,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
         }
         _showBirthdayWish = true;
       });
-
-      Future.delayed(const Duration(seconds: 3), () {
-        if (mounted) {
-          setState(() {
-            if (_currentLang == 'नेपाली') {
-              _birthdayWishText = 'थलो परिवारको तर्फबाट तपाईंलाई जन्मदिनको हार्दिक मङ्गलमय शुभकामना! 🎉';
-            } else if (_currentLang == 'नेपाल भाषा') {
-              _birthdayWishText = 'थलो परिवारया पाखें छितः बुगुन्हिया तःजिगु शुभकामना! 🎉';
-            } else if (_currentLang == 'हिन्दी') {
-              _birthdayWishText = 'थलो परिवार की ओर से आपको जन्मदिन की हार्दिक शुभकामनाएँ! 🎉';
-            } else if (_currentLang == 'اردو') {
-              _birthdayWishText = 'تھلو خاندان کی طرف سے آپ کو سالگرہ کی بہت بہت مبارکباد! 🎉';
-            } else {
-              _birthdayWishText = 'Happy Birthday from the Thalo Family! 🎉';
-            }
-          });
-        }
-      });
     } else {
       int remainingDays = ((_selectedMonth - currentM) * 30) + (_selectedDay - currentD);
       if (remainingDays < 0) remainingDays += 365;
@@ -341,6 +370,33 @@ class _AuthWrapperState extends State<AuthWrapper> {
         }
       });
     }
+  }
+
+  // Handle Login Validation Logic as requested
+  void _handleLogin() {
+    String input = _loginEmailController.text.trim();
+    String password = _loginPasswordController.text;
+
+    setState(() {
+      if (input.isEmpty) {
+        _loginErrorMessage = _getText('errEmailNotRegistered');
+        return;
+      }
+
+      // Mock database check: Let's assume valid registered test account is "test@thalo.com" or "9800000000" with password "123456"
+      bool isEmail = input.contains('@');
+      
+      if (isEmail && input != 'test@thalo.com') {
+        _loginErrorMessage = _getText('errEmailNotRegistered');
+      } else if (!isEmail && input != '9800000000') {
+        _loginErrorMessage = _getText('errPhoneNotRegistered');
+      } else if (password != '123456') {
+        _loginErrorMessage = _getText('errIncorrectPassword');
+      } else {
+        _loginErrorMessage = '';
+        _currentIndex = 2; // Success -> Go to Home
+      }
+    });
   }
 
   Widget _buildLanguageSelector() {
@@ -453,73 +509,68 @@ class _AuthWrapperState extends State<AuthWrapper> {
               ),
               content: SizedBox(
                 width: double.maxFinite,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: DropdownButton<int>(
-                            isExpanded: true,
-                            value: _selectedYear,
-                            menuMaxHeight: 200,
-                            items: List.generate(2001, (index) => 1000 + index)
-                                .map((year) => DropdownMenuItem(
-                                      value: year,
-                                      child: Text(_formatNumber(year), style: const TextStyle(fontSize: 13)),
-                                    ))
-                                .toList(),
-                            onChanged: (val) {
-                              if (val != null) setDialogState(() => _selectedYear = val);
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          flex: 2,
-                          child: DropdownButton<int>(
-                            isExpanded: true,
-                            value: _selectedMonth,
-                            menuMaxHeight: 200,
-                            items: List.generate(12, (index) => index + 1).map((month) {
-                              String monthName = _formatNumber(month);
-                              if (_selectedCalendar == 'AD' || _currentLang == 'English' || _currentLang == 'हिन्दी' || _currentLang == 'اردو') {
-                                const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-                                monthName = months[month - 1];
-                              } else if (_selectedCalendar == 'ने.सं.' && _currentLang == 'नेपाल भाषा') {
-                                const nepalBhasaMonths = ['चिल्ला', 'दिल्ला', 'गुंला', 'ञला', 'चौला', 'बछला', 'तंला', 'देवा', 'कछला', 'इला', 'थिल्ला', 'प्वंला'];
-                                monthName = nepalBhasaMonths[month - 1];
-                              } else if (_selectedCalendar == 'वि.सं.' && _currentLang == 'नेपाली') {
-                                const nepMonths = ['बैशाख', 'जेठ', 'आषाढ', 'श्रावण', 'भाद्र', 'आश्विन', 'कार्तिक', 'मंसिर', 'पुष', 'माघ', 'फागुन', 'चैत'];
-                                monthName = nepMonths[month - 1];
-                              }
-                              return DropdownMenuItem(value: month, child: Text(monthName, style: const TextStyle(fontSize: 12)));
-                            }).toList(),
-                            onChanged: (val) {
-                              if (val != null) setDialogState(() => _selectedMonth = val);
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          flex: 1,
-                          child: DropdownButton<int>(
-                            isExpanded: true,
-                            value: _selectedDay,
-                            menuMaxHeight: 200,
-                            items: List.generate(32, (index) => index + 1)
-                                .map((day) => DropdownMenuItem(
-                                      value: day,
-                                      child: Text(_formatNumber(day), style: const TextStyle(fontSize: 13)),
-                                    ))
-                                .toList(),
-                            onChanged: (val) {
-                              if (val != null) setDialogState(() => _selectedDay = val);
-                            },
-                          ),
-                        ),
-                      ],
+                    Expanded(
+                      flex: 2,
+                      child: DropdownButton<int>(
+                        isExpanded: true,
+                        value: _selectedYear,
+                        menuMaxHeight: 200,
+                        items: List.generate(2001, (index) => 1000 + index)
+                            .map((year) => DropdownMenuItem(
+                                  value: year,
+                                  child: Text(_formatNumber(year), style: const TextStyle(fontSize: 13)),
+                                ))
+                            .toList(),
+                        onChanged: (val) {
+                          if (val != null) setDialogState(() => _selectedYear = val);
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: DropdownButton<int>(
+                        isExpanded: true,
+                        value: _selectedMonth,
+                        menuMaxHeight: 200,
+                        items: List.generate(12, (index) => index + 1).map((month) {
+                          String monthName = _formatNumber(month);
+                          if (_selectedCalendar == 'AD' || _currentLang == 'English' || _currentLang == 'हिन्दी' || _currentLang == 'اردو') {
+                            const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                            monthName = months[month - 1];
+                          } else if (_selectedCalendar == 'ने.सं.' && _currentLang == 'नेपाल भाषा') {
+                            const nepalBhasaMonths = ['चिल्ला', 'दिल्ला', 'गुंला', 'ञला', 'चौला', 'बछला', 'तंला', 'देवा', 'कछला', 'इला', 'थिल्ला', 'प्वंला'];
+                            monthName = nepalBhasaMonths[month - 1];
+                          } else if (_selectedCalendar == 'वि.सं.' && _currentLang == 'नेपाली') {
+                            const nepMonths = ['बैशाख', 'जेठ', 'आषाढ', 'श्रावण', 'भाद्र', 'आश्विन', 'कार्तिक', 'मंसिर', 'पुष', 'माघ', 'फागुन', 'चैत'];
+                            monthName = nepMonths[month - 1];
+                          }
+                          return DropdownMenuItem(value: month, child: Text(monthName, style: const TextStyle(fontSize: 12)));
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) setDialogState(() => _selectedMonth = val);
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 1,
+                      child: DropdownButton<int>(
+                        isExpanded: true,
+                        value: _selectedDay,
+                        menuMaxHeight: 200,
+                        items: List.generate(32, (index) => index + 1)
+                            .map((day) => DropdownMenuItem(
+                                  value: day,
+                                  child: Text(_formatNumber(day), style: const TextStyle(fontSize: 13)),
+                                ))
+                            .toList(),
+                        onChanged: (val) {
+                          if (val != null) setDialogState(() => _selectedDay = val);
+                        },
+                      ),
                     ),
                   ],
                 ),
@@ -549,6 +600,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   @override
   Widget build(BuildContext context) {
+    // 0: Login Screen
     if (_currentIndex == 0) {
       return Scaffold(
         appBar: AppBar(
@@ -568,6 +620,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 ),
                 const SizedBox(height: 30),
                 TextField(
+                  controller: _loginEmailController,
                   decoration: InputDecoration(
                     labelText: _getText('emailLabel'),
                     border: const OutlineInputBorder(),
@@ -575,12 +628,20 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 ),
                 const SizedBox(height: 16),
                 TextField(
+                  controller: _loginPasswordController,
                   obscureText: true,
                   decoration: InputDecoration(
                     labelText: _getText('passwordLabel'),
                     border: const OutlineInputBorder(),
                   ),
                 ),
+                if (_loginErrorMessage.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    _loginErrorMessage,
+                    style: const TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                ],
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
@@ -590,11 +651,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                       backgroundColor: Colors.purple[50],
                       elevation: 0,
                     ),
-                    onPressed: () {
-                      setState(() {
-                        _currentIndex = 2;
-                      });
-                    },
+                    onPressed: _handleLogin,
                     child: Text(_getText('loginButton'), style: const TextStyle(color: Colors.purple, fontSize: 16)),
                   ),
                 ),
@@ -602,6 +659,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 TextButton(
                   onPressed: () {
                     setState(() {
+                      _loginErrorMessage = '';
                       _currentIndex = 1;
                     });
                   },
@@ -614,7 +672,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
           ),
         ),
       );
-    } else if (_currentIndex == 1) {
+    } 
+    // 1: Register Step 1 (Name & DOB)
+    else if (_currentIndex == 1) {
       return Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.blue,
@@ -641,25 +701,16 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   ),
                 ),
                 const SizedBox(height: 25),
-                TextField(
-                  decoration: InputDecoration(
-                    labelText: _getText('firstName'),
-                    border: const OutlineInputBorder(),
-                  ),
+                const TextField(
+                  decoration: InputDecoration(labelText: 'First Name', border: OutlineInputBorder()),
                 ),
                 const SizedBox(height: 16),
-                TextField(
-                  decoration: InputDecoration(
-                    labelText: _getText('middleName'),
-                    border: const OutlineInputBorder(),
-                  ),
+                const TextField(
+                  decoration: InputDecoration(labelText: 'Middle Name (Optional)', border: OutlineInputBorder()),
                 ),
                 const SizedBox(height: 16),
-                TextField(
-                  decoration: InputDecoration(
-                    labelText: _getText('lastName'),
-                    border: const OutlineInputBorder(),
-                  ),
+                const TextField(
+                  decoration: InputDecoration(labelText: 'Last Name', border: OutlineInputBorder()),
                 ),
                 const SizedBox(height: 16),
                 GestureDetector(
@@ -678,34 +729,18 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 ),
                 if (_ageResultText.isNotEmpty) ...[
                   const SizedBox(height: 8),
-                  Text(
-                    _ageResultText,
-                    style: const TextStyle(fontSize: 13, color: Colors.blueGrey, fontWeight: FontWeight.w500),
-                  ),
+                  Text(_ageResultText, style: const TextStyle(fontSize: 13, color: Colors.blueGrey, fontWeight: FontWeight.w500)),
                 ],
                 if (_birthdayWishText.isNotEmpty) ...[
                   const SizedBox(height: 4),
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 500),
-                    child: Text(
-                      _birthdayWishText,
-                      key: ValueKey<String>(_birthdayWishText),
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: _showBirthdayWish ? Colors.pink[700] : Colors.green[700],
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                  Text(_birthdayWishText, style: TextStyle(fontSize: 13, color: _showBirthdayWish ? Colors.pink[700] : Colors.green[700], fontWeight: FontWeight.bold)),
                 ],
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
                   height: 48,
                   child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                    ),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
                     onPressed: () {
                       setState(() {
                         _currentIndex = 11;
@@ -717,11 +752,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 const SizedBox(height: 16),
                 Center(
                   child: TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _currentIndex = 0;
-                      });
-                    },
+                    onPressed: () => setState(() => _currentIndex = 0),
                     child: Text(_getText('hasAccount'), style: const TextStyle(color: Colors.purple, fontSize: 14)),
                   ),
                 ),
@@ -732,18 +763,16 @@ class _AuthWrapperState extends State<AuthWrapper> {
           ),
         ),
       );
-    } else if (_currentIndex == 11) {
+    } 
+    // 11: Register Step 2 (Gender, Email/Phone, Password & Terms)
+    else if (_currentIndex == 11) {
       return Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.blue,
           title: Text(_getText('registerAppBar'), style: const TextStyle(color: Colors.white)),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
-            onPressed: () {
-              setState(() {
-                _currentIndex = 1;
-              });
-            },
+            onPressed: () => setState(() => _currentIndex = 1),
           ),
         ),
         body: SafeArea(
@@ -793,6 +822,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 ),
                 const SizedBox(height: 16),
                 TextField(
+                  controller: _regPhoneEmailController,
                   decoration: InputDecoration(
                     labelText: _getText('phoneOrEmail'),
                     border: const OutlineInputBorder(),
@@ -800,6 +830,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 ),
                 const SizedBox(height: 16),
                 TextField(
+                  controller: _regPasswordController,
                   obscureText: true,
                   decoration: InputDecoration(
                     labelText: _getText('passwordLabel'),
@@ -834,13 +865,12 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   width: double.infinity,
                   height: 48,
                   child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                    ),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
                     onPressed: _acceptTerms
                         ? () {
+                            // Proceed to OTP Verification Step
                             setState(() {
-                              _currentIndex = 2;
+                              _currentIndex = 12;
                             });
                           }
                         : null,
@@ -854,7 +884,73 @@ class _AuthWrapperState extends State<AuthWrapper> {
           ),
         ),
       );
-    } else {
+    } 
+    // 12: OTP Verification Screen (Email & SMS OTP)
+    else if (_currentIndex == 12) {
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.blue,
+          title: Text(_getText('otpTitle'), style: const TextStyle(color: Colors.white)),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => setState(() => _currentIndex = 11),
+          ),
+        ),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.lock_clock, size: 60, color: Colors.green),
+                const SizedBox(height: 20),
+                Text(
+                  _getText('otpTitle'),
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.green),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  _getText('otpSubtitle'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 14, color: Colors.blueGrey),
+                ),
+                const SizedBox(height: 30),
+                TextField(
+                  controller: _otpController,
+                  keyboardType: TextInputType.number,
+                  maxLength: 6,
+                  decoration: const InputDecoration(
+                    labelText: 'Enter 6-digit OTP Code',
+                    border: OutlineInputBorder(),
+                    counterText: '',
+                  ),
+                  style: const TextStyle(fontSize: 20, letterSpacing: 8),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                    onPressed: () {
+                      // After successful verification, go to Home or Login
+                      setState(() {
+                        _currentIndex = 2;
+                      });
+                    },
+                    child: Text(_getText('verifyButton'), style: const TextStyle(color: Colors.white, fontSize: 16)),
+                  ),
+                ),
+                const SizedBox(height: 30),
+                _buildLanguageSelector(),
+              ],
+            ),
+          ),
+        ),
+      );
+    } 
+    // Home Screen
+    else {
       return HomeScreen(
         currentLang: _currentLang,
         onLanguageChanged: (lang) {
@@ -867,6 +963,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
         onCalendarTap: () {},
         onLogout: () {
           setState(() {
+            _loginEmailController.clear();
+            _loginPasswordController.clear();
+            _loginErrorMessage = '';
             _currentIndex = 0;
           });
         },
