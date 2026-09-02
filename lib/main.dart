@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'constants/app_colors.dart';
 import 'constants/app_strings.dart';
 import 'screens/home_screen.dart';
@@ -50,6 +51,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
   String _ageResultText = '';
   String _birthdayWishText = '';
   bool _showBirthdayWish = false;
+
+  // Country Code Variable (बाइ-डिफल्ट भारत +91, नेपालको लागि +977)
+  String _selectedCountryCode = '+91';
+  bool _isLoading = false;
+  String _verificationId = '';
 
   // Controllers and Error States
   final TextEditingController _loginEmailController = TextEditingController();
@@ -141,17 +147,17 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'male': 'Male',
           'female': 'Female',
           'other': 'Other',
-          'phoneOrEmail': 'Email or Phone Number',
+          'phoneOrEmail': 'Email or 10-digit Phone Number',
           'terms': 'I accept the Terms & Conditions',
           'registerButton': 'Sign Up & Send Verification',
           'hasAccount': 'Already have an account? Login here',
           'okButton': 'OK',
           'cancelButton': 'Cancel',
           'verificationTitle': 'Account Verification',
-          'verificationSubtitle': 'Email link sent to your email & SMS OTP sent to your phone.',
+          'verificationSubtitle': 'Please enter the 6-digit SMS OTP sent to your phone.',
           'verifyButton': 'Verify & Complete',
-          'smsOtpLabel': 'Please enter the 6-digit OTP sent to your mobile number by Thalo.',
-          'emailLinkNotice': 'Please click the link sent to your Gmail account by Thalo to verify your sign up.',
+          'smsOtpLabel': 'Enter 6-digit OTP',
+          'emailLinkNotice': 'Verification link has been sent to your Gmail. Please click the link to verify.',
           'errEmailNotRegistered': 'This email is not registered in Thalo.',
           'errPhoneNotRegistered': 'This phone number is not registered in Thalo.',
           'errIncorrectPassword': 'Password is incorrect.',
@@ -175,17 +181,17 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'male': 'पुरुष',
           'female': 'महिला',
           'other': 'अन्य',
-          'phoneOrEmail': 'इमेल वा फोन नम्बर',
+          'phoneOrEmail': 'इमेल वा १० अंकको मोबाइल नम्बर',
           'terms': 'म सर्त तथा नियमहरू स्वीकार गर्दछु',
           'registerButton': 'साइन अप र भेरिफिकेसन पठाउनुहोस्',
           'hasAccount': 'पहिले नै खाता छ? यहाँ लगइन गर्नुहोस्',
           'okButton': 'ठीक छ',
           'cancelButton': 'रद्द गर्नुहोस्',
           'verificationTitle': 'खाता प्रमाणीकरण',
-          'verificationSubtitle': 'तपाईको इमेलमा लिङ्क पठाइएको छ र फोनमा SMS OTP पठाइएको छ।',
+          'verificationSubtitle': 'कृपया तपाईंको मोबाइलमा आएको ६ अंकको SMS OTP यहाँ हाल्नुहोस्।',
           'verifyButton': 'प्रमाणित गरी पूरा गर्नुहोस्',
-          'smsOtpLabel': 'कृपया थलोको तर्फबाट तपाईंको मोबाइल नम्बरमा पठाइएको ६ अंकको OTP यहाँ हाल्नुहोस्।',
-          'emailLinkNotice': 'कृपया थलोको तर्फबाट तपाईंको जिमेल खातामा पठाइएको लिङ्कमा थिचेर साइन अप प्रमाणित गर्नुहोस्।',
+          'smsOtpLabel': '६ अंकको OTP',
+          'emailLinkNotice': 'तपाईंको जिमेलमा भेरिफिकेसन लिङ्क पठाइएको छ। कृपया इमेलमा गएर लिङ्कमा क्लिक गरी अकाउन्ट प्रमाणित गर्नुहोस्।',
           'errEmailNotRegistered': 'यो इमेल थलोमा दर्ता भएको छैन।',
           'errPhoneNotRegistered': 'यो फोन नम्बर थलोमा दर्ता भएको छैन।',
           'errIncorrectPassword': 'पासवर्ड मिलेन।',
@@ -209,17 +215,17 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'male': 'पुरुष',
           'female': 'महिला',
           'other': 'मेगु',
-          'phoneOrEmail': 'इमेल वा फोन नम्बर',
+          'phoneOrEmail': 'इमेल वा १० ल्याखँया मोबाइल नम्बर',
           'terms': 'शर्त स्वीकार यानाच्वना',
           'registerButton': 'साइन अप व प्रमाणीकरण छ्वयादिसँ',
           'hasAccount': 'न्हापां नं खाता दुसा? थन लगइन यानादिसँ',
           'okButton': 'थुगु',
           'cancelButton': 'मखु',
           'verificationTitle': 'खाता प्रमाणीकरण',
-          'verificationSubtitle': 'इमेलय् लिङ्क व फोनय् SMS OTP छ्वया तःगु दु।',
+          'verificationSubtitle': 'मोबाइलय् वःगु ६ ल्याखँया SMS OTP थन तयादिसँ।',
           'verifyButton': 'रुजु याना क्वचायेकेगु',
-          'smsOtpLabel': 'कृपया थलोपाखें छगु मोबाइल नम्बरय् छ्वया तःगु ६ ल्याखँया OTP थन तयादिसँ।',
-          'emailLinkNotice': 'कृपया छगु इमेलय् वःगु लिङ्क थिचाः साइन अप रुजु यानादिसँ।',
+          'smsOtpLabel': '६ ल्याखँया OTP',
+          'emailLinkNotice': 'इमेलय् भेरिफिकेसन लिङ्क छ्वया तःगु दु। कृपया लिङ्क थिचाः रुजु यानादिसँ।',
           'errEmailNotRegistered': 'थ्व इमेल थलोस दर्ता मजू।',
           'errPhoneNotRegistered': 'थ्व फोन नम्बर थलोस दर्ता मजू।',
           'errIncorrectPassword': 'पासवर्ड मिले मजू।',
@@ -229,7 +235,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'loginTitle': 'थलो में आपका स्वागत है',
           'emailLabel': 'ईमेल या फोन नंबर',
           'passwordLabel': 'पासवर्ड',
-          'loginButton': 'लॉग इन',
+          'loginButton': 'لॉग इन',
           'noAccount': 'खाता नहीं है? यहाँ रजिस्टर करें',
           'forgotPassword': 'पासवर्ड या यूजरनेम भूल गए?',
           'registerAppBar': 'थलो - साइन अप',
@@ -243,17 +249,17 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'male': 'पुरुष',
           'female': 'महिला',
           'other': 'अन्य',
-          'phoneOrEmail': 'ईमेल या फोन नंबर',
+          'phoneOrEmail': 'ईमेल या 10-अंकों का मोबाइल नंबर',
           'terms': 'मैं नियम और शर्तें स्वीकार करता हूँ',
           'registerButton': 'साइन अप और सत्यापन भेजें',
           'hasAccount': 'पहले से खाता है? यहाँ लॉगिन करें',
           'okButton': 'ठीक है',
           'cancelButton': 'रद्द करें',
           'verificationTitle': 'खाता सत्यापन',
-          'verificationSubtitle': 'आपके ईमेल पर लिंक और फोन पर SMS OTP भेजा गया है।',
+          'verificationSubtitle': 'कृपया अपने मोबाइल पर प्राप्त 6-अंकों का SMS OTP दर्ज करें।',
           'verifyButton': 'सत्यापित करें और पूर्ण करें',
-          'smsOtpLabel': 'कृपया थलो की तरफ से आपके मोबाइल नंबर पर भेजे गए 6-अंकों के OTP को यहाँ दर्ज करें।',
-          'emailLinkNotice': 'कृपया साइन अप सत्यापित करने के लिए अपने ईमेल पर भेजे गए लिंक पर क्लिक करें।',
+          'smsOtpLabel': '6-अंकों का OTP',
+          'emailLinkNotice': 'आपके जीमेल पर सत्यापन लिंक भेजा गया है। कृपया लिंक पर क्लिक करके सत्यापित करें।',
           'errEmailNotRegistered': 'यह ईमेल थलो में पंजीकृत नहीं है।',
           'errPhoneNotRegistered': 'यह फोन नंबर थलो में पंजीकृत नहीं है।',
           'errIncorrectPassword': 'पासवर्ड गलत है।',
@@ -277,17 +283,17 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'male': 'مرد',
           'female': 'عورت',
           'other': 'دیگر',
-          'phoneOrEmail': 'ای میل یا فون نمبر',
+          'phoneOrEmail': 'ای میل یا 10 ہندسوں کا موبائل نمبر',
           'terms': 'میں شرائط و ضوابط قبول کرتا ہوں',
           'registerButton': 'سائن اپ اور تصدیق بھیجیں',
           'hasAccount': 'پہلے سے اکاؤنٹ ہے؟ یہاں لاگ ان کریں',
           'okButton': 'ٹھیک ہے',
           'cancelButton': 'منسوخ کریں',
           'verificationTitle': 'اکاؤنٹ کی تصدیق',
-          'verificationSubtitle': 'آپ کی ای میل پر لنک اور فون پر SMS OTP بھیج دیا گیا ہے۔',
+          'verificationSubtitle': 'براہ کرم اپنے موبائل پر موصول ہونے والا 6 ہندسوں کا SMS OTP درج کریں۔',
           'verifyButton': 'تصدیق کریں اور مکمل کریں',
-          'smsOtpLabel': 'براہ کرم تھلو کی طرف سے آپ کے موبائل نمبر پر بھیجا گیا 6 ہندسوں کا OTP یہاں درج کریں۔',
-          'emailLinkNotice': 'براہ کرم سائن اپ کی تصدیق کے لیے اپنی ای میل پر موصول ہونے والے لنک پر کلک کریں۔',
+          'smsOtpLabel': '6 ہندسوں کا OTP',
+          'emailLinkNotice': 'آپ کی ای میل پر تصدیقی لنک بھیج دیا گیا ہے۔ براہ کرم لنک پر کلک کریں۔',
           'errEmailNotRegistered': 'یہ ای میل تھلو میں رجسٹرڈ نہیں ہے۔',
           'errPhoneNotRegistered': 'یہ فون نمبر تھلو میں رجسٹرڈ نہیں ہے۔',
           'errIncorrectPassword': 'پاس ورڈ درست نہیں ہے۔',
@@ -403,7 +409,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
     }
   }
 
-  // Handle Login Validation Logic & Auto-Save Credentials
+  // Handle Login Validation Logic
   void _handleLogin() {
     String input = _loginEmailController.text.trim();
     String password = _loginPasswordController.text;
@@ -424,7 +430,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
         _loginErrorMessage = _getText('errIncorrectPassword');
       } else {
         _loginErrorMessage = '';
-        // Auto-save credentials for user convenience
         _savedEmailOrPhone = input;
         _savedPassword = password;
         _currentIndex = 2; // Success -> Go to Home
@@ -432,16 +437,118 @@ class _AuthWrapperState extends State<AuthWrapper> {
     });
   }
 
+  // Start Registration and Firebase Authentication (Email Verification Link & Phone SMS OTP)
+  Future<void> _startRegistrationAndVerification() async {
+    String input = _regPhoneEmailController.text.trim();
+    String password = _regPasswordController.text;
+
+    if (input.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('कृपया सबै विवरण भर्नुहोस्।')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // यदि इमेल हो भने Firebase मा अकाउन्ट बनाउने र भेरिफिकेसन लिङ्क पठाउने
+      if (input.contains('@')) {
+        UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: input,
+          password: password,
+        );
+        
+        await userCredential.user?.sendEmailVerification();
+        
+        setState(() {
+          _isLoading = false;
+          _currentIndex = 12; // भेरिफिकेसन स्क्रिनमा लैजाने
+        });
+        return;
+      }
+
+      // यदि फोन नम्बर हो भने (१० अंकको मात्र)
+      String cleanPhone = input.replaceAll(RegExp(r'\D'), '');
+      
+      if (cleanPhone.length != 10) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('कृपया सही १० अंकको मोबाइल नम्बर हाल्नुहोस्।')),
+        );
+        return;
+      }
+
+      // युजरले छानेको कन्ट्री कोड र १० अंक जोड्ने (जस्तै: +919800000000 वा +9779800000000)
+      String formattedPhone = '$_selectedCountryCode$cleanPhone';
+
+      // Firebase Real Phone Authentication (SMS OTP पठाउने)
+      await FirebaseAuth.instance.verifyPhoneNumber(
+        phoneNumber: formattedPhone,
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          await FirebaseAuth.instance.signInWithCredential(credential);
+          _handleSuccessfulRegistration();
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('SMS OTP पठाउन असफल: ${e.message}')),
+          );
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          setState(() {
+            _verificationId = verificationId;
+            _isLoading = false;
+            _currentIndex = 12; // OTP हाल्ने स्क्रिनमा लैजाने
+          });
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
+          _verificationId = verificationId;
+        },
+      );
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('त्रुटि देखियो: $e')),
+      );
+    }
+  }
+
+  // Verify Phone OTP
+  Future<void> _verifyOtpAndComplete(String smsCode) async {
+    if (smsCode.length != 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('कृपया ६ अंकको सही OTP हाल्नुहोस्।')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      PhoneAuthCredential credential = PhoneAuthProvider.credential(
+        verificationId: _verificationId,
+        smsCode: smsCode,
+      );
+      await FirebaseAuth.instance.signInWithCredential(credential);
+      _handleSuccessfulRegistration();
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('OTP मिलेन: $e')),
+      );
+    }
+  }
+
   void _handleSuccessfulRegistration() {
-    // Auto-save registration credentials
     _savedEmailOrPhone = _regPhoneEmailController.text.trim();
     _savedPassword = _regPasswordController.text;
     
-    // Automatically populate login field for smooth transition
     _loginEmailController.text = _savedEmailOrPhone;
     _loginPasswordController.text = _savedPassword;
 
     setState(() {
+      _isLoading = false;
       _currentIndex = 2; // Go to Home
     });
   }
@@ -647,6 +754,14 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     // 0: Login Screen
     if (_currentIndex == 0) {
       return Scaffold(
@@ -698,7 +813,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () {
-                      // Forgot password option prompt or navigation
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text(_getText('forgotPassword'))),
                       );
@@ -841,7 +955,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
         ),
       );
     } 
-    // 11: Register Step 2 (Gender, Email/Phone, Password & Terms)
+    // 11: Register Step 2 (Gender, Country Code + Phone/Email, Password & Terms)
     else if (_currentIndex == 11) {
       return Scaffold(
         appBar: AppBar(
@@ -898,11 +1012,32 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   ],
                 ),
                 const SizedBox(height: 16),
+                // फोन वा इमेल फिल्ड (साथमा कन्ट्री कोड छान्ने ड्रपडाउन सुविधा)
                 TextField(
                   controller: _regPhoneEmailController,
+                  keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
                     labelText: _getText('phoneOrEmail'),
                     border: const OutlineInputBorder(),
+                    prefixIcon: Padding(
+                      padding: const EdgeInsets.only(left: 8.0),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _selectedCountryCode,
+                          items: const [
+                            DropdownMenuItem(value: '+91', child: Text('🇮🇳 +91', style: TextStyle(fontSize: 13))),
+                            DropdownMenuItem(value: '+977', child: Text('🇳🇵 +977', style: TextStyle(fontSize: 13))),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() {
+                                _selectedCountryCode = val;
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -954,14 +1089,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   height: 48,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                    onPressed: _acceptTerms
-                        ? () {
-                            // Proceed to separated verification screen
-                            setState(() {
-                              _currentIndex = 12;
-                            });
-                          }
-                        : null,
+                    onPressed: _acceptTerms ? _startRegistrationAndVerification : null,
                     child: Text(_getText('registerButton'), style: const TextStyle(color: Colors.white, fontSize: 15)),
                   ),
                 ),
@@ -973,8 +1101,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
         ),
       );
     } 
-    // 12: Verification Screen (Email Link + SMS OTP)
+    // 12: Verification Screen (Email Link Notice + SMS OTP Box)
     else if (_currentIndex == 12) {
+      bool isEmail = _regPhoneEmailController.text.contains('@');
+
       return Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.blue,
@@ -997,54 +1127,68 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.green),
                 ),
                 const SizedBox(height: 10),
-                Text(
-                  _getText('verificationSubtitle'),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 13, color: Colors.blueGrey),
-                ),
-                const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.amber[50],
-                    border: Border.all(color: Colors.amber.shade300),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.mark_email_read, color: Colors.orange),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
+                
+                // यदि इमेल हो भने इमेल लिङ्क गएको सन्देश देखाउने
+                if (isEmail) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.amber[50],
+                      border: Border.all(color: Colors.amber.shade300),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      children: [
+                        const Icon(Icons.mark_email_read, color: Colors.orange, size: 40),
+                        const SizedBox(height: 10),
+                        Text(
                           _getText('emailLinkNotice'),
-                          style: const TextStyle(fontSize: 13, height: 1.4, color: Colors.black87),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 14, height: 1.4, color: Colors.black87),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: _phoneOtpController,
-                  keyboardType: TextInputType.number,
-                  maxLength: 6,
-                  decoration: InputDecoration(
-                    labelText: _getText('smsOtpLabel'),
-                    border: const OutlineInputBorder(),
-                    counterText: '',
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                      onPressed: _handleSuccessfulRegistration,
+                      child: const Text('मैले इमेल रुजु गरें (Home जाने)', style: TextStyle(color: Colors.white, fontSize: 15)),
+                    ),
                   ),
-                  style: const TextStyle(fontSize: 18, letterSpacing: 6),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                    onPressed: _handleSuccessfulRegistration,
-                    child: Text(_getText('verifyButton'), style: const TextStyle(color: Colors.white, fontSize: 16)),
+                ] else ...[
+                  // यदि फोन नम्बर हो भने SMS OTP हाल्ने बक्स देखाउने
+                  Text(
+                    _getText('verificationSubtitle'),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 13, color: Colors.blueGrey),
                   ),
-                ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: _phoneOtpController,
+                    keyboardType: TextInputType.number,
+                    maxLength: 6,
+                    decoration: InputDecoration(
+                      labelText: _getText('smsOtpLabel'),
+                      border: const OutlineInputBorder(),
+                      counterText: '',
+                    ),
+                    style: const TextStyle(fontSize: 18, letterSpacing: 6),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                      onPressed: () => _verifyOtpAndComplete(_phoneOtpController.text.trim()),
+                      child: Text(_getText('verifyButton'), style: const TextStyle(color: Colors.white, fontSize: 16)),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 30),
                 _buildLanguageSelector(),
               ],
