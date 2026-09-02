@@ -150,8 +150,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'verificationTitle': 'Account Verification',
           'verificationSubtitle': 'Email link sent to your email & SMS OTP sent to your phone.',
           'verifyButton': 'Verify & Complete',
-          'smsOtpLabel': 'Enter Phone SMS OTP (6-digit)',
-          'emailLinkNotice': 'Please also check your inbox and click the Email Verification Link.',
+          'smsOtpLabel': 'Please enter the 6-digit OTP sent to your mobile number by Thalo.',
+          'emailLinkNotice': 'Please click the link sent to your Gmail account by Thalo to verify your sign up.',
           'errEmailNotRegistered': 'This email is not registered in Thalo.',
           'errPhoneNotRegistered': 'This phone number is not registered in Thalo.',
           'errIncorrectPassword': 'Password is incorrect.',
@@ -184,8 +184,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'verificationTitle': 'खाता प्रमाणीकरण',
           'verificationSubtitle': 'तपाईको इमेलमा लिङ्क पठाइएको छ र फोनमा SMS OTP पठाइएको छ।',
           'verifyButton': 'प्रमाणित गरी पूरा गर्नुहोस्',
-          'smsOtpLabel': 'फोनको SMS OTP कोड हाल्नुहोस् (६-अङ्क)',
-          'emailLinkNotice': 'कृपया इमेल बक्स खोलेर इमेल भेरिफिकेसन लिङ्कमा पनि क्लिक गर्नुहोस्।',
+          'smsOtpLabel': 'कृपया थलोको तर्फबाट तपाईंको मोबाइल नम्बरमा पठाइएको ६ अंकको OTP यहाँ हाल्नुहोस्।',
+          'emailLinkNotice': 'कृपया थलोको तर्फबाट तपाईंको जिमेल खातामा पठाइएको लिङ्कमा थिचेर साइन अप प्रमाणित गर्नुहोस्।',
           'errEmailNotRegistered': 'यो इमेल थलोमा दर्ता भएको छैन।',
           'errPhoneNotRegistered': 'यो फोन नम्बर थलोमा दर्ता भएको छैन।',
           'errIncorrectPassword': 'पासवर्ड मिलेन।',
@@ -218,8 +218,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'verificationTitle': 'खाता प्रमाणीकरण',
           'verificationSubtitle': 'इमेलय् लिङ्क व फोनय् SMS OTP छ्वया तःगु दु।',
           'verifyButton': 'रुजु याना क्वचायेकेगु',
-          'smsOtpLabel': 'फोनया SMS OTP कोड तयादिसँ',
-          'emailLinkNotice': 'इमेल स्वयाः भेरिफिकेसन लिङ्कय् नं क्लिक यानादिसँ।',
+          'smsOtpLabel': 'कृपया थलोपाखें छगु मोबाइल नम्बरय् छ्वया तःगु ६ ल्याखँया OTP थन तयादिसँ।',
+          'emailLinkNotice': 'कृपया छगु इमेलय् वःगु लिङ्क थिचाः साइन अप रुजु यानादिसँ।',
           'errEmailNotRegistered': 'थ्व इमेल थलोस दर्ता मजू।',
           'errPhoneNotRegistered': 'थ्व फोन नम्बर थलोस दर्ता मजू।',
           'errIncorrectPassword': 'पासवर्ड मिले मजू।',
@@ -252,8 +252,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'verificationTitle': 'खाता सत्यापन',
           'verificationSubtitle': 'आपके ईमेल पर लिंक और फोन पर SMS OTP भेजा गया है।',
           'verifyButton': 'सत्यापित करें और पूर्ण करें',
-          'smsOtpLabel': 'फोन का SMS OTP कोड दर्ज करें (6-अंक)',
-          'emailLinkNotice': 'कृपया अपना ईमेल खोलकर सत्यापन लिंक पर भी क्लिक करें।',
+          'smsOtpLabel': 'कृपया थलो की तरफ से आपके मोबाइल नंबर पर भेजे गए 6-अंकों के OTP को यहाँ दर्ज करें।',
+          'emailLinkNotice': 'कृपया साइन अप सत्यापित करने के लिए अपने ईमेल पर भेजे गए लिंक पर क्लिक करें।',
           'errEmailNotRegistered': 'यह ईमेल थलो में पंजीकृत नहीं है।',
           'errPhoneNotRegistered': 'यह फोन नंबर थलो में पंजीकृत नहीं है।',
           'errIncorrectPassword': 'पासवर्ड गलत है।',
@@ -286,8 +286,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'verificationTitle': 'اکاؤنٹ کی تصدیق',
           'verificationSubtitle': 'آپ کی ای میل پر لنک اور فون پر SMS OTP بھیج دیا گیا ہے۔',
           'verifyButton': 'تصدیق کریں اور مکمل کریں',
-          'smsOtpLabel': 'فون کا SMS OTP کوڈ درج کریں',
-          'emailLinkNotice': 'براہ کرم ای میل کھول کر تصدیقی لنک پر بھی کلک کریں۔',
+          'smsOtpLabel': 'براہ کرم تھلو کی طرف سے آپ کے موبائل نمبر پر بھیجا گیا 6 ہندسوں کا OTP یہاں درج کریں۔',
+          'emailLinkNotice': 'براہ کرم سائن اپ کی تصدیق کے لیے اپنی ای میل پر موصول ہونے والے لنک پر کلک کریں۔',
           'errEmailNotRegistered': 'یہ ای میل تھلو میں رجسٹرڈ نہیں ہے۔',
           'errPhoneNotRegistered': 'یہ فون نمبر تھلو میں رجسٹرڈ نہیں ہے۔',
           'errIncorrectPassword': 'پاس ورڈ درست نہیں ہے۔',
@@ -1017,7 +1017,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                       Expanded(
                         child: Text(
                           _getText('emailLinkNotice'),
-                          style: const TextStyle(fontSize: 12, color: Colors.black87),
+                          style: const TextStyle(fontSize: 13, height: 1.4, color: Colors.black87),
                         ),
                       ),
                     ],
@@ -1067,7 +1067,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
         onCalendarTap: () {},
         onLogout: () {
           setState(() {
-            // Keep or clear auto-saved depending on user choice, clearing password for security on explicit logout
             _loginPasswordController.clear();
             _loginErrorMessage = '';
             _currentIndex = 0;
