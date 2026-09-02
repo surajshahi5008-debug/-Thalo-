@@ -89,7 +89,7 @@ class _ThaloAppState extends State<ThaloApp> {
               onNotificationTap: _handleNotificationTap,
               selectedDate: selectedDate,
               onCalendarTap: () {
-                // क्यालेन्डर खोल्ने लजिक
+                // क्यालेन्डर खोल्ने वा मिति छान्ने लजिक
               },
               onLogout: () {
                 Navigator.pushReplacementNamed(context, '/login');
