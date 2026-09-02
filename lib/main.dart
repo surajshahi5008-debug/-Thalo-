@@ -50,12 +50,12 @@ class _AuthWrapperState extends State<AuthWrapper> {
   int _selectedMonth = 8;
   int _selectedDay = 31;
 
-  // भाषा अनुसार शुद्ध शब्दहरू, क्यालेन्डर सर्टकटहरू र पुष्टि गर्ने बटन (OK) को अनुवाद
+  // भाषा अनुसार शुद्ध शब्दहरू र अनुवादहरू
   Map<String, Map<String, String>> get _localizedValues => {
         'English': {
           'loginAppBar': 'Thalo - Login',
           'loginTitle': 'Welcome Back to Thalo',
-          'emailLabel': 'Email',
+          'emailLabel': 'Email or Phone Number',
           'passwordLabel': 'Password',
           'loginButton': 'Login',
           'noAccount': "Don't have an account? Sign Up here",
@@ -80,7 +80,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
         'नेपाली': {
           'loginAppBar': 'थलो - लगइन',
           'loginTitle': 'थलोमा स्वागत छ',
-          'emailLabel': 'इमेल',
+          'emailLabel': 'इमेल वा फोन नम्बर',
           'passwordLabel': 'पासवर्ड',
           'loginButton': 'लगइन',
           'noAccount': 'खाता छैन? यहाँ रजिस्टर गर्नुहोस्',
@@ -96,7 +96,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'female': 'महिला',
           'other': 'अन्य',
           'phoneOrEmail': 'इमेल वा फोन नम्बर',
-          'terms': 'म सर्त तथा नियमहरू (Terms & Conditions) स्वीकार गर्दछु',
+          'terms': 'म सर्त तथा नियमहरू स्वीकार गर्दछु',
           'registerButton': 'साइन अप',
           'hasAccount': 'पहिले नै खाता छ? यहाँ लगइन गर्नुहोस्',
           'okButton': 'ठीक छ',
@@ -105,7 +105,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
         'नेपाल भाषा': {
           'loginAppBar': 'थलो - लगइन',
           'loginTitle': 'थलोस स्वागत जुइच्वन',
-          'emailLabel': 'इमेल',
+          'emailLabel': 'इमेल वा फोन नम्बर',
           'passwordLabel': 'पासवर्ड',
           'loginButton': 'लगइन',
           'noAccount': 'खाता मदुगु? थन रजिस्टर यानादिसँ',
@@ -130,7 +130,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
         'हिन्दी': {
           'loginAppBar': 'थलो - लॉगिन',
           'loginTitle': 'थलो में आपका स्वागत है',
-          'emailLabel': 'ईमेल',
+          'emailLabel': 'ईमेल या फोन नंबर',
           'passwordLabel': 'पासवर्ड',
           'loginButton': 'लॉग इन',
           'noAccount': 'खाता नहीं है? यहाँ रजिस्टर करें',
@@ -155,7 +155,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
         'اردو': {
           'loginAppBar': 'تھلو - لاگ ان',
           'loginTitle': 'تھلو میں خوش آمدید',
-          'emailLabel': 'ای میل',
+          'emailLabel': 'ای میل یا فون نمبر',
           'passwordLabel': 'پاس ورڈ',
           'loginButton': 'لاگ ان',
           'noAccount': 'اکاؤنٹ نہیں ہے؟ یہاں رجسٹر کریں',
@@ -183,8 +183,12 @@ class _AuthWrapperState extends State<AuthWrapper> {
     return _localizedValues[_currentLang]?[key] ?? _localizedValues['नेपाली']![key]!;
   }
 
-  // अङ्कहरूलाई सम्बन्धित भाषाको लिपिमा रूपान्तरण गर्ने फङ्सन (Nepali/Hindi/Urdu digits converter)
+  // भाषा र क्यालेन्डर अनुसार अंकहरूलाई सम्बन्धित लिपिमा बदल्ने फङ्सन
   String _formatNumber(int number) {
+    if (_selectedCalendar == 'AD' || _currentLang == 'English') {
+      return number.toString(); // AD वा English छ भने सामान्य अङ्ग्रेजी अंक देखाउने
+    }
+    
     String numStr = number.toString();
     if (_currentLang == 'नेपाली' || _currentLang == 'नेपाल भाषा') {
       const englishDigits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
@@ -208,7 +212,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
     return numStr;
   }
 
-  // भाषा छान्ने तेर्सो (Horizontal) विजेट
+  // भाषा छान्ने तेर्सो विजेट
   Widget _buildLanguageSelector() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -226,6 +230,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
                     _selectedCalendar = 'ने.सं.';
                   } else if (lang == 'اردو') {
                     _selectedCalendar = 'هجری';
+                  } else if (lang == 'English') {
+                    _selectedCalendar = 'AD';
                   } else {
                     _selectedCalendar = 'वि.सं.';
                   }
@@ -246,7 +252,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
     );
   }
 
-  // जन्म मिति छान्ने पपअप डायलॉग
+  // जन्म मिति पपअप डायलॉग
   void _showDatePickerDialog() {
     showDialog(
       context: context,
@@ -258,7 +264,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(_getText('dob'), style: const TextStyle(fontSize: 16)),
-                  // दायाँ-बायाँ स्पष्ट देखिने गरी राखिएको क्यालेन्डर स्विच बटन
+                  // क्यालेन्डर स्विच बटन
                   if (_currentLang != 'हिन्दी' && _currentLang != 'English')
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
@@ -301,7 +307,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   children: [
                     Row(
                       children: [
-                        // वर्ष (Year)
+                        // वर्ष
                         Expanded(
                           flex: 2,
                           child: DropdownButton<int>(
@@ -319,7 +325,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        // महिना (Month)
+                        // महिना (छानिएको क्यालेन्डर र भाषा अनुसार मात्र देखाउने)
                         Expanded(
                           flex: 2,
                           child: DropdownButton<int>(
@@ -327,13 +333,13 @@ class _AuthWrapperState extends State<AuthWrapper> {
                             value: _selectedMonth,
                             items: List.generate(12, (index) => index + 1).map((month) {
                               String monthName = '$month';
-                              if (_currentLang == 'हिन्दी' || _currentLang == 'English' || _currentLang == 'اردو') {
+                              if (_selectedCalendar == 'AD' || _currentLang == 'English' || _currentLang == 'हिन्दी') {
                                 const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
                                 monthName = months[month - 1];
-                              } else if (_currentLang == 'नेपाल भाषा') {
+                              } else if (_selectedCalendar == 'ने.सं.' && _currentLang == 'नेपाल भाषा') {
                                 const nepalBhasaMonths = ['चिल्ला', 'दिल्ला', 'गुंला', 'ञला', 'चौला', 'बछला', 'तंला', 'देवा', 'कछला', 'इला', 'थिल्ला', 'प्वंला'];
                                 monthName = nepalBhasaMonths[month - 1];
-                              } else if (_currentLang == 'नेपाली') {
+                              } else if (_selectedCalendar == 'वि.सं.' && _currentLang == 'नेपाली') {
                                 const nepMonths = ['बैशाख', 'जेठ', 'आषाढ', 'श्रावण', 'भाद्र', 'आश्विन', 'कार्तिक', 'मंसिर', 'पुष', 'माघ', 'फागुन', 'चैत'];
                                 monthName = nepMonths[month - 1];
                               }
@@ -345,7 +351,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        // गते/दिन (Day)
+                        // गते
                         Expanded(
                           flex: 1,
                           child: DropdownButton<int>(
@@ -411,7 +417,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 const SizedBox(height: 30),
                 TextField(
                   decoration: InputDecoration(
-                    labelText: _getText('emailLabel'),
+                    labelText: _getText('emailLabel'), // यहाँ इमेल वा फोन नम्बर देखिनेछ
                     border: const OutlineInputBorder(),
                   ),
                 ),
@@ -457,7 +463,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
         ),
       );
     } else if (_currentIndex == 1) {
-      // ----------------- REGISTER STEP 1 (Name & DOB) -----------------
+      // ----------------- REGISTER STEP 1 -----------------
       return Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.blue,
@@ -507,8 +513,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   child: AbsorbPointer(
                     child: TextField(
                       decoration: InputDecoration(
-                        labelText: (_currentLang == 'हिन्दी' || _currentLang == 'English')
-                            ? '${_getText('dob')} : ${_formatNumber(_selectedYear)}-${_formatNumber(_selectedMonth)}-${_formatNumber(_selectedDay)}'
+                        labelText: (_selectedCalendar == 'AD' || _currentLang == 'English')
+                            ? '${_getText('dob')} (AD) : ${_formatNumber(_selectedYear)}-${_formatNumber(_selectedMonth)}-${_formatNumber(_selectedDay)}'
                             : '${_getText('dob')} ($_selectedCalendar) : ${_formatNumber(_selectedYear)}-${_formatNumber(_selectedMonth)}-${_formatNumber(_selectedDay)}',
                         border: const OutlineInputBorder(),
                         suffixIcon: const Icon(Icons.calendar_today),
