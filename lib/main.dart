@@ -43,6 +43,9 @@ class _ThaloAppState extends State<ThaloApp> {
                 });
               },
               onNotificationTap: _handleNotificationTap,
+              onLoginSuccess: () {
+                // लगइन सफल भएपछि गर्ने काम
+              },
             ),
         '/register': (context) => RegisterScreen(
               currentLang: currentLang,
@@ -52,6 +55,9 @@ class _ThaloAppState extends State<ThaloApp> {
                 });
               },
               onNotificationTap: _handleNotificationTap,
+              onRegisterSuccess: () {
+                // रजिस्टर सफल भएपछि गर्ने काम
+              },
             ),
       },
     );
