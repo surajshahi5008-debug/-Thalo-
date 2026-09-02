@@ -273,11 +273,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
     String mStr = _formatNumber(months);
     String dStr = _formatNumber(days);
     
-    // उमेरमा १ वर्ष जोडेर सही आगामी जन्मदिनको क्रम संख्या (Dynamic Ordinal Number) निकालिएको
     int nextBirthdayAge = years + 1;
     String nextAgeOrdinalStr = _formatNumber(nextBirthdayAge);
 
-    // भाषा अनुसार उमेरको टेक्स्ट सेट गरिएको
     if (_currentLang == 'नेपाली') {
       _ageResultText = 'तपाईंको उमेर: $yStr वर्ष, $mStr महिना, र $dStr दिन भयो।';
     } else if (_currentLang == 'नेपाल भाषा') {
@@ -353,7 +351,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
         children: ['English', 'नेपाली', 'नेपाल भाषा', 'हिन्दी', 'اردو'].map((lang) {
           final isSelected = _currentLang == lang;
           return Padding(
-            padding: constغي symmetric(horizontal: 6.0),
+            padding: const EdgeInsets.symmetric(horizontal: 6.0),
             child: GestureDetector(
               onTap: () {
                 setState(() {
@@ -460,7 +458,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   children: [
                     Row(
                       children: [
-                        // वर्ष
                         Expanded(
                           flex: 2,
                           child: DropdownButton<int>(
@@ -479,7 +476,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        // महिना
                         Expanded(
                           flex: 2,
                           child: DropdownButton<int>(
@@ -506,7 +502,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        // गते
                         Expanded(
                           flex: 1,
                           child: DropdownButton<int>(
