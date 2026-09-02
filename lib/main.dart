@@ -17,7 +17,6 @@ class ThaloApp extends StatefulWidget {
 }
 
 class _ThaloAppState extends State<ThaloApp> {
-  // हालको भाषा सेट गर्ने भेरिएबल
   String currentLang = 'ne';
 
   void _handleNotificationTap(String? payload) {
@@ -43,8 +42,9 @@ class _ThaloAppState extends State<ThaloApp> {
                 });
               },
               onNotificationTap: _handleNotificationTap,
-              onLoginSuccess: () {
-                // लगइन सफल भएपछि गर्ने काम
+              onLoginSuccess: () {},
+              goToRegister: () {
+                Navigator.pushNamed(context, '/register');
               },
             ),
         '/register': (context) => RegisterScreen(
@@ -55,8 +55,9 @@ class _ThaloAppState extends State<ThaloApp> {
                 });
               },
               onNotificationTap: _handleNotificationTap,
-              onRegisterSuccess: () {
-                // रजिस्टर सफल भएपछि गर्ने काम
+              onRegisterSuccess: () {},
+              goToLogin: () {
+                Navigator.pop(context);
               },
             ),
       },
