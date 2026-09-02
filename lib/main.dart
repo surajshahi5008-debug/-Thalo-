@@ -40,9 +40,9 @@ class _MainRouterState extends State<MainRouter> {
   int _currentIndex = 0;
 
   final List<Widget> _screens = [
-    const HomeScreen(),
-    const LoginScreen(),
-    const RegisterScreen(),
+    const HomeScreen(currentlang: 'en'),
+    const LoginScreen(currentlang: 'en'),
+    const RegisterScreen(currentlang: 'en'),
   ];
 
   @override
