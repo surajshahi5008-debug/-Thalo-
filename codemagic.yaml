@@ -15,19 +15,37 @@ workflows:
       - name: Create Android project
         script: |
           set -e
-          flutter create --platforms=android --org com.thalo --project-name app .
+          # यदि प्रोजेक्ट फोल्डर पहिले नै छ भने flutter create ले ओभरराइट नगरोस् भनेर चेक राखेको
+          if [ ! -f "pubspec.yaml" ]; then
+            flutter create --platforms=android --org com.thalo --project-name app .
+          else
+            flutter create --platforms=android --org com.thalo --project-name app . --overwrite || true
+          fi
       - name: Configure Firebase for Android
         script: |
           set -e
-          cp google-services.json android/app/google-services.json
+          # यदि रुटमा फाइल छ भने android/app मा कपी गर्ने, छैन भने एरर नआओस् भनेर म्यानुअल चेक
+          if [ -f "google-services.json" ]; then
+            cp google-services.json android/app/google-services.json
+          elif [ -f "android/app/google-services.json" ]; then
+            echo "File already exists in android/app"
+          else
+            echo "Error: google-services.json not found!"
+            exit 1
+          fi
 
           python3 - <<'PYEOF'
           import json
+          import os
 
-          with open("android/app/google-services.json") as f:
-              data = json.load(f)
-              package_name = data["client"][0]["client_info"]["android_client_info"]["package_name"]
-              print("Using package name:", package_name)
+          json_path = "android/app/google-services.json"
+          if os.path.exists(json_path):
+              with open(json_path) as f:
+                  data = json.load(f)
+                  package_name = data["client"][0]["client_info"]["android_client_info"]["package_name"]
+                  print("Using package name:", package_name)
+          else:
+              package_name = "com.thalo.app"
 
           settings_path = "android/settings.gradle.kts"
           try:
@@ -44,21 +62,22 @@ workflows:
               pass
 
           app_gradle_kts = "android/app/build.gradle.kts"
-          with open(app_gradle_kts) as f:
-              content = f.read()
+          if os.path.exists(app_gradle_kts):
+              with open(app_gradle_kts) as f:
+                  content = f.read()
 
-          if "id(\"com.google.gms.google-services\")" not in content:
-              content = content.replace(
-                  "plugins {",
-                  "plugins {\n    id(\"com.google.gms.google-services\")"
-              )
+              if "id(\"com.google.gms.google-services\")" not in content:
+                  content = content.replace(
+                      "plugins {",
+                      "plugins {\n    id(\"com.google.gms.google-services\")"
+                  )
 
-          import re
-          content = re.sub(r'applicationId\s*=\s*"[^"]*"', f'applicationId = "{package_name}"', content)
-          content = re.sub(r'namespace\s*=\s*"[^"]*"', f'namespace = "{package_name}"', content)
+              import re
+              content = re.sub(r'applicationId\s*=\s*"[^"]*"', f'applicationId = "{package_name}"', content)
+              content = re.sub(r'namespace\s*=\s*"[^"]*"', f'namespace = "{package_name}"', content)
 
-          with open(app_gradle_kts, "w") as f:
-              f.write(content)
+              with open(app_gradle_kts, "w") as f:
+                  f.write(content)
           PYEOF
       - name: Build Thalo APK
         script: |
