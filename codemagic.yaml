@@ -12,29 +12,6 @@ workflows:
     environment:
       flutter: stable
     scripts:
-      - name: Create Android project
-        script: |
-          set -e
-          if [ ! -f "pubspec.yaml" ]; then
-            flutter create --platforms=android --org com.thalo --project-name app .
-          else
-            flutter create --platforms=android --org com.thalo --project-name app . --overwrite || true
-          fi
-          
-          # Python मार्फत Gradle wrapper लाई 8.4 मा अपडेट गर्ने
-          python3 - <<'PYEOF'
-          import os
-          wrapper_path = "android/gradle/wrapper/gradle-wrapper.properties"
-          if os.path.exists(wrapper_path):
-              with open(wrapper_path, "r") as f:
-                  content = f.read()
-              # distributionUrl लाई gradle-8.4-bin.zip मा बदल्ने
-              import re
-              content = re.sub(r'distributionUrl=.*', 'distributionUrl=https\\://services.gradle.org/distributions/gradle-8.4-bin.zip', content)
-              with open(wrapper_path, "w") as f:
-                  f.write(content)
-              print("Gradle wrapper updated successfully.")
-          PYEOF
       - name: Configure Firebase for Android
         script: |
           set -e
