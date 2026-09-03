@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../constants/app_strings.dart';
-import '../widgets/lang_bar.dart';
+import 'package:thalo/constants/app_strings.dart';
+import 'package:thalo/widgets/lang_bar.dart';
 
 class LoginScreen extends StatefulWidget {
   final String currentLang;
