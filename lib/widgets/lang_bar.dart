@@ -1,48 +1,46 @@
 import 'package:flutter/material.dart';
 
-class LanguageBar extends StatelessWidget {
+class LangBar extends StatelessWidget {
   final String currentLang;
   final Function(String) onLanguageChanged;
-  final Function(String) onNotificationTap;
 
-  const LanguageBar({
+  const LangBar({
     Key? key,
     required this.currentLang,
     required this.onLanguageChanged,
-    required this.onNotificationTap,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    // एपमा सपोर्ट गर्ने ५ भाषाहरू
+    final List<String> languages = ['Nepali', 'English', 'Hindi', 'Newari', 'Bhojpuri'];
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      color: Colors.black12,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          DropdownButton<String>(
-            value: currentLang,
-            dropdownColor: Colors.white,
-            items: const [
-              DropdownMenuItem(value: 'en', child: Text('English')),
-              DropdownMenuItem(value: 'ne', child: Text('नेपाली')),
-              DropdownMenuItem(value: 'new', child: Text('नेपाल भाषा')),
-              DropdownMenuItem(value: 'hi', child: Text('हिन्दी')),
-              DropdownMenuItem(value: 'ur', child: Text('اردو')),
-            ],
-            onChanged: (val) {
-              if (val != null) {
-                onLanguageChanged(val);
-              }
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.notifications_active, color: Colors.deepPurple),
-            onPressed: () {
-              onNotificationTap(currentLang);
-            },
-          ),
-        ],
+      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+      decoration: BoxDecoration(
+        color: Colors.white24,
+        borderRadius: BorderRadius.circular(8.0),
+      ),
+      child: DropdownButton<String>(
+        value: currentLang,
+        dropdownColor: Colors.blue[900],
+        icon: const Icon(Icons.language, color: Colors.white),
+        underline: const SizedBox(),
+        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        items: languages.map((String lang) {
+          return DropdownMenuItem<String>(
+            value: lang,
+            child: Text(
+              lang,
+              style: const TextStyle(color: Colors.white),
+            ),
+          );
+        }).toList(),
+        onChanged: (String? newValue) {
+          if (newValue != null) {
+            onLanguageChanged(newValue);
+          }
+        },
       ),
     );
   }
