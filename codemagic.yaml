@@ -15,16 +15,19 @@ workflows:
       - name: Create Android project
         script: |
           set -e
-          # यदि प्रोजेक्ट फोल्डर पहिले नै छ भने flutter create ले ओभरराइट नगरोस् भनेर चेक राखेको
           if [ ! -f "pubspec.yaml" ]; then
             flutter create --platforms=android --org com.thalo --project-name app .
           else
             flutter create --platforms=android --org com.thalo --project-name app . --overwrite || true
           fi
+          
+          # Gradle wrapper लाई आधुनिक भर्सनमा अपडेट गर्ने (Unsupported Gradle error हटाउन)
+          if [ -f "android/gradle/wrapper/gradle-wrapper.properties" ]; then
+            sed -i 's/gradle-.*-bin.zip/gradle-8.4-bin.zip/g' android/gradle/wrapper/gradle-wrapper.properties
+          fi
       - name: Configure Firebase for Android
         script: |
           set -e
-          # यदि रुटमा फाइल छ भने android/app मा कपी गर्ने, छैन भने एरर नआओस् भनेर म्यानुअल चेक
           if [ -f "google-services.json" ]; then
             cp google-services.json android/app/google-services.json
           elif [ -f "android/app/google-services.json" ]; then
