@@ -12,9 +12,16 @@ workflows:
     environment:
       flutter: stable
     scripts:
-      - name: Configure Firebase for Android
+      - name: Fix Android V2 Embedding and Configure Firebase
         script: |
           set -e
+          
+          # यदि पुरानो v1 embedding फाइलहरू छन् वा v2 मा समस्या छ भने, एन्ड्रोइड फोल्डरलाई नयाँ Flutter v2 structure मा पर्न मिलाउने
+          if [ -d "android" ]; then
+            rm -rf android
+          fi
+          flutter create --platforms=android --org com.thalo --project-name app .
+
           if [ -f "google-services.json" ]; then
             cp google-services.json android/app/google-services.json
           elif [ -f "android/app/google-services.json" ]; then
@@ -37,19 +44,6 @@ workflows:
                   print("Using package name:", package_name)
           else:
               package_name = "com.thalo.app"
-
-          # AndroidManifest.xml मा v2 embedding सुनिश्चित गर्ने
-          manifest_path = "android/app/src/main/AndroidManifest.xml"
-          if os.path.exists(manifest_path):
-              with open(manifest_path, "r") as f:
-                  m_content = f.read()
-              if "flutterEmbedding" not in m_content:
-                  m_content = m_content.replace(
-                      "<application",
-                      "<application>\n        <meta-data\n            android:name=\"flutterEmbedding\"\n            android:value=\"2\" />"
-                  )
-                  with open(manifest_path, "w") as f:
-                      f.write(m_content)
 
           settings_path = "android/settings.gradle.kts"
           try:
