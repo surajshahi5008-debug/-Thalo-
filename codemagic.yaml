@@ -27,6 +27,7 @@ workflows:
           python3 - <<'PYEOF'
           import json
           import os
+          import re
 
           json_path = "android/app/google-services.json"
           if os.path.exists(json_path):
@@ -36,6 +37,19 @@ workflows:
                   print("Using package name:", package_name)
           else:
               package_name = "com.thalo.app"
+
+          # AndroidManifest.xml मा v2 embedding सुनिश्चित गर्ने
+          manifest_path = "android/app/src/main/AndroidManifest.xml"
+          if os.path.exists(manifest_path):
+              with open(manifest_path, "r") as f:
+                  m_content = f.read()
+              if "flutterEmbedding" not in m_content:
+                  m_content = m_content.replace(
+                      "<application",
+                      "<application>\n        <meta-data\n            android:name=\"flutterEmbedding\"\n            android:value=\"2\" />"
+                  )
+                  with open(manifest_path, "w") as f:
+                      f.write(m_content)
 
           settings_path = "android/settings.gradle.kts"
           try:
@@ -62,7 +76,6 @@ workflows:
                       "plugins {\n    id(\"com.google.gms.google-services\")"
                   )
 
-              import re
               content = re.sub(r'applicationId\s*=\s*"[^"]*"', f'applicationId = "{package_name}"', content)
               content = re.sub(r'namespace\s*=\s*"[^"]*"', f'namespace = "{package_name}"', content)
 
