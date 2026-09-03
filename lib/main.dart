@@ -158,6 +158,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'verifyButton': 'Verify & Complete',
           'smsOtpLabel': 'Enter 6-digit OTP',
           'emailLinkNotice': 'Verification link has been sent to your Gmail. Please click the link to verify.',
+          'errEmailAlreadyInUse': 'This Gmail account is already registered. Please log in. If you are creating a new Thalo account, please try again with a different Gmail account or phone number.',
+          'errPhoneAlreadyInUse': 'This phone number is already registered in Thalo. Please log in. If you are creating a new Thalo account, please try again with a different phone number or Gmail account.',
           'errEmailNotRegistered': 'This email is not registered in Thalo.',
           'errPhoneNotRegistered': 'This phone number is not registered in Thalo.',
           'errIncorrectPassword': 'Password is incorrect.',
@@ -192,6 +194,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'verifyButton': 'प्रमाणित गरी पूरा गर्नुहोस्',
           'smsOtpLabel': '६ अंकको OTP',
           'emailLinkNotice': 'तपाईंको जिमेलमा भेरिफिकेसन लिङ्क पठाइएको छ। कृपया इमेलमा गएर लिङ्कमा क्लिक गरी अकाउन्ट प्रमाणित गर्नुहोस्।',
+          'errEmailAlreadyInUse': 'यो जिमेल खाता पहिले नै दर्ता भइसकेको छ कृपया लग इन गर्नुहोस् यदि नयाँ थलो खाता बनाउँदै हुनुहुन्छ भने अर्को जिमेल खाता वा फोन नम्बर राखेर फेरि प्रयत्न गर्नुहोस्।',
+          'errPhoneAlreadyInUse': 'यो फोन नम्बर थलोमा पहिले नै दर्ता भइसकेको छ कृपया लग इन गर्नुहोस् यदि नयाँ थलो खाता बनाउँदै हुनुहुन्छ भने अर्को फोन नम्बर वा जिमेल खाता राखेर फेरि प्रयत्न गर्नुहोस्।',
           'errEmailNotRegistered': 'यो इमेल थलोमा दर्ता भएको छैन।',
           'errPhoneNotRegistered': 'यो फोन नम्बर थलोमा दर्ता भएको छैन।',
           'errIncorrectPassword': 'पासवर्ड मिलेन।',
@@ -226,6 +230,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'verifyButton': 'रुजु याना क्वचायेकेगु',
           'smsOtpLabel': '६ ल्याखँया OTP',
           'emailLinkNotice': 'इमेलय् भेरिफिकेसन लिङ्क छ्वया तःगु दु। कृपया लिङ्क थिचाः रुजु यानादिसँ।',
+          'errEmailAlreadyInUse': 'थ्व जिमेल खाता न्हापां हे दर्ता जुइधुंकूगु दु। कृपया लगइन यानादिसँ। यदि न्हूगु थलो खाता दयेकेगु खःसा मेगु जिमेल वा फोन नम्बर तयाः हानं कुतः यानादिसँ।',
+          'errPhoneAlreadyInUse': 'थ्व फोन नम्बर थलोस न्हापां हे दर्ता जुइधुंकूगु दु। कृपया लगइन यानादिसँ। यदि न्हूगु थलो खाता दयेकेगु खःसा मेगु फोन नम्बर वा जिमेल तयाः हानं कुतः यानादिसँ।',
           'errEmailNotRegistered': 'थ्व इमेल थलोस दर्ता मजू।',
           'errPhoneNotRegistered': 'थ्व फोन नम्बर थलोस दर्ता मजू।',
           'errIncorrectPassword': 'पासवर्ड मिले मजू।',
@@ -260,6 +266,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'verifyButton': 'सत्यापित करें और पूर्ण करें',
           'smsOtpLabel': '6-अंकों का OTP',
           'emailLinkNotice': 'आपके जीमेल पर सत्यापन लिंक भेजा गया है। कृपया लिंक पर क्लिक करके सत्यापित करें।',
+          'errEmailAlreadyInUse': 'यह जीमेल खाता पहले से पंजीकृत है। कृपया लॉगिन करें। यदि आप नया थलो खाता बना रहे हैं, तो कृपया किसी अन्य जीमेल खाते या फोन नंबर के साथ पुनः प्रयास करें।',
+          'errPhoneAlreadyInUse': 'यह फोन नंबर थलो में पहले से पंजीकृत है। कृपया लॉगिन करें। यदि आप नया थलो खाता बना रहे हैं, तो कृपया किसी अन्य फोन नंबर या जीमेल खाते के साथ पुनः प्रयास करें।',
           'errEmailNotRegistered': 'यह ईमेल थलो में पंजीकृत नहीं है।',
           'errPhoneNotRegistered': 'यह फोन नंबर थलो में पंजीकृत नहीं है।',
           'errIncorrectPassword': 'पासवर्ड गलत है।',
@@ -274,7 +282,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'forgotPassword': 'پاس ورڈ یا یوزر نیم بھول گئے؟',
           'registerAppBar': 'تھلو - سائن اپ',
           'registerTitle': 'نیا اکاؤنٹ بنائیں',
-          'firstName': 'پہلا نام',
+          'firstName': 'पहला नाम',
           'middleName': 'درمیانی نام',
           'lastName': 'آخری نام',
           'dob': 'تاریخ پیدائش',
@@ -294,6 +302,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'verifyButton': 'تصدیق کریں اور مکمل کریں',
           'smsOtpLabel': '6 ہندسوں کا OTP',
           'emailLinkNotice': 'آپ کی ای میل پر تصدیقی لنک بھیج دیا گیا ہے۔ براہ کرم لنک پر کلک کریں۔',
+          'errEmailAlreadyInUse': 'یہ جی میل اکاؤنٹ پہلے سے رجسٹرڈ ہے۔ براہ کرم لاگ ان کریں۔ اگر آپ نیا تھلو اکاؤنٹ بنا رہے ہیں، تو براہ کرم کسی دوسرے جی میل اکاؤنٹ یا فون نمبر کے ساتھ دوبارہ کوشش کریں۔',
+          'errPhoneAlreadyInUse': 'یہ فون نمبر تھلو میں پہلے سے رجسٹرڈ ہے۔ براہ کرم لاگ ان کریں۔ اگر آپ نیا تھلو اکاؤنٹ بنا رہے ہیں، تو براہ کرم کسی دوسرے فون نمبر یا جی میل اکاؤنٹ کے ساتھ دوبارہ کوشش کریں۔',
           'errEmailNotRegistered': 'یہ ای میل تھلو میں رجسٹرڈ نہیں ہے۔',
           'errPhoneNotRegistered': 'یہ فون نمبر تھلو میں رجسٹرڈ نہیں ہے۔',
           'errIncorrectPassword': 'پاس ورڈ درست نہیں ہے۔',
@@ -479,7 +489,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
         return;
       }
 
-      // युजरले छानेको कन्ट्री कोड र १० अंक जोड्ने (जस्तै: +919800000000 वा +9779800000000)
       String formattedPhone = '$_selectedCountryCode$cleanPhone';
 
       // Firebase Real Phone Authentication (SMS OTP पठाउने)
@@ -491,8 +500,21 @@ class _AuthWrapperState extends State<AuthWrapper> {
         },
         verificationFailed: (FirebaseAuthException e) {
           setState(() => _isLoading = false);
+          
+          // फोन नम्बर पहिले नै प्रयोगमा भएको वा अन्य एरर म्यासेज ह्यान्डलिং
+          String errorMessage = e.code == 'invalid-phone-number' 
+              ? 'अमान्य फोन नम्बर। कृपया सहि नम्बर हाल्नुहोस्।' 
+              : (e.message ?? 'त्रुटि देखियो');
+
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('SMS OTP पठाउन असफल: ${e.message}')),
+            SnackBar(
+              content: Text(
+                errorMessage,
+                style: const TextStyle(fontSize: 13),
+              ),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 4),
+            ),
           );
         },
         codeSent: (String verificationId, int? resendToken) {
@@ -506,10 +528,36 @@ class _AuthWrapperState extends State<AuthWrapper> {
           _verificationId = verificationId;
         },
       );
+    } on FirebaseAuthException catch (e) {
+      setState(() => _isLoading = false);
+      
+      // प्रयोगकर्ताले छानेको भाषा अनुसारको स्पष्ट SnackBar सन्देश
+      String message = '';
+      if (e.code == 'email-already-in-use') {
+        message = _getText('errEmailAlreadyInUse');
+      } else if (e.code == 'phone-number-already-exists' || e.code == 'credential-already-in-use') {
+        message = _getText('errPhoneAlreadyInUse');
+      } else {
+        message = e.message ?? 'त्रुटि देखियो: ${e.code}';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            message,
+            style: const TextStyle(fontSize: 13, height: 1.3),
+          ),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 5),
+        ),
+      );
     } catch (e) {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('त्रुटि देखियो: $e')),
+        SnackBar(
+          content: Text('त्रुटि देखियो: $e', style: const TextStyle(fontSize: 13)),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     }
   }
@@ -530,12 +578,32 @@ class _AuthWrapperState extends State<AuthWrapper> {
         verificationId: _verificationId,
         smsCode: smsCode,
       );
-      await FirebaseAuth.instance.signInWithCredential(credential);
-      _handleSuccessfulRegistration();
+      
+      // यहाँ चेक गर्न सकिन्छ कि यो फोन नम्बर पहिले नै अकाउन्टमा लिंक छ वा छེन
+      try {
+        await FirebaseAuth.instance.signInWithCredential(credential);
+        _handleSuccessfulRegistration();
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'credential-already-in-use' || e.code == 'provider-already-linked') {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(_getText('errPhoneAlreadyInUse'), style: const TextStyle(fontSize: 13)),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+          return;
+        }
+        rethrow;
+      }
     } catch (e) {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('OTP मिलेन: $e')),
+        SnackBar(
+          content: Text('OTP मिलेन: $e', style: const TextStyle(fontSize: 13)),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     }
   }
@@ -1012,7 +1080,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                // फोन वा इमेल फिल्ड (साथमा कन्ट्री कोड छान्ने ड्रपडाउन सुविधा)
                 TextField(
                   controller: _regPhoneEmailController,
                   keyboardType: TextInputType.emailAddress,
@@ -1128,7 +1195,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 ),
                 const SizedBox(height: 10),
                 
-                // यदि इमेल हो भने इमेल लिङ्क गएको सन्देश देखाउने
                 if (isEmail) ...[
                   Container(
                     padding: const EdgeInsets.all(16),
@@ -1160,7 +1226,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
                     ),
                   ),
                 ] else ...[
-                  // यदि फोन नम्बर हो भने SMS OTP हाल्ने बक्स देखाउने
                   Text(
                     _getText('verificationSubtitle'),
                     textAlign: TextAlign.center,
