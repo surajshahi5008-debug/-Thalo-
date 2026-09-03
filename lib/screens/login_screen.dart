@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../constants/app_strings.dart';
 import '../widgets/lang_bar.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -7,6 +8,12 @@ class LoginScreen extends StatefulWidget {
   final Function(String) onNotificationTap;
   final VoidCallback onLoginSuccess;
   final VoidCallback goToRegister;
+  
+  final TextEditingController emailController;
+  final TextEditingController passwordController;
+  final String errorMessage;
+  final VoidCallback onLoginPressed;
+  final VoidCallback onForgotPressed;
 
   const LoginScreen({
     Key? key,
@@ -15,6 +22,11 @@ class LoginScreen extends StatefulWidget {
     required this.onNotificationTap,
     required this.onLoginSuccess,
     required this.goToRegister,
+    required this.emailController,
+    required this.passwordController,
+    required this.errorMessage,
+    required this.onLoginPressed,
+    required this.onForgotPressed,
   }) : super(key: key);
 
   @override
@@ -22,12 +34,16 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  bool _obscurePassword = true;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.blue,
+        title: Text(AppStrings.get('loginAppBar', widget.currentLang), style: const TextStyle(color: Colors.white)),
+        automaticallyImplyLeading: false,
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -37,40 +53,85 @@ class _LoginScreenState extends State<LoginScreen> {
               onNotificationTap: widget.onNotificationTap,
             ),
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      'लगइन गर्नुहोस्',
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                    ),
                     const SizedBox(height: 20),
+                    Text(
+                      AppStrings.get('loginTitle', widget.currentLang),
+                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue),
+                    ),
+                    const SizedBox(height: 30),
                     TextField(
-                      controller: _emailController,
-                      decoration: const InputDecoration(
-                        labelText: 'इमेल (Email)',
-                        border: OutlineInputBorder(),
+                      controller: widget.emailController,
+                      decoration: InputDecoration(
+                        labelText: AppStrings.get('emailLabel', widget.currentLang),
+                        border: const OutlineInputBorder(),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     TextField(
-                      controller: _passwordController,
-                      obscureText: true,
-                      decoration: const InputDecoration(
-                        labelText: 'पासवर्ड (Password)',
-                        border: OutlineInputBorder(),
+                      controller: widget.passwordController,
+                      obscureText: _obscurePassword,
+                      decoration: InputDecoration(
+                        labelText: AppStrings.get('passwordLabel', widget.currentLang),
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                            color: Colors.grey,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: widget.onLoginSuccess,
-                      child: const Text('लगइन'),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: widget.onForgotPressed,
+                        child: Text(
+                          AppStrings.get('forgotPassword', widget.currentLang),
+                          style: const TextStyle(fontSize: 12, color: Colors.blueGrey),
+                        ),
+                      ),
                     ),
+                    if (widget.errorMessage.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        widget.errorMessage,
+                        style: const TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.purple[50],
+                          elevation: 0,
+                        ),
+                        onPressed: widget.onLoginPressed,
+                        child: Text(
+                          AppStrings.get('loginButton', widget.currentLang),
+                          style: const TextStyle(color: Colors.purple, fontSize: 16),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     TextButton(
                       onPressed: widget.goToRegister,
-                      child: const Text('खाता छैन? रजिस्टर गर्नुहोस्'),
+                      child: Text(
+                        AppStrings.get('noAccount', widget.currentLang),
+                        style: const TextStyle(color: Colors.purple, fontSize: 14),
+                      ),
                     ),
                   ],
                 ),
