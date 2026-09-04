@@ -1,53 +1,42 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Future<User?> login({required String email, required String password}) async {
-    try {
-      UserCredential credential = await _auth.signInWithEmailAndPassword(
-        email: email.trim(),
-        password: password,
-      );
-      return credential.user;
-    } on FirebaseAuthException catch (e) {
-      throw e.code;
-    } catch (e) {
-      throw 'unknown';
-    }
+  // इमेल र पासवर्डबाट साइन अप गर्ने र भेरिफिकेसन लिङ्क पठाउने
+  Future<UserCredential> signUpWithEmail(String email, String password) async {
+    UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+    await userCredential.user?.sendEmailVerification();
+    return userCredential;
   }
 
-  Future<User?> register({
-    required String fullName,
-    required String gender,
-    required String dob,
-    required String email,
-    required String password,
+  // फोन नम्बर भेरिफिकेसनका लागि (SMS OTP पठाउने)
+  Future<void> verifyPhoneNumber({
+    required String phoneNumber,
+    required Function(String verificationId) onCodeSent,
+    required Function(FirebaseAuthException e) onVerificationFailed,
+    required Function(PhoneAuthCredential credential) onVerificationCompleted,
   }) async {
-    try {
-      UserCredential credential = await _auth.createUserWithEmailAndPassword(
-        email: email.trim(),
-        password: password,
-      );
-      User? user = credential.user;
-      if (user != null) {
-        await user.updateDisplayName(fullName.trim());
-        await _firestore.collection('users').doc(user.uid).set({
-          'uid': user.uid,
-          'fullName': fullName,
-          'gender': gender,
-          'dob': dob,
-          'email': email.trim(),
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-      }
-      return user;
-    } on FirebaseAuthException catch (e) {
-      throw e.code;
-    } catch (e) {
-      throw 'unknown';
-    }
+    await _auth.verifyPhoneNumber(
+      phoneNumber: phoneNumber,
+      verificationCompleted: onVerificationCompleted,
+      verificationFailed: onVerificationFailed,
+      codeSent: (String verificationId, int? resendToken) {
+        onCodeSent(verificationId);
+      },
+      codeAutoRetrievalTimeout: (String verificationId) {},
+    );
+  }
+
+  // फोन ओटिपी प्रमाणिकरण (Verify OTP)
+  Future<UserCredential> signInWithPhoneCredential(String verificationId, String smsCode) async {
+    PhoneAuthCredential credential = PhoneAuthProvider.credential(
+      verificationId: verificationId,
+      smsCode: smsCode,
+    );
+    return await _auth.signInWithCredential(credential);
   }
 }
