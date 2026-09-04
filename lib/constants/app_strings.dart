@@ -1,9 +1,5 @@
 class AppStrings {
   static const String appName = 'Thalo';
-  
-  // सामान्य मेसेजहरू
-  static const String requiredField = 'यो क्षेत्र खाली राख्न पाइँदैन';
-  static const String somethingWentwrong = 'केही गडबड भयो, कृपया फेरि प्रयास गर्नुहोस्';
 
   static const Map<String, Map<String, String>> localizedValues = {
     'English': {
@@ -119,7 +115,7 @@ class AppStrings {
       'loginTitle': 'थलो में आपका स्वागत है',
       'emailLabel': 'ईमेल या फोन नंबर',
       'passwordLabel': 'पासवर्ड',
-      'loginButton': 'लॉग इन',
+      'loginButton': 'لॉग इन',
       'noAccount': 'खाता नहीं है? यहाँ रजिस्टर करें',
       'forgotPassword': 'पासवर्ड या यूजरनेम भूल गए?',
       'registerAppBar': 'थलो - साइन अप',
@@ -181,10 +177,10 @@ class AppStrings {
       'smsOtpLabel': '6 ہندسوں کا OTP',
       'emailLinkNotice': 'آپ کی ای میل پر تصدیقی لنک بھیج دیا گیا ہے۔ براہ کرم لنک پر کلک کریں۔',
       'errEmailAlreadyInUse': 'یہ جی میل اکاؤنٹ پہلے سے رجسٹرڈ ہے۔ براہ کرم لاگ ان کریں۔ اگر آپ نیا تھلو اکاؤنٹ بنا رہے ہیں، تو براہ کرم کسی دوسرے جی میل اکاؤنٹ یا فون نمبر کے ساتھ دوبارہ کوشش کریں۔',
-      'errPhoneAlreadyInUse': 'یہ فون نمبر تھलो میں پہلے سے رجسٹرڈ ہے۔ براہ کرم لاگ ان کریں۔ اگر آپ نیا تھलो اکاؤنٹ بنا رہے ہیں، تو براہ کرم کسی دوسرے فون نمبر یا جی میل اکاؤنٹ के साथ دوبارہ کوشش کریں۔',
-      'errEmailNotRegistered': 'یہ ای میل تھलो में رجسٹرڈ नहीं है।',
-      'errPhoneNotRegistered': 'یہ فون نمبر تھलो में رجسٹرڈ नहीं है।',
-      'errIncorrectPassword': 'پاس ورڈ درست नहीं है।',
+      'errPhoneAlreadyInUse': 'یہ فون نمبر تھلو میں پہلے سے رجسٹرڈ ہے۔ براہ کرم لاگ ان کریں۔ اگر آپ نیا تھلو اکاؤنٹ بنا رہے ہیں، تو براہ کرم کسی دوسرے فون نمبر یا جی میل اکاؤنٹ کے ساتھ دوبارہ کوشش کریں۔',
+      'errEmailNotRegistered': 'یہ ای میل تھلو میں رجسٹرڈ نہیں ہے۔',
+      'errPhoneNotRegistered': 'یہ فون نمبر تھلو میں رجسٹرڈ نہیں ہے۔',
+      'errIncorrectPassword': 'پاس ورड درست نہیں ہے۔',
     },
   };
 }
