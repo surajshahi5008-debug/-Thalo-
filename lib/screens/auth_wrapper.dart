@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'home_screen.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_strings.dart';
-import '../utils/localization_helper.dart';
 
 class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
@@ -80,7 +79,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
     }
   }
 
-  String _getText(String key) => LocalizationHelper.getText(_currentLang, key);
+  String _getText(String key) => AppStrings.getText(_currentLang, key);
 
   void _handleLogin() {
     String input = _loginEmailController.text.trim();
