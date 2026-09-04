@@ -1,5 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../services/auth_service.dart';
+import '../utils/helpers.dart';
+import 'home_screen.dart';
 
 class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
@@ -9,7 +13,7 @@ class AuthWrapper extends StatefulWidget {
 }
 
 class _AuthWrapperState extends State<AuthWrapper> {
-  int _currentIndex = 1; // 0: Login, 1: Register Step 1, 11: Register Step 2
+  int _currentIndex = 0; // 0: Login, 1: Register Step 1, 11: Register Step 2, 12: OTP
   String _currentLang = 'नेपाली';
   String _selectedCalendar = 'वि.सं.';
   
@@ -19,9 +23,22 @@ class _AuthWrapperState extends State<AuthWrapper> {
   bool _showBirthdayWish = false, _showThaloUniqueWish = false;
   Timer? _birthdayTimer;
 
-  final _firstCtrl = TextEditingController();
-  final _midCtrl = TextEditingController();
-  final _lastCtrl = TextEditingController();
+  String _selectedCountryCode = '+91';
+  bool _isLoading = false;
+  String _verificationId = '', _loginErrorMessage = '';
+  bool _obscureLoginPassword = true, _obscureRegPassword = true;
+  String? _selectedGender;
+  bool _acceptTerms = false;
+
+  final AuthService _authService = AuthService();
+  final TextEditingController _loginEmailCtrl = TextEditingController();
+  final TextEditingController _loginPassCtrl = TextEditingController();
+  final TextEditingController _regFirstCtrl = TextEditingController();
+  final TextEditingController _regMidCtrl = TextEditingController();
+  final TextEditingController _regLastCtrl = TextEditingController();
+  final TextEditingController _regPhoneEmailCtrl = TextEditingController();
+  final TextEditingController _regPassCtrl = TextEditingController();
+  final TextEditingController _phoneOtpCtrl = TextEditingController();
 
   @override
   void initState() {
@@ -32,13 +49,17 @@ class _AuthWrapperState extends State<AuthWrapper> {
   @override
   void dispose() {
     _birthdayTimer?.cancel();
-    _firstCtrl.dispose();
-    _midCtrl.dispose();
-    _lastCtrl.dispose();
+    _loginEmailCtrl.dispose();
+    _loginPassCtrl.dispose();
+    _regFirstCtrl.dispose();
+    _regMidCtrl.dispose();
+    _regLastCtrl.dispose();
+    _regPhoneEmailCtrl.dispose();
+    _regPassCtrl.dispose();
+    _phoneOtpCtrl.dispose();
     super.dispose();
   }
 
-  // १. प्रयोगकर्ताले जुन दिन खोल्छ, त्यही दिनको डाइनमिक मिति (DateTime.now())
   void _setCurrentDate() {
     final now = DateTime.now();
     if (_currentLang == 'नेपाली' || _currentLang == 'हिन्दी') {
@@ -46,10 +67,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
       _selectedYear = now.year + 57;
     } else if (_currentLang == 'नेपाल भाषा') {
       _selectedCalendar = 'ने.सं.';
-      _selectedYear = now.year + 1120; // नेपाल संवत् वर्ष
+      _selectedYear = now.year + 1120;
     } else if (_currentLang == 'اردو') {
       _selectedCalendar = 'هجری';
-      _selectedYear = now.year - 579; // हिजरी रूपान्तरण
+      _selectedYear = now.year - 579;
     } else {
       _selectedCalendar = 'AD';
       _selectedYear = now.year;
@@ -58,7 +79,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
     _selectedDay = now.day;
   }
 
-  // २. भाषा र क्यालेन्डर अनुसार अङ्क तथा शब्द रूपान्तरण (१० सम्म शब्दमा, माथि अङ्कमा)
+  String _getText(String k) {
+    if (k == 'dob') return _getDobLabel();
+    return AppLocalizations.localizedValues[_currentLang]?[k] ?? AppLocalizations.localizedValues['नेपाली']![k]!;
+  }
+
   String _formatNum(int n) {
     const devDigits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
     const urduDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
@@ -88,7 +113,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
     return _formatNum(n);
   }
 
-  // ३. उमेर र जन्मदिनको सटीक क्याल्कुलेशन (सम्बन्धित भाषा, व्याकरण र एकवचन/बहुवचन)
   void _calculateAgeAndBirthday() {
     final now = DateTime.now();
     int currentY = _selectedCalendar == 'AD' ? now.year : 
@@ -107,7 +131,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
     String mStr = _formatNumberOrWord(months);
     String dStr = _formatNumberOrWord(days);
 
-    // उमेर प्रदर्शन
     if (_currentLang == 'नेपाली') {
       _ageResultText = 'तपाईंको उमेर: $yStr वर्ष, $mStr महिना, र $dStr दिन भयो।';
     } else if (_currentLang == 'नेपाल भाषा') {
@@ -120,7 +143,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
       _ageResultText = 'Age: $yStr years, $mStr months, and $dStr days old.';
     }
 
-    // आज जन्मदिन परेमा वा नपरेमा
     if (_selectedMonth == now.month && _selectedDay == now.day) {
       String ageOrd = _getOrdinal(years);
       setState(() {
@@ -170,7 +192,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
     if (_currentLang == 'नेपाल भाषा') return '$formatted गःगु';
     if (_currentLang == 'اردو') return '$formatted ویں';
     
-    // English Suffix
     if (num % 100 >= 11 && num % 100 <= 13) return '${num}th';
     switch (num % 10) {
       case 1: return '${num}st';
@@ -195,7 +216,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
     return 'Warmest wishes from the Thalo family on your $ageOrd birthday! ✨';
   }
 
-  // ४. भाषा अनुसार लेबलहरू (अनावश्यक (AD) नराखी)
   String _getDobLabel() {
     if (_currentLang == 'नेपाली') return 'जन्म मिति';
     if (_currentLang == 'नेपाल भाषा') return 'बुगु मिति';
@@ -204,7 +224,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
     return 'Date of Birth';
   }
 
-  // ५. क्यालेन्डर संवाद (Calendar Dialog with Local & AD switch)
   void _showDatePicker() {
     showDialog(
       context: context,
@@ -230,57 +249,59 @@ class _AuthWrapperState extends State<AuthWrapper> {
               ),
             ],
           ),
-          content: Row(
-            children: [
-              // Year
-              Expanded(
-                flex: 2,
-                child: DropdownButton<int>(
-                  isExpanded: true, value: _selectedYear, menuMaxHeight: 200,
-                  items: List.generate(2001, (i) => 1000 + i).map((y) => DropdownMenuItem(value: y, child: Text(_formatNum(y), style: const TextStyle(fontSize: 13)))).toList(),
-                  onChanged: (v) => v != null ? setDlgState(() => _selectedYear = v) : null,
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: DropdownButton<int>(
+                    isExpanded: true, value: _selectedYear, menuMaxHeight: 200,
+                    items: List.generate(2001, (i) => 1000 + i).map((y) => DropdownMenuItem(value: y, child: Text(_formatNum(y), style: const TextStyle(fontSize: 13)))).toList(),
+                    onChanged: (v) => v != null ? setDlgState(() => _selectedYear = v) : null,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 6),
-              // Month
-              Expanded(
-                flex: 2,
-                child: DropdownButton<int>(
-                  isExpanded: true, value: _selectedMonth, menuMaxHeight: 200,
-                  items: List.generate(12, (i) => i + 1).map((m) {
-                    String monthName = _formatNum(m);
-                    if (_selectedCalendar == 'AD') {
-                      monthName = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m - 1];
-                      if (_currentLang == 'हिन्दी') monthName = ['जनवरी', 'फरवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'][m - 1];
-                      if (_currentLang == 'اردو') monthName = ['جنوری', 'فروری', 'مارچ', 'اپریل', 'مئی', 'جون', 'جولائی', 'اگست', 'ستمبر', 'اکتوبر', 'نومبر', 'دسمبر'][m - 1];
-                    } else if (_selectedCalendar == 'ने.सं.') {
-                      monthName = ['चिल्ला', 'दिल्ला', 'गुंला', 'ञला', 'चौला', 'बछला', 'तंला', 'देवा', 'कछला', 'इला', 'थिल्ला', 'प्वंला'][m - 1];
-                    } else if (_selectedCalendar == 'वि.सं.') {
-                      monthName = ['बैशाख', 'जेठ', 'आषाढ', 'श्रावण', 'भाद्र', 'आश्विन', 'कार्तिक', 'मंसिर', 'पुष', 'माघ', 'फागुन', 'चैत'][m - 1];
-                    } else if (_selectedCalendar == 'هجری') {
-                      monthName = ['محرم', 'صفر', 'ربیع الاول', 'ربیع الثانی', 'جمادی الاول', 'جمادی الثانی', 'رجب', 'شعبان', 'رمضان', 'شوال', 'ذی القعدہ', 'ذی الحجہ'][m - 1];
-                    }
-                    return DropdownMenuItem(value: m, child: Text(monthName, style: const TextStyle(fontSize: 12)));
-                  }).toList(),
-                  onChanged: (v) => v != null ? setDlgState(() => _selectedMonth = v) : null,
+                const SizedBox(width: 6),
+                Expanded(
+                  flex: 2,
+                  child: DropdownButton<int>(
+                    isExpanded: true, value: _selectedMonth, menuMaxHeight: 200,
+                    items: List.generate(12, (i) => i + 1).map((m) {
+                      String monthName = _formatNum(m);
+                      if (_selectedCalendar == 'AD') {
+                        monthName = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m - 1];
+                        if (_currentLang == 'हिन्दी') monthName = ['जनवरी', 'फरवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'][m - 1];
+                        if (_currentLang == 'اردو') monthName = ['جنوری', 'فروری', 'مارچ', 'اپریل', 'مئی', 'جون', 'جولائی', 'اگست', 'ستمبر', 'اکتوبر', 'نومبر', 'دسمبر'][m - 1];
+                      } else if (_selectedCalendar == 'ने.सं.') {
+                        monthName = ['चिल्ला', 'दिल्ला', 'गुंला', 'ञला', 'चौला', 'बछला', 'तंला', 'देवा', 'कछला', 'इला', 'थिल्ला', 'प्वंला'][m - 1];
+                      } else if (_selectedCalendar == 'वि.सं.') {
+                        monthName = ['बैशाख', 'जेठ', 'आषाढ', 'श्रावण', 'भाद्र', 'आश्विन', 'कार्तिक', 'मंसिर', 'पुष', 'माघ', 'फागुन', 'चैत'][m - 1];
+                      } else if (_selectedCalendar == 'هجری') {
+                        monthName = ['محرم', 'صفر', 'ربیع الاول', 'ربیع الثانی', 'جمادی الاول', 'جمادی الثانی', 'رجب', 'شعبان', 'رمضان', 'شوال', 'ذی القعدہ', 'ذی الحجہ'][m - 1];
+                      }
+                      return DropdownMenuItem(value: m, child: Text(monthName, style: const TextStyle(fontSize: 12)));
+                    }).toList(),
+                    onChanged: (v) => v != null ? setDlgState(() => _selectedMonth = v) : null,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 6),
-              // Day
-              Expanded(
-                flex: 1,
-                child: DropdownButton<int>(
-                  isExpanded: true, value: _selectedDay, menuMaxHeight: 200,
-                  items: List.generate(32, (i) => i + 1).map((d) => DropdownMenuItem(value: d, child: Text(_formatNum(d), style: const TextStyle(fontSize: 13)))).toList(),
-                  onChanged: (v) => v != null ? setDlgState(() => _selectedDay = v) : null,
+                const SizedBox(width: 6),
+                Expanded(
+                  flex: 1,
+                  child: DropdownButton<int>(
+                    isExpanded: true, value: _selectedDay, menuMaxHeight: 200,
+                    items: List.generate(32, (i) => i + 1).map((d) => DropdownMenuItem(value: d, child: Text(_formatNum(d), style: const TextStyle(fontSize: 13)))).toList(),
+                    onChanged: (v) => v != null ? setDlgState(() => _selectedDay = v) : null,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: Text(_getText('cancelButton'))),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
               onPressed: () { setState(() => _calculateAgeAndBirthday()); Navigator.pop(context); },
-              child: const Text('OK'),
+              child: Text(_getText('okButton'), style: const TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -288,79 +309,297 @@ class _AuthWrapperState extends State<AuthWrapper> {
     );
   }
 
-  // ६. भाषा चयन बार (Language Selector)
-  Widget _buildLangSelector() => Row(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: ['English', 'नेपाली', 'नेपाल भाषा', 'हिन्दी', 'اردو'].map((lang) {
-      bool isSel = _currentLang == lang;
-      return GestureDetector(
-        onTap: () => setState(() {
-          _currentLang = lang;
-          _setCurrentDate();
-          _calculateAgeAndBirthday();
-        }),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 5),
-          child: Text(lang, style: TextStyle(fontSize: 11, fontWeight: isSel ? FontWeight.bold : FontWeight.normal, color: isSel ? Colors.blue : Colors.grey[700])),
-        ),
-      );
-    }).toList(),
+  Widget _buildLangSelector() => SingleChildScrollView(
+    scrollDirection: Axis.horizontal,
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: ['English', 'नेपाली', 'नेपाल भाषा', 'हिन्दी', 'اردو'].map((lang) {
+        bool isSel = _currentLang == lang;
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          child: GestureDetector(
+            onTap: () => setState(() {
+              _currentLang = lang;
+              _setCurrentDate();
+              _calculateAgeAndBirthday();
+            }),
+            child: Text(lang, style: TextStyle(fontSize: 11, fontWeight: isSel ? FontWeight.bold : FontWeight.normal, color: isSel ? Colors.blue : Colors.grey[700])),
+          ),
+        );
+      }).toList(),
+    ),
   );
+
+  void _handleLogin() {
+    String input = _loginEmailCtrl.text.trim(), pass = _loginPassCtrl.text;
+    setState(() {
+      if (input.isEmpty || (input.contains('@') && input != 'test@thalo.com') || (!input.contains('@') && input != '9800000000')) {
+        _loginErrorMessage = input.contains('@') ? _getText('errEmailNotRegistered') : _getText('errPhoneNotRegistered');
+      } else if (pass != '123456') {
+        _loginErrorMessage = _getText('errIncorrectPassword');
+      } else {
+        _loginErrorMessage = '';
+        _currentIndex = 2; // HomeScreen
+      }
+    });
+  }
+
+  Future<void> _startRegistration() async {
+    String input = _regPhoneEmailCtrl.text.trim(), pass = _regPassCtrl.text;
+    if (input.isEmpty || pass.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('कृपया सबै विवरण भर्नुहोस्।')));
+      return;
+    }
+    setState(() => _isLoading = true);
+    try {
+      if (input.contains('@')) {
+        await _authService.signUpWithEmail(input, pass);
+        setState(() { _isLoading = false; _currentIndex = 12; });
+        return;
+      }
+      String cleanPhone = input.replaceAll(RegExp(r'\D'), '');
+      if (cleanPhone.length != 10) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('कृपया सही १० अंकको मोबाइल नम्बर हाल्नुहोस्।')));
+        return;
+      }
+      await _authService.verifyPhoneNumber(
+        phoneNumber: '$_selectedCountryCode$cleanPhone',
+        onVerificationCompleted: (cred) async {
+          await _authService.signInWithCredential(cred);
+          _completeReg();
+        },
+        onVerificationFailed: (e) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message ?? 'त्रुटि देखियो')));
+        },
+        onCodeSent: (id, token) {
+          setState(() { _verificationId = id; _isLoading = false; _currentIndex = 12; });
+        },
+      );
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('त्रुटि देखियो: $e')));
+    }
+  }
+
+  Future<void> _verifyOtp(String smsCode) async {
+    if (smsCode.length != 6) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('कृपया ६ अंकको सही OTP हाल्नुहोस्।')));
+      return;
+    }
+    setState(() => _isLoading = true);
+    try {
+      await _authService.signInWithPhoneCredential(_verificationId, smsCode);
+      _completeReg();
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('OTP मिलेन: $e')));
+    }
+  }
+
+  void _completeReg() {
+    _loginEmailCtrl.text = _regPhoneEmailCtrl.text.trim();
+    _loginPassCtrl.text = _regPassCtrl.text;
+    setState(() { _isLoading = false; _currentIndex = 2; });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('थलो - साइन अप'), backgroundColor: Colors.blue),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Center(child: Text('नयाँ खाता खोल्नुहोस्', style: TextStyle(fontSize: 22, color: Colors.green, fontWeight: FontWeight.bold))),
-            const SizedBox(height: 20),
-            TextField(controller: _firstCtrl, decoration: const InputDecoration(labelText: 'पहिलो नाम', border: OutlineInputBorder())),
-            const SizedBox(height: 12),
-            TextField(controller: _midCtrl, decoration: const InputDecoration(labelText: 'बीचको नाम (ऐच्छिक)', border: OutlineInputBorder())),
-            const SizedBox(height: 12),
-            TextField(controller: _lastCtrl, decoration: const InputDecoration(labelText: 'थर', border: OutlineInputBorder())),
-            const SizedBox(height: 12),
-            
-            // Birthday Selector Field
-            GestureDetector(
-              onTap: _showDatePicker,
-              child: AbsorbPointer(
-                child: TextField(
+    if (_isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+
+    // 0: Login Screen
+    if (_currentIndex == 0) {
+      return Scaffold(
+        appBar: AppBar(backgroundColor: Colors.blue, title: Text(_getText('loginAppBar'), style: const TextStyle(color: Colors.white)), automaticallyImplyLeading: false),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(_getText('loginTitle'), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue)),
+                const SizedBox(height: 30),
+                TextField(controller: _loginEmailCtrl, decoration: InputDecoration(labelText: _getText('emailLabel'), border: const OutlineInputBorder())),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _loginPassCtrl, obscureText: _obscureLoginPassword,
                   decoration: InputDecoration(
-                    labelText: '${_getDobLabel()} (${_selectedCalendar}) : ${_formatNum(_selectedYear)}-${_formatNum(_selectedMonth)}-${_formatNum(_selectedDay)}',
-                    border: const OutlineInputBorder(),
-                    suffixIcon: const Icon(Icons.calendar_today),
+                    labelText: _getText('passwordLabel'), border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(icon: Icon(_obscureLoginPassword ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscureLoginPassword = !_obscureLoginPassword)),
                   ),
                 ),
-              ),
+                const SizedBox(height: 8),
+                Align(alignment: Alignment.centerRight, child: TextButton(onPressed: () {}, child: Text(_getText('forgotPassword'), style: const TextStyle(fontSize: 12)))),
+                if (_loginErrorMessage.isNotEmpty) ...[const SizedBox(height: 10), Text(_loginErrorMessage, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold))],
+                const SizedBox(height: 16),
+                SizedBox(width: double.infinity, height: 48, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.purple[50], elevation: 0), onPressed: _handleLogin, child: Text(_getText('loginButton'), style: const TextStyle(color: Colors.purple)))),
+                const SizedBox(height: 16),
+                TextButton(onPressed: () => setState(() { _loginErrorMessage = ''; _currentIndex = 1; }), child: Text(_getText('noAccount'))),
+                const SizedBox(height: 30),
+                _buildLangSelector(),
+              ],
             ),
-            const SizedBox(height: 8),
-            
-            // Age & Wishes Display Area
-            Text(_ageResultText, style: const TextStyle(fontSize: 12, color: Colors.blueGrey, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 400),
-              child: Text(
-                _showThaloUniqueWish ? _getThaloUniqueWishText() : _birthdayWishText,
-                key: ValueKey<bool>(_showThaloUniqueWish),
-                style: TextStyle(
-                  fontSize: 12, 
-                  color: _showThaloUniqueWish ? Colors.purple[800] : (_showBirthdayWish ? Colors.pink[800] : Colors.green[800]), 
-                  fontWeight: FontWeight.bold
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 30),
-            _buildLangSelector(),
-          ],
+          ),
         ),
-      ),
+      );
+    }
+
+    // 1: Register Step 1
+    if (_currentIndex == 1) {
+      return Scaffold(
+        appBar: AppBar(backgroundColor: Colors.blue, title: Text(_getText('registerAppBar'), style: const TextStyle(color: Colors.white)), leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => setState(() => _currentIndex = 0))),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(child: Text(_getText('registerTitle'), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green))),
+                const SizedBox(height: 25),
+                TextField(controller: _regFirstCtrl, decoration: InputDecoration(labelText: _getText('firstName'), border: const OutlineInputBorder())),
+                const SizedBox(height: 16),
+                TextField(controller: _regMidCtrl, decoration: InputDecoration(labelText: _getText('middleName'), border: const OutlineInputBorder())),
+                const SizedBox(height: 16),
+                TextField(controller: _regLastCtrl, decoration: InputDecoration(labelText: _getText('lastName'), border: const OutlineInputBorder())),
+                const SizedBox(height: 16),
+                GestureDetector(
+                  onTap: _showDatePicker,
+                  child: AbsorbPointer(
+                    child: TextField(
+                      decoration: InputDecoration(
+                        labelText: '${_getDobLabel()} (${_selectedCalendar}) : ${_formatNum(_selectedYear)}-${_formatNum(_selectedMonth)}-${_formatNum(_selectedDay)}',
+                        border: const OutlineInputBorder(),
+                        suffixIcon: const Icon(Icons.calendar_today),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(_ageResultText.isEmpty ? 'Age: 0 years, 0 months, and 0 days old.' : _ageResultText, style: const TextStyle(fontSize: 13, color: Colors.blueGrey, fontWeight: FontWeight.w500)),
+                const SizedBox(height: 4),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 500),
+                  child: Text(
+                    _showThaloUniqueWish ? _getThaloUniqueWishText() : (_birthdayWishText.isEmpty ? '' : _birthdayWishText),
+                    key: ValueKey<bool>(_showThaloUniqueWish),
+                    style: TextStyle(fontSize: 13, color: _showThaloUniqueWish ? Colors.purple[700] : (_showBirthdayWish ? Colors.pink[700] : Colors.green[700]), fontWeight: FontWeight.bold, height: 1.3),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(width: double.infinity, height: 48, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green), onPressed: () => setState(() => _currentIndex = 11), child: Text(_getText('nextButton'), style: const TextStyle(color: Colors.white)))),
+                const SizedBox(height: 16),
+                Center(child: TextButton(onPressed: () => setState(() => _currentIndex = 0), child: Text(_getText('hasAccount')))),
+                const SizedBox(height: 20),
+                Center(child: _buildLangSelector()),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // 11: Register Step 2
+    if (_currentIndex == 11) {
+      return Scaffold(
+        appBar: AppBar(backgroundColor: Colors.blue, title: Text(_getText('registerAppBar'), style: const TextStyle(color: Colors.white)), leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => setState(() => _currentIndex = 1))),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(child: Text(_getText('registerTitle'), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green))),
+                const SizedBox(height: 25),
+                Text(_getText('gender'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                Row(
+                  children: ['Male', 'Female', 'Other'].map((g) => Expanded(child: RadioListTile<String>(title: Text(_getText(g.toLowerCase()), style: const TextStyle(fontSize: 12)), value: g, groupValue: _selectedGender, onChanged: (v) => setState(() => _selectedGender = v), contentPadding: EdgeInsets.zero))).toList(),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _regPhoneEmailCtrl, keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                    labelText: _getText('phoneOrEmail'), border: const OutlineInputBorder(),
+                    prefixIcon: Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _selectedCountryCode,
+                          items: const [DropdownMenuItem(value: '+91', child: Text('🇮🇳 +91', style: TextStyle(fontSize: 13))), DropdownMenuItem(value: '+977', child: Text('🇳🇵 +977', style: TextStyle(fontSize: 13)))],
+                          onChanged: (v) => v != null ? setState(() => _selectedCountryCode = v) : null,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _regPassCtrl, obscureText: _obscureRegPassword,
+                  decoration: InputDecoration(
+                    labelText: _getText('passwordLabel'), border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(icon: Icon(_obscureRegPassword ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscureRegPassword = !_obscureRegPassword)),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.blue[50], border: Border.all(color: Colors.blue.shade200), borderRadius: BorderRadius.circular(8)),
+                  child: Row(children: [Checkbox(value: _acceptTerms, onChanged: (v) => setState(() => _acceptTerms = v ?? false)), Expanded(child: Text(_getText('terms'), style: const TextStyle(fontSize: 12)))]),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(width: double.infinity, height: 48, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green), onPressed: _acceptTerms ? _startRegistration : null, child: Text(_getText('registerButton'), style: const TextStyle(color: Colors.white)))),
+                const SizedBox(height: 20),
+                Center(child: _buildLangSelector()),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // 12: Verification Screen
+    if (_currentIndex == 12) {
+      bool isEmail = _regPhoneEmailCtrl.text.contains('@');
+      return Scaffold(
+        appBar: AppBar(backgroundColor: Colors.blue, title: Text(_getText('verificationTitle'), style: const TextStyle(color: Colors.white)), leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => setState(() => _currentIndex = 11))),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.verified_user, size: 60, color: Colors.green),
+                const SizedBox(height: 20),
+                Text(_getText('verificationTitle'), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.green)),
+                const SizedBox(height: 10),
+                isEmail ? Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(color: Colors.amber[50], border: Border.all(color: Colors.amber.shade300), borderRadius: BorderRadius.circular(8)),
+                  child: Column(children: [const Icon(Icons.mark_email_read, color: Colors.orange, size: 40), const SizedBox(height: 10), Text(_getText('emailLinkNotice'), textAlign: TextAlign.center)]),
+                ) : Column(children: [
+                  Text(_getText('verificationSubtitle'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, color: Colors.blueGrey)),
+                  const SizedBox(height: 20),
+                  TextField(controller: _phoneOtpCtrl, keyboardType: TextInputType.number, maxLength: 6, decoration: InputDecoration(labelText: _getText('smsOtpLabel'), border: const OutlineInputBorder(), counterText: ''), style: const TextStyle(fontSize: 18, letterSpacing: 6)),
+                ]),
+                const SizedBox(height: 24),
+                SizedBox(width: double.infinity, height: 48, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: isEmail ? Colors.blue : Colors.green), onPressed: () => isEmail ? _completeReg() : _verifyOtp(_phoneOtpCtrl.text.trim()), child: Text(isEmail ? 'मैले इमेल रुजु गरें (Home जाने)' : _getText('verifyButton'), style: const TextStyle(color: Colors.white)))),
+                const SizedBox(height: 30),
+                _buildLangSelector(),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Home Screen after login/register
+    return HomeScreen(
+      currentLang: _currentLang,
+      onLanguageChanged: (lang) => setState(() => _currentLang = lang),
+      onNotificationTap: (v) {},
+      selectedDate: 'आज',
+      onCalendarTap: () {},
+      onLogout: () => setState(() { _loginPassCtrl.clear(); _loginErrorMessage = ''; _currentIndex = 0; }),
     );
   }
 }
