@@ -137,7 +137,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
     String yStr = _fmtNum(years), mStr = _fmtNum(months), dStr = _fmtNum(days);
     int nextAge = years + (_selectedMonth > now.month || (_selectedMonth == now.month && _selectedDay >= now.day) ? 0 : 1);
-    if (nextAge == 0) nextAge = 1;
+    if (nextAge <= 0) nextAge = 1;
     String ordinalAge = _getOrdinalWord(nextAge, _currentLang);
 
     if (_currentLang == 'नेपाली') {
@@ -191,6 +191,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   String _getThaloUniqueWishText() {
     int nextAge = (_selectedMonth == DateTime.now().month && _selectedDay == DateTime.now().day) ? ((DateTime.now().year - _selectedYear) + 1) : 1;
+    if (nextAge <= 0) nextAge = 1;
     String ordinalAge = _getOrdinalWord(nextAge, _currentLang);
     if (_currentLang == 'नेपाली') return 'थलो परिवारतर्फबाट यहाँलाई $ordinalAge जन्मदिनको हार्दिक मंगलमय शुभकामना! ✨';
     if (_currentLang == 'हिन्दी') return 'थलो परिवार की ओर से आपको आपके $ordinalAge जन्मदिन की हार्दिक शुभकामनाएं! ✨';
