@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-// पात्रो वा मिति छनौट गर्ने साझा विजेट
 class CalendarPickerWidget extends StatelessWidget {
   final String selectedDate;
   final VoidCallback onCalendarTap;
