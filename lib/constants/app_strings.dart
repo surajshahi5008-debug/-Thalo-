@@ -32,8 +32,8 @@ class AppStrings {
       'verifyButton': 'Verify & Complete',
       'smsOtpLabel': 'Enter 6-digit OTP',
       'emailLinkNotice': 'Verification link has been sent to your Gmail. Please click the link to verify.',
-      'errEmailAlreadyInUse': 'This Gmail account is already registered. Please log in.',
-      'errPhoneAlreadyInUse': 'This phone number is already registered in Thalo.',
+      'errEmailAlreadyInUse': 'This Gmail account is already registered. Please log in. If you are creating a new Thalo account, please try again with a different Gmail account or phone number.',
+      'errPhoneAlreadyInUse': 'This phone number is already registered in Thalo. Please log in. If you are creating a new Thalo account, please try again with a different phone number or Gmail account.',
       'errEmailNotRegistered': 'This email is not registered in Thalo.',
       'errPhoneNotRegistered': 'This phone number is not registered in Thalo.',
       'errIncorrectPassword': 'Password is incorrect.',
@@ -67,16 +67,151 @@ class AppStrings {
       'verificationSubtitle': 'कृपया तपाईंको मोबाइलमा आएको ६ अंकको SMS OTP यहाँ हाल्नुहोस्।',
       'verifyButton': 'प्रमाणित गरी पूरा गर्नुहोस्',
       'smsOtpLabel': '६ अंकको OTP',
-      'emailLinkNotice': 'तपाईंको जिमेलमा भेरिफिकेसन लिङ्क पठाइएको छ।',
-      'errEmailAlreadyInUse': 'यो जिमेल खाता पहिले नै दर्ता भइसकेको छ।',
-      'errPhoneAlreadyInUse': 'यो फोन नम्बर थलोमा पहिले नै दर्ता भइसकेको छ।',
+      'emailLinkNotice': 'तपाईंको जिमेलमा भेरिफिकेसन लिङ्क पठाइएको छ। कृपया इमेलमा गएर लिङ्कमा क्लिक गरी अकाउन्ट प्रमाणित गर्नुहोस्।',
+      'errEmailAlreadyInUse': 'यो जिमेल खाता पहिले नै दर्ता भइसकेको छ कृपया लग इन गर्नुहोस् यदि नयाँ थलो खाता बनाउँदै हुनुहुन्छ भने अर्को जिमेल खाता वा फोन नम्बर राखेर फेरि प्रयत्न गर्नुहोस्।',
+      'errPhoneAlreadyInUse': 'यो फोन नम्बर थलोमा पहिले नै दर्ता भइसकेको छ कृपया लग इन गर्नुहोस् यदि नयाँ थलो खाता बनाउँदै हुनुहुन्छ भने अर्को फोन नम्बर वा जिमेल खाता राखेर फेरि प्रयत्न गर्नुहोस्।',
       'errEmailNotRegistered': 'यो इमेल थलोमा दर्ता भएको छैन।',
       'errPhoneNotRegistered': 'यो फोन नम्बर थलोमा दर्ता भएको छैन।',
       'errIncorrectPassword': 'पासवर्ड मिलेन।',
+    },
+    'नेपाल भाषा': {
+      'loginAppBar': 'थलो - लगइन',
+      'loginTitle': 'थलोस स्वागत जुइच्वन',
+      'emailLabel': 'इमेल वा फोन नम्बर',
+      'passwordLabel': 'पासवर्ड',
+      'loginButton': 'लगइन',
+      'noAccount': 'खाता मदुगु? थन रजिस्टर यानादिसँ',
+      'forgotPassword': 'पासवर्ड वा युजरनेम मंकाःगु ला?',
+      'registerAppBar': 'थलो - साइन अप',
+      'registerTitle': 'न्हूगु खाता तयेगु',
+      'firstName': 'पुलां नामं',
+      'middleName': 'दथुया नामं',
+      'lastName': 'थथर',
+      'dob': 'बुगु मिति',
+      'nextButton': 'लिउ',
+      'gender': 'लिङ्ग ल्ययादिसँ',
+      'male': 'पुरुष',
+      'female': 'महिला',
+      'other': 'मेगु',
+      'phoneOrEmail': 'इमेल वा १० ल्याखँया मोबाइल नम्बर',
+      'terms': 'शर्त स्वीकार यानाच्वना',
+      'registerButton': 'साइन अप व प्रमाणीकरण छ्वयादिसँ',
+      'hasAccount': 'न्हापां नं खाता दुसा? थन लगइन यानादिसँ',
+      'okButton': 'थुगु',
+      'cancelButton': 'मखु',
+      'verificationTitle': 'खाता प्रमाणीकरण',
+      'verificationSubtitle': 'मोबाइलय् वःगु ६ ल्याखँया SMS OTP थन तयादिसँ।',
+      'verifyButton': 'रुजु याना क्वचायेकेगु',
+      'smsOtpLabel': '६ ल्याखँया OTP',
+      'emailLinkNotice': 'इमेलय् भेरिफिकेसन लिङ्क छ्वया तःगु दु। कृपया लिङ्क थिचाः रुजु यानादिसँ।',
+      'errEmailAlreadyInUse': 'थ्व जिमेल खाता न्हापां हे दर्ता जुइधुंकूगु दु। कृपया लगइन यानादिसँ। यदि न्हूगु थलो खाता दयेकेगु खःसा मेगु जिमेल वा फोन नम्बर तयाः हानं कुतः यानादिसँ।',
+      'errPhoneAlreadyInUse': 'थ्व फोन नम्बर थलोस न्हापां हे दर्ता जुइधुंकूगु दु। कृपया लगइन यानादिसँ। यदि न्हूगु थलो खाता दयेकेगु खःसा मेगु फोन नम्बर वा जिमेल तयाः हानं कुतः यानादिसँ।',
+      'errEmailNotRegistered': 'थ्व इमेल थलोस दर्ता मजू।',
+      'errPhoneNotRegistered': 'थ्व फोन नम्बर थलोस दर्ता मजू।',
+      'errIncorrectPassword': 'पासवर्ड मिले मजू।',
+    },
+    'हिन्दी': {
+      'loginAppBar': 'थलो - लॉगिन',
+      'loginTitle': 'थलो में आपका स्वागत है',
+      'emailLabel': 'ईमेल या फोन नंबर',
+      'passwordLabel': 'पासवर्ड',
+      'loginButton': 'लॉग इन',
+      'noAccount': 'खाता नहीं है? यहाँ रजिस्टर करें',
+      'forgotPassword': 'पासवर्ड या यूजरनेम भूल गए?',
+      'registerAppBar': 'थलो - साइन अप',
+      'registerTitle': 'नया खाता बनाएं',
+      'firstName': 'पहला नाम',
+      'middleName': 'बीच का नाम (वैकल्पिक)',
+      'lastName': 'उपनाम',
+      'dob': 'जन्म तिथि',
+      'nextButton': 'अगला',
+      'gender': 'लिंग चुनें',
+      'male': 'पुरुष',
+      'female': 'महिला',
+      'other': 'अन्य',
+      'phoneOrEmail': 'ईमेल या 10-अंकों का मोबाइल नंबर',
+      'terms': 'मैं नियम और शर्तें स्वीकार करता हूँ',
+      'registerButton': 'साइन अप और सत्यापन भेजें',
+      'hasAccount': 'पहले से खाता है? यहाँ लॉगिन करें',
+      'okButton': 'ठीक है',
+      'cancelButton': 'रद्द करें',
+      'verificationTitle': 'खाता सत्यापन',
+      'verificationSubtitle': 'कृपया अपने मोबाइल पर प्राप्त 6-अंकों का SMS OTP दर्ज करें।',
+      'verifyButton': 'सत्यापित करें और पूर्ण करें',
+      'smsOtpLabel': '6-अंकों का OTP',
+      'emailLinkNotice': 'आपके जीमेल पर सत्यापन लिंक भेजा गया है। कृपया लिंक पर क्लिक करके सत्यापित करें।',
+      'errEmailAlreadyInUse': 'यह जीमेल खाता पहले से पंजीकृत है। कृपया लॉगिन करें। यदि आप नया थलो खाता बना रहे हैं, तो कृपया किसी अन्य जीमेल खाते या फोन नंबर के साथ पुनः प्रयास करें।',
+      'errPhoneAlreadyInUse': 'यह फोन नंबर थलो में पहले से पंजीकृत है। कृपया लॉगिन करें। यदि आप नया थलो खाता बना रहे हैं, तो कृपया किसी अन्य फोन नंबर या जीमेल खाते के साथ पुनः प्रयास करें।',
+      'errEmailNotRegistered': 'यह ईमेल थलो में पंजीकृत नहीं है।',
+      'errPhoneNotRegistered': 'यह फोन नंबर थलो में पंजीकृत नहीं है।',
+      'errIncorrectPassword': 'पासवर्ड गलत है।',
+    },
+    'اردو': {
+      'loginAppBar': 'تھلو - لاگ ان',
+      'loginTitle': 'تھلو میں خوش آمدید',
+      'emailLabel': 'ای میل یا فون نمبر',
+      'passwordLabel': 'پاس ورڈ',
+      'loginButton': 'لاگ ان',
+      'noAccount': 'اکاؤنٹ نہیں ہے؟ یہاں رجسٹر کریں',
+      'forgotPassword': 'پاس ورڈ یا یوزر نیم بھول گئے؟',
+      'registerAppBar': 'تھلو - سائن اپ',
+      'registerTitle': 'نیا اکاؤنٹ بنائیں',
+      'firstName': 'पहला नाम',
+      'middleName': 'درمیانی نام',
+      'lastName': 'آخری نام',
+      'dob': 'تاریخ پیدائش',
+      'nextButton': 'اگلا',
+      'gender': 'جنس منتخب کریں',
+      'male': 'مرد',
+      'female': 'عورت',
+      'other': 'دیگر',
+      'phoneOrEmail': 'ای میل یا 10 ہندسوں کا موبائل نمبر',
+      'terms': 'میں شرائط و ضوابط قبول کرتا ہوں',
+      'registerButton': 'سائن اپ اور تصدیق بھیجیں',
+      'hasAccount': 'پہلے سے اکاؤنٹ ہے؟ یہاں لاگ ان کریں',
+      'okButton': 'ٹھیک ہے',
+      'cancelButton': 'منسوخ کریں',
+      'verificationTitle': 'اکاؤنٹ کی تصدیق',
+      'verificationSubtitle': 'براہ کرم اپنے موبائل پر موصول ہونے والا 6 ہندسوں کا SMS OTP درج کریں۔',
+      'verifyButton': 'تصدیق کریں اور مکمل کریں',
+      'smsOtpLabel': '6 ہندسوں کا OTP',
+      'emailLinkNotice': 'آپ کی ای میل پر تصدیقی لنک بھیج دیا گیا ہے۔ براہ کرم لنک پر کلک کریں۔',
+      'errEmailAlreadyInUse': 'یہ جی میل اکاؤنٹ پہلے سے رجسٹرڈ ہے۔ براہ کرم لاگ ان کریں۔ اگر آپ نیا تھلو اکاؤنٹ بنا رہے ہیں، تو براہ کرم کسی دوسرے جی میل اکاؤنٹ یا فون نمبر کے ساتھ دوبارہ کوشش کریں۔',
+      'errPhoneAlreadyInUse': 'یہ فون نمبر تھलो में पहले से पंजीकृत है। براہ کرم لاگ ان کریں۔ اگر آپ نیا تھलो اکاؤنٹ بنا रहे हैं...',
+      'errEmailNotRegistered': 'یہ ای میل تھلو میں رجسٹرڈ نہیں ہے۔',
+      'errPhoneNotRegistered': 'یہ فون नंबर थलो में رجسٹرڈ نہیں ہے۔',
+      'errIncorrectPassword': 'پاس ورڈ درست نہیں ہے۔',
     },
   };
 
   static String getText(String lang, String key) {
     return localizedValues[lang]?[key] ?? localizedValues['नेपाली']![key]!;
+  }
+
+  static String formatNumber(int number, String lang, String calendar) {
+    if (calendar == 'AD' || lang == 'English') {
+      return number.toString();
+    }
+    String numStr = number.toString();
+    if (lang == 'नेपाली' || lang == 'नेपाल भाषा') {
+      const englishDigits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+      const nepaliDigits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
+      for (int i = 0; i < 10; i++) {
+        numStr = numStr.replaceAll(englishDigits[i], nepaliDigits[i]);
+      }
+    } else if (lang == 'हिन्दी') {
+      const englishDigits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+      const hindiDigits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
+      for (int i = 0; i < 10; i++) {
+        numStr = numStr.replaceAll(englishDigits[i], hindiDigits[i]);
+      }
+    } else if (lang == 'اردو') {
+      const englishDigits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+      const urduDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+      for (int i = 0; i < 10; i++) {
+        numStr = numStr.replaceAll(englishDigits[i], urduDigits[i]);
+      }
+    }
+    return numStr;
   }
 }
