@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
@@ -27,6 +28,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
   String _ageResultText = '';
   String _birthdayWishText = '';
   bool _showBirthdayWish = false;
+
+  // Timer and Unique Wish Variables
+  Timer? _birthdayTimer;
+  bool _showThaloUniqueWish = false;
 
   // Country Code Variable
   String _selectedCountryCode = '+91';
@@ -62,6 +67,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   @override
   void dispose() {
+    _birthdayTimer?.cancel();
     _loginEmailController.dispose();
     _loginPasswordController.dispose();
     _regFirstNameController.dispose();
@@ -110,6 +116,104 @@ class _AuthWrapperState extends State<AuthWrapper> {
     return AppLocalizations.formatNumber(number, _currentLang, _selectedCalendar);
   }
 
+  // Language-based Ordinal Converter for 1 to 10 and standard format above 10
+  String _getOrdinalWord(int age, String lang) {
+    if (lang == 'नेपाली') {
+      switch (age) {
+        case 1: return 'पहिलो';
+        case 2: return 'दोस्रो';
+        case 3: return 'तेस्रो';
+        case 4: return 'चौँथो';
+        case 5: return 'पाँचौं';
+        case 6: return 'छैटौं';
+        case 7: return 'सातौं';
+        case 8: return 'आठौं';
+        case 9: return 'नवौं';
+        case 10: return 'दशौं';
+        default: return '${_formatNumber(age)} औँ';
+      }
+    } else if (lang == 'हिन्दी') {
+      switch (age) {
+        case 1: return 'पहला';
+        case 2: return 'दूसरा';
+        case 3: return 'तीसरा';
+        case 4: return 'चौथा';
+        case 5: return 'पाँचवाँ';
+        case 6: return 'छठा';
+        case 7: return 'सातवाँ';
+        case 8: return 'आठवाँ';
+        case 9: return 'नौवाँ';
+        case 10: return 'दसवाँ';
+        default: return '$age वाँ';
+      }
+    } else if (lang == 'English') {
+      switch (age) {
+        case 1: return 'first';
+        case 2: return 'second';
+        case 3: return 'third';
+        case 4: return 'fourth';
+        case 5: return 'fifth';
+        case 6: return 'sixth';
+        case 7: return 'seventh';
+        case 8: return 'eighth';
+        case 9: return 'ninth';
+        case 10: return 'tenth';
+        default:
+          if (age % 100 >= 11 && age % 100 <= 13) return '${age}th';
+          switch (age % 10) {
+            case 1: return '${age}st';
+            case 2: return '${age}nd';
+            case 3: return '${age}rd';
+            default: return '${age}th';
+          }
+      }
+    } else if (lang == 'नेपाल भाषा') {
+      switch (age) {
+        case 1: return 'न्हापांगु';
+        case 2: return 'लिपांगु';
+        case 3: return 'स्वंगूगु';
+        case 4: return 'प्यंगूगु';
+        case 5: return 'न्यागूगु';
+        case 6: return 'खुगूगु';
+        case 7: return 'न्हेगूगु';
+        case 8: return 'च्यागूगु';
+        case 9: return 'गुंगूगु';
+        case 10: return 'न्हेगूगु';
+        default: return '${_formatNumber(age)} गूगु';
+      }
+    } else if (lang == 'اردو') {
+      switch (age) {
+        case 1: return 'پہلی';
+        case 2: return 'دوسری';
+        case 3: return 'تیسری';
+        case 4: return 'چوتھی';
+        case 5: return 'پانچویں';
+        case 6: return 'چھٹی';
+        case 7: return 'ساتویں';
+        case 8: return 'آٹھویں';
+        case 9: return 'نویں';
+        case 10: return 'دسویں';
+        default: return '$age ویں';
+      }
+    }
+    return '${_formatNumber(age)} औँ';
+  }
+
+  void _startBirthdayTimer() {
+    _birthdayTimer?.cancel();
+    setState(() {
+      _showThaloUniqueWish = false;
+    });
+
+    _birthdayTimer = Timer(const Duration(seconds: 8), () {
+      if (mounted) {
+        setState(() {
+          _showThaloUniqueWish = true;
+        });
+      }
+    });
+  }
+
   void _calculateAgeAndBirthday() {
     DateTime now = DateTime.now();
     int currentY = (_selectedCalendar == 'AD') ? now.year : now.year + (_selectedCalendar == 'वि.सं.' ? 57 : (_selectedCalendar == 'ने.सं.' ? 1120 : 0));
@@ -137,7 +241,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
     String dStr = _formatNumber(days);
     
     int nextBirthdayAge = years + 1;
-    String nextAgeOrdinalStr = _formatNumber(nextBirthdayAge);
+    String ordinalAgeStr = _getOrdinalWord(nextBirthdayAge, _currentLang);
 
     if (_currentLang == 'नेपाली') {
       _ageResultText = 'तपाईंको उमेर: $yStr वर्ष, $mStr महिना, र $dStr दिन भयो।';
@@ -154,38 +258,56 @@ class _AuthWrapperState extends State<AuthWrapper> {
     if (_selectedMonth == currentM && _selectedDay == currentD) {
       setState(() {
         if (_currentLang == 'नेपाली') {
-          _birthdayWishText = 'आज तपाईंको $nextAgeOrdinalStr औं जन्मदिन हो! 🎂';
+          _birthdayWishText = 'आज तपाईंको $ordinalAgeStr जन्मदिन हो! 🎂';
         } else if (_currentLang == 'नेपाल भाषा') {
-          _birthdayWishText = 'थौं छगु $nextAgeOrdinalStr गूगु बुगुन्हि खः! 🎂';
+          _birthdayWishText = 'थौं छगु $ordinalAgeStr बुगुन्हि खः! 🎂';
         } else if (_currentLang == 'हिन्दी') {
-          _birthdayWishText = 'आज आपका $nextAgeOrdinalStr वाँ जन्मदिन है! 🎂';
+          _birthdayWishText = 'आज आपका $ordinalAgeStr जन्मदिन है! 🎂';
         } else if (_currentLang == 'اردو') {
-          _birthdayWishText = 'آج آپ کی $nextAgeOrdinalStr ویں سالگرہ ہے! 🎂';
+          _birthdayWishText = 'آج آپ کی $ordinalAgeStr سالگرہ ہے! 🎂';
         } else {
-          _birthdayWishText = 'Today is your $nextAgeOrdinalStr birthday! 🎂';
+          _birthdayWishText = 'Today is your $ordinalAgeStr birthday! 🎂';
         }
         _showBirthdayWish = true;
       });
+      _startBirthdayTimer();
     } else {
       int remainingDays = ((_selectedMonth - currentM) * 30) + (_selectedDay - currentD);
       if (remainingDays < 0) remainingDays += 365;
       String remStr = _formatNumber(remainingDays);
 
+      _birthdayTimer?.cancel();
       setState(() {
         _showBirthdayWish = false;
+        _showThaloUniqueWish = false;
         if (_currentLang == 'नेपाली') {
-          _birthdayWishText = 'तपाईंको $nextAgeOrdinalStr औं जन्मदिन आउन $remStr दिन बाँकी छ।';
+          _birthdayWishText = 'तपाईंको $ordinalAgeStr जन्मदिन आउन $remStr दिन बाँकी छ।';
         } else if (_currentLang == 'नेपाल भाषा') {
-          _birthdayWishText = 'छगु $nextAgeOrdinalStr गूगु बुगुन्हि वयेत $remStr न्हिं ल्यं दु।';
+          _birthdayWishText = 'छगु $ordinalAgeStr बुगुन्हि वयेत $remStr न्हिं ल्यं दु।';
         } else if (_currentLang == 'हिन्दी') {
-          _birthdayWishText = 'आपका $nextAgeOrdinalStr वाँ जन्मदिन आने में $remStr दिन बाकी हैं।';
+          _birthdayWishText = 'आपका $ordinalAgeStr जन्मदिन आने में $remStr दिन बाकी हैं।';
         } else if (_currentLang == 'اردو') {
-          _birthdayWishText = 'آپ کی $nextAgeOrdinalStr ویں سالگرہ میں $remStr دن باقی ہیں۔';
+          _birthdayWishText = 'آپ کی $ordinalAgeStr سالگرہ میں $remStr دن باقی ہیں۔';
         } else {
-          _birthdayWishText = '$remStr days remaining for your $nextAgeOrdinalStr birthday.';
+          _birthdayWishText = '$remStr days remaining for your $ordinalAgeStr birthday.';
         }
       });
     }
+  }
+
+  String _getThaloUniqueWishText() {
+    if (_currentLang == 'नेपाली') {
+      return 'थलो परिवारतर्फबाट यहाँलाई जीवनको यो नयाँ वर्ष सफलता, सुस्वास्थ्य र समृद्धिमय रहोस् हार्दिक मंगलमय शुभकामना! ✨';
+    } else if (_currentLang == 'हिन्दी') {
+      return 'थलो परिवार की ओर से आपके जीवन का यह नया वर्ष सफलता, अच्छे स्वास्थ्य और समृद्धि से भरा रहे, हार्दिक शुभकामनाएं! ✨';
+    } else if (_currentLang == 'English') {
+      return 'Warmest wishes from the Thalo family! May this new year of your life bring immense success, good health, and prosperity. ✨';
+    } else if (_currentLang == 'नेपाल भाषा') {
+      return 'थलो परिवारया तर्फबाट छयात सफलाता, यलया व सुख समृद्धिया तःधंगु भिंतुना! ✨';
+    } else if (_currentLang == 'اردو') {
+      return 'تھلو فیملی کی طرف سے آپ کو سالگرہ کی بہت بہت مبارکباد! آپ کی زندگی کا یہ نیا سال کامیابی اور خوشیوں سے بھرپور ہو۔ ✨';
+    }
+    return 'थलो परिवारतर्फबाट यहाँलाई हार्दिक मंगलमय शुभकामना! ✨';
   }
 
   void _handleLogin() {
@@ -727,7 +849,19 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 ],
                 if (_birthdayWishText.isNotEmpty) ...[
                   const SizedBox(height: 4),
-                  Text(_birthdayWishText, style: TextStyle(fontSize: 13, color: _showBirthdayWish ? Colors.pink[700] : Colors.green[700], fontWeight: FontWeight.bold)),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 500),
+                    child: Text(
+                      _showThaloUniqueWish ? _getThaloUniqueWishText() : _birthdayWishText,
+                      key: ValueKey<bool>(_showThaloUniqueWish),
+                      style: TextStyle(
+                        fontSize: 13, 
+                        color: _showThaloUniqueWish ? Colors.purple[700] : (_showBirthdayWish ? Colors.pink[700] : Colors.green[700]), 
+                        fontWeight: FontWeight.bold,
+                        height: 1.3,
+                      ),
+                    ),
+                  ),
                 ],
                 const SizedBox(height: 24),
                 SizedBox(
