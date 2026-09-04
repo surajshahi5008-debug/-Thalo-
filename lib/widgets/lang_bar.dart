@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 
-class LangBar extends StatelessWidget {
+class LanguageBar extends StatelessWidget {
   final String currentLang;
   final Function(String) onLanguageChanged;
+  final Function(String)? onNotificationTap; // यदि यो प्यारामिटर प्रयोग भएको छ भने
 
-  const LangBar({
+  const LanguageBar({
     Key? key,
     required this.currentLang,
     required this.onLanguageChanged,
+    this.onNotificationTap,
   }) : super(key: key);
 
   @override
