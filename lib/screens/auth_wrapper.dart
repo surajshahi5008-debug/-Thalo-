@@ -75,7 +75,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   void _setCurrentDate() {
     DateTime now = DateTime.now();
-    if (_currentLang == 'English' || _selectedCalendar == 'AD') {
+    if (_currentLang == 'English' || _currentLang == 'हिन्दी' || _selectedCalendar == 'AD') {
       _selectedYear = now.year;
       _selectedMonth = now.month;
       _selectedDay = now.day;
@@ -377,7 +377,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                     _selectedCalendar = 'ने.सं.';
                   } else if (lang == 'اردو') {
                     _selectedCalendar = 'هجری';
-                  } else if (lang == 'English') {
+                  } else if (lang == 'English' || lang == 'हिन्दी') {
                     _selectedCalendar = 'AD';
                   } else {
                     _selectedCalendar = 'वि.सं.';
@@ -414,7 +414,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(_getText('dob'), style: const TextStyle(fontSize: 16)),
-                  if (_currentLang != 'हिन्दी' && _currentLang != 'English')
+                  if (_currentLang != 'English' && _currentLang != 'हिन्दी')
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue[50],
@@ -712,7 +712,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   child: AbsorbPointer(
                     child: TextField(
                       decoration: InputDecoration(
-                        labelText: (_selectedCalendar == 'AD' || _currentLang == 'English')
+                        labelText: (_selectedCalendar == 'AD' || _currentLang == 'English' || _currentLang == 'हिन्दी')
                             ? '${_getText('dob')} (AD) : ${_formatNumber(_selectedYear)}-${_formatNumber(_selectedMonth)}-${_formatNumber(_selectedDay)}'
                             : '${_getText('dob')} ($_selectedCalendar) : ${_formatNumber(_selectedYear)}-${_formatNumber(_selectedMonth)}-${_formatNumber(_selectedDay)}',
                         border: const OutlineInputBorder(),
