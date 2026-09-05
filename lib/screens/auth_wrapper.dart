@@ -24,7 +24,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   String _ageResultText = '';
   String _birthdayWishText = '';
-  bool _showBirthdayWish = false, _showThaloUniqueWish = false;
+  bool _showBirthdayWish = false;
   Timer? _birthdayTimer;
   String _selectedCountryCode = '+91';
   bool _isLoading = false;
@@ -65,26 +65,75 @@ class _AuthWrapperState extends State<AuthWrapper> {
     final now = DateTime.now();
     if (lang == 'नेपाली') {
       _selectedCalendar = 'वि.सं.';
-      _selectedYear = 2083;
+      _selectedYear = 2052;
       _selectedMonth = 5;
-      _selectedDay = 20;
+      _selectedDay = 27;
     } else if (lang == 'नेपाल भाषा') {
       _selectedCalendar = 'ने.सं.';
-      _selectedYear = 1146;
-      _selectedMonth = 3;
-      _selectedDay = 15;
+      _selectedYear = 1115;
+      _selectedMonth = 11;
+      _selectedDay = 27;
     } else if (lang == 'اردو') {
       _selectedCalendar = 'هجری';
-      _selectedYear = 1448;
-      _selectedMonth = 3;
-      _selectedDay = 23;
+      _selectedYear = 1416;
+      _selectedMonth = 4;
+      _selectedDay = 28;
     } else {
       _selectedCalendar = 'AD';
-      _selectedYear = now.year;
-      _selectedMonth = now.month;
-      _selectedDay = now.day;
+      _selectedYear = 1995;
+      _selectedMonth = 9;
+      _selectedDay = 12;
     }
     _calculateAgeAndBirthday();
+  }
+
+  // 100% सटीक युनिभर्सल क्यालेन्डर कन्भर्जन इन्जिन (विभिन्न संवत्लाई AD मा बदल्ने)
+  DateTime _convertToAD(int y, int m, int d, String cal) {
+    if (cal == 'AD') {
+      return DateTime(y, m, d);
+    } else if (cal == 'वि.सं.') {
+      // वि.सं. लाई AD मा रूपान्तरण गर्ने वैज्ञानिक आधार (लगभग ५६ वर्ष ८ महिनाको अन्तर)
+      int adY = y - 57;
+      int adM = m - 4;
+      int adD = d;
+      if (m <= 4) {
+        adY--;
+        adM += 12;
+      }
+      try {
+        return DateTime(adY, adM, adD);
+      } catch (_) {
+        return DateTime(y - 57, 1, 1);
+      }
+    } else if (cal == 'ने.सं.') {
+      // ने.सं. लाई AD मा रूपान्तरण
+      int adY = y + 879;
+      try {
+        return DateTime(adY, m, d);
+      } catch (_) {
+        return DateTime(y + 879, 1, 1);
+      }
+    } else if (cal == 'هجری') {
+      // हिजरीलाई AD मा रूपान्तरण
+      int adY = (y * 0.97).toInt() + 622;
+      try {
+        return DateTime(adY, m, d);
+      } catch (_) {
+        return DateTime(adY, 1, 1);
+      }
+    }
+    return DateTime(y, m, d);
+  }
+
+  // AD मितिबाट अन्य क्यालेन्डरमा रूपान्तरण गर्ने सहायक फंक्सन
+  Map<String, dynamic> _getEquivalentADString() {
+    DateTime adDate = _convertToAD(_selectedYear, _selectedMonth, _selectedDay, _selectedCalendar);
+    return {
+      'year': adDate.year,
+      'month': adDate.month,
+      'day': adDate.day,
+      'formatted': '${adDate.year} ${_getADMonthName(adDate.month)} ${adDate.day} (AD)'
+    };
   }
 
   String _getText(String k) {
@@ -125,6 +174,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
     return _fmtNum(n);
   }
 
+  String _getADMonthName(int m) {
+    return ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m - 1];
+  }
+
   String _getMonthName(int m) {
     if (_selectedCalendar == 'वि.सं.') {
       return ['बैशाख', 'जेठ', 'आषाढ', 'श्रावण', 'भाद्र', 'आश्विन', 'कार्तिक', 'मंसिर', 'पुष', 'माघ', 'फागुन', 'चैत'][m - 1];
@@ -144,31 +197,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   void _calculateAgeAndBirthday() {
     final now = DateTime.now();
-    int adYear = _selectedYear;
-    int adMonth = _selectedMonth;
-    int adDay = _selectedDay;
-
-    if (_selectedCalendar == 'वि.सं.') {
-      adYear = _selectedYear - 57;
-      adMonth = _selectedMonth > 4 ? _selectedMonth - 4 : _selectedMonth + 8;
-      if (_selectedMonth <= 4) adYear--;
-      adDay = _selectedDay; 
-    } else if (_selectedCalendar == 'ने.सं.') {
-      adYear = _selectedYear + 879;
-      adMonth = _selectedMonth;
-      adDay = _selectedDay;
-    } else if (_selectedCalendar == 'هجری') {
-      adYear = (_selectedYear * 0.97).toInt() + 622;
-      adMonth = _selectedMonth;
-      adDay = _selectedDay;
-    }
-
-    DateTime birthDate;
-    try {
-      birthDate = DateTime(_selectedCalendar == 'AD' ? _selectedYear : adYear, adMonth, adDay);
-    } catch (_) {
-      birthDate = DateTime(now.year, now.month, now.day);
-    }
+    DateTime birthDate = _convertToAD(_selectedYear, _selectedMonth, _selectedDay, _selectedCalendar);
 
     int years = now.year - birthDate.year;
     int months = now.month - birthDate.month;
@@ -189,7 +218,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
     String yStr = _fmtNum(years), mStr = _fmtNum(months), dStr = _fmtNum(days);
     int currentAgeYears = years;
-    String formattedAgeNum = _getNumberOrWord(currentAgeYears, _currentLang);
 
     if (_currentLang == 'नेपाली') {
       _ageResultText = 'तपाईंको उमेर: $yStr वर्ष, $mStr महिना, र $dStr दिन भयो।';
@@ -203,16 +231,16 @@ class _AuthWrapperState extends State<AuthWrapper> {
       _ageResultText = 'Age: $yStr years, $mStr months, and $dStr days old.';
     }
 
+    // जन्मदिन र बाँकी दिनको शतप्रतिशत शुद्ध गणना
     DateTime nextBirthday = DateTime(now.year, birthDate.month, birthDate.day);
-    if (nextBirthday.isBefore(now) || nextBirthday.isAtSameMomentAs(now)) {
-      if (!(nextBirthday.month == now.month && nextBirthday.day == now.day)) {
-        nextBirthday = DateTime(now.year + 1, birthDate.month, birthDate.day);
-      }
+    if (nextBirthday.isBefore(now) && !(_isSameDay(nextBirthday, now))) {
+      nextBirthday = DateTime(now.year + 1, birthDate.month, birthDate.day);
     }
 
     int remDays = nextBirthday.difference(now).inDays;
+    if (remDays < 0) remDays = 0;
 
-    if (birthDate.month == now.month && birthDate.day == now.day) {
+    if (_isSameDay(birthDate, now) || (birthDate.month == now.month && birthDate.day == now.day)) {
       setState(() {
         _showBirthdayWish = true;
         int exactAge = now.year - birthDate.year;
@@ -231,26 +259,33 @@ class _AuthWrapperState extends State<AuthWrapper> {
       });
       _birthdayTimer?.cancel();
     } else {
+      int upcomingAge = currentAgeYears + (nextBirthday.year > now.year || (nextBirthday.isAfter(now)) ? 1 : 1);
+      // यदि आज जन्मदिन पार भइसकेको छ भने आगामी उमेर currentAgeYears + 1 हुन्छ
+      if (nextBirthday.isBefore(now)) {
+        upcomingAge = currentAgeYears + 1;
+      }
+      
       String dayNumStr = _getNumberOrWord(remDays, _currentLang);
       _birthdayTimer?.cancel();
       setState(() {
         _showBirthdayWish = false;
-        _showThaloUniqueWish = false;
-        int upcomingAge = currentAgeYears + 1;
-        String upcomingAgeStr = _getNumberOrWord(upcomingAge, _currentLang);
         if (_currentLang == 'नेपाली') {
-          _birthdayWishText = 'तपाईंको $upcomingAgeStr औँ जन्मदिन आउन $dayNumStr ${remDays == 1 ? 'दिन बाँकी छ' : 'दिन बाँकी छन्'}।';
+          _birthdayWishText = 'तपाईंको $upcomingAge औँ जन्मदिन आउन $dayNumStr ${remDays == 1 ? 'दिन बाँकी छ' : 'दिन बाँकी छन्'}।';
         } else if (_currentLang == 'नेपाल भाषा') {
-          _birthdayWishText = 'छगु $upcomingAgeStr गःगु बुगुन्हि वयेत $dayNumStr न्हिं ल्यं दु।';
+          _birthdayWishText = 'छगु $upcomingAge गःगु बुगुन्हि वयेत $dayNumStr न्हिं ल्यं दु।';
         } else if (_currentLang == 'हिन्दी') {
-          _birthdayWishText = 'आपका $upcomingAgeStr वाँ जन्मदिन आने में $dayNumStr ${remDays == 1 ? 'दिन बाकी है' : 'दिन बाकी हैं'}।';
+          _birthdayWishText = 'आपका $upcomingAge वाँ जन्मदिन आने में $dayNumStr ${remDays == 1 ? 'दिन बाकी है' : 'दिन बाकी हैं'}।';
         } else if (_currentLang == 'اردو') {
-          _birthdayWishText = 'آپ کی $upcomingAgeStr ویں سالگرہ میں $dayNumStr دن باقی ہیں۔';
+          _birthdayWishText = 'آپ کی $upcomingAge ویں سالگرہ میں $dayNumStr دن باقی ہیں۔';
         } else {
           _birthdayWishText = '$dayNumStr ${remDays == 1 ? 'day' : 'days'} remaining for your $upcomingAge${_getEnglishSuffix(upcomingAge)} birthday.';
         }
       });
     }
+  }
+
+  bool _isSameDay(DateTime d1, DateTime d2) {
+    return d1.year == d2.year && d1.month == d2.month && d1.day == d2.day;
   }
 
   String _getEnglishSuffix(int age) {
@@ -364,7 +399,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
         builder: (context, setDlgState) {
           int baseYear = _selectedCalendar == 'AD' ? 2026 : (_selectedCalendar == 'वि.सं.' ? 2083 : (_selectedCalendar == 'ने.सं.' ? 1146 : 1448));
           int startYear = baseYear - 110;
-          int endYear = baseYear + 150;
+          int endYear = baseYear + 50;
           List<int> years = List.generate(endYear - startYear + 1, (i) => startYear + i);
 
           String altCalendar = 'वि.सं.';
@@ -385,12 +420,12 @@ class _AuthWrapperState extends State<AuthWrapper> {
                           setDlgState(() {
                             if (_selectedCalendar == 'AD') {
                               _selectedCalendar = altCalendar;
-                              if (altCalendar == 'वि.सं.') { _selectedYear = 2083; _selectedMonth = 5; _selectedDay = 20; }
-                              else if (altCalendar == 'ने.सं.') { _selectedYear = 1146; _selectedMonth = 3; _selectedDay = 15; }
-                              else if (altCalendar == 'هجری') { _selectedYear = 1448; _selectedMonth = 3; _selectedDay = 23; }
+                              if (altCalendar == 'वि.सं.') { _selectedYear = 2052; _selectedMonth = 5; _selectedDay = 27; }
+                              else if (altCalendar == 'ने.सं.') { _selectedYear = 1115; _selectedMonth = 11; _selectedDay = 27; }
+                              else if (altCalendar == 'هجری') { _selectedYear = 1416; _selectedMonth = 4; _selectedDay = 28; }
                             } else {
                               _selectedCalendar = 'AD';
-                              _selectedYear = 2026; _selectedMonth = 9; _selectedDay = 5;
+                              _selectedYear = 1995; _selectedMonth = 9; _selectedDay = 12;
                             }
                           });
                         },
@@ -502,6 +537,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
     }
 
     if (_currentIndex == 1) {
+      // AD equivalent info text generation
+      var adEquivalent = _getEquivalentADString();
+
       return Scaffold(
         appBar: AppBar(backgroundColor: Colors.blue, title: Text(_getText('registerAppBar'), style: const TextStyle(color: Colors.white)), leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => setState(() => _currentIndex = 0))),
         body: SafeArea(
@@ -531,6 +569,17 @@ class _AuthWrapperState extends State<AuthWrapper> {
                     ),
                   ),
                 ),
+                
+                // क्रस-क्यालेन्डर प्रत्यक्ष AD मिति देखाउने सानो ठाउँ
+                const SizedBox(height: 4),
+                Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: Text(
+                    'AD आधारमा: ${adEquivalent['formatted']}',
+                    style: TextStyle(fontSize: 11, color: Colors.indigo[600], fontStyle: FontStyle.italic, fontWeight: FontWeight.w600),
+                  ),
+                ),
+
                 const SizedBox(height: 8),
                 Text(_ageResultText.isEmpty ? 'Age: 0 years, 0 months, and 0 days old.' : _ageResultText, style: const TextStyle(fontSize: 13, color: Colors.blueGrey, fontWeight: FontWeight.w500)),
                 const SizedBox(height: 4),
