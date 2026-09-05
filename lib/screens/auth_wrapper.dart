@@ -19,7 +19,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
   String? _selectedGender;
   bool _acceptTerms = false;
   
-  // Independent calendar & date variables to prevent cross-mixing
   String _selectedCalendar = 'वि.सं.';
   late int _selectedYear, _selectedMonth, _selectedDay;
 
@@ -62,20 +61,18 @@ class _AuthWrapperState extends State<AuthWrapper> {
     super.dispose();
   }
 
-  // Sets exact current date according to the specific calendar system and language
   void _setCurrentDateForLanguage(String lang) {
-    // Current base: September 5, 2026 (AD)
     final now = DateTime.now();
     if (lang == 'नेपाली') {
       _selectedCalendar = 'वि.सं.';
-      _selectedYear = 2083; // Exact VS year for Sept 5, 2026
-      _selectedMonth = 5;  // भाद्र
-      _selectedDay = 20;   // २० गते
+      _selectedYear = 2083;
+      _selectedMonth = 5;
+      _selectedDay = 20;
     } else if (lang == 'नेपाल भाषा') {
       _selectedCalendar = 'ने.सं.';
-      _selectedYear = 1146; // Exact NS year
-      _selectedMonth = 11; // गुंला (11th month of NS cycle or respective index)
-      _selectedDay = 15;   // Exact lunar calendar day mapping
+      _selectedYear = 1146;
+      _selectedMonth = 3;
+      _selectedDay = 15;
     } else if (lang == 'हिन्दी') {
       _selectedCalendar = 'AD';
       _selectedYear = now.year;
@@ -83,9 +80,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
       _selectedDay = now.day;
     } else if (lang == 'اردو') {
       _selectedCalendar = 'هجری';
-      _selectedYear = 1448; // Exact Hijri year for this date
-      _selectedMonth = 3;  // ربيع الأول (Rabi al-Awwal)
-      _selectedDay = 23;   // ۲۳
+      _selectedYear = 1448;
+      _selectedMonth = 3;
+      _selectedDay = 23;
     } else {
       _selectedCalendar = 'AD';
       _selectedYear = now.year;
@@ -133,7 +130,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
     return _fmtNum(n);
   }
 
-  // Month names strictly in words and matching the respective language & calendar
   String _getMonthName(int m) {
     if (_selectedCalendar == 'वि.सं.') {
       return ['बैशाख', 'जेठ', 'आषाढ', 'श्रावण', 'भाद्र', 'आश्विन', 'कार्तिक', 'मंसिर', 'पुष', 'माघ', 'फागुन', 'चैत'][m - 1];
@@ -141,14 +137,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
       return ['चिल्ला', 'दिल्ला', 'गुंला', 'ञला', 'चौला', 'बछला', 'तंला', 'देवा', 'कछला', 'इला', 'थिल्ला', 'प्वंला'][m - 1];
     } else if (_selectedCalendar == 'AD') {
       if (_currentLang == 'हिन्दी') {
-        // Strict Hindi translated month names
         return ['जनवरी', 'फरवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'][m - 1];
       } else {
-        // English month names
         return ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m - 1];
       }
     } else if (_selectedCalendar == 'هجری') {
-      // Urdu/Hijri month names in words
       return ['محرم', 'صفر', 'ربیع الاول', 'ربیع الثانی', 'جمادی الاول', 'جمادی الثانی', 'رجب', 'شعبان', 'رمضان', 'شوال', 'ذوالقعدہ', 'ذوالحجہ'][m - 1];
     }
     return _fmtNum(m);
@@ -333,63 +326,81 @@ class _AuthWrapperState extends State<AuthWrapper> {
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setDlgState) => AlertDialog(
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(_getText('dob'), style: const TextStyle(fontSize: 16)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: Colors.blue[50], borderRadius: BorderRadius.circular(6)),
-                child: Text('$_selectedCalendar', style: const TextStyle(color: Colors.blue, fontSize: 12, fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: Row(
+        builder: (context, setDlgState) {
+          int baseYear = _selectedCalendar == 'AD' ? 2026 : (_selectedCalendar == 'वि.सं.' ? 2083 : (_selectedCalendar == 'ने.सं.' ? 1146 : 1448));
+          int startYear = baseYear - 110;
+          int endYear = baseYear + 150;
+          List<int> years = List.generate(endYear - startYear + 1, (i) => startYear + i);
+
+          return AlertDialog(
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Unrestricted wide year selection for ancestors / user birth year
-                Expanded(
-                  flex: 2,
-                  child: DropdownButton<int>(
-                    isExpanded: true, value: _selectedYear, menuMaxHeight: 200,
-                    items: List.generate(250, (i) => 1800 + i).map((y) => DropdownMenuItem(value: y, child: Text(_fmtNum(y), style: const TextStyle(fontSize: 13)))).toList(),
-                    onChanged: (v) => v != null ? setDlgState(() => _selectedYear = v) : null,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  flex: 2,
-                  child: DropdownButton<int>(
-                    isExpanded: true, value: _selectedMonth, menuMaxHeight: 200,
-                    items: List.generate(12, (i) => i + 1).map((m) {
-                      return DropdownMenuItem(value: m, child: Text(_getMonthName(m), style: const TextStyle(fontSize: 12)));
-                    }).toList(),
-                    onChanged: (v) => v != null ? setDlgState(() => _selectedMonth = v) : null,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  flex: 1,
-                  child: DropdownButton<int>(
-                    isExpanded: true, value: _selectedDay, menuMaxHeight: 200,
-                    items: List.generate(32, (i) => i + 1).map((d) => DropdownMenuItem(value: d, child: Text(_fmtNum(d), style: const TextStyle(fontSize: 13)))).toList(),
-                    onChanged: (v) => v != null ? setDlgState(() => _selectedDay = v) : null,
-                  ),
+                Text(_getText('dob'), style: const TextStyle(fontSize: 15)),
+                // Integrated calendar switcher dropdown inside the dialog
+                DropdownButton<String>(
+                  value: _selectedCalendar,
+                  underline: const SizedBox(),
+                  items: ['वि.सं.', 'AD', 'ने.सं.', 'هجری'].map((cal) => DropdownMenuItem(value: cal, child: Text(cal, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blue)))).toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setDlgState(() {
+                        _selectedCalendar = val;
+                        if (val == 'वि.सं.') { _selectedYear = 2083; _selectedMonth = 5; _selectedDay = 20; }
+                        else if (val == 'AD') { _selectedYear = 2026; _selectedMonth = 9; _selectedDay = 5; }
+                        else if (val == 'ने.सं.') { _selectedYear = 1146; _selectedMonth = 3; _selectedDay = 15; }
+                        else if (val == 'هجری') { _selectedYear = 1448; _selectedMonth = 3; _selectedDay = 23; }
+                      });
+                    }
+                  },
                 ),
               ],
             ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: Text(_getText('cancelButton'))),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-              onPressed: () { setState(() => _calculateAgeAndBirthday()); Navigator.pop(context); },
-              child: Text(_getText('okButton'), style: const TextStyle(color: Colors.white)),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: DropdownButton<int>(
+                      isExpanded: true, value: _selectedYear, menuMaxHeight: 200,
+                      items: years.map((y) => DropdownMenuItem(value: y, child: Text(_fmtNum(y), style: const TextStyle(fontSize: 12)))).toList(),
+                      onChanged: (v) => v != null ? setDlgState(() => _selectedYear = v) : null,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    flex: 2,
+                    child: DropdownButton<int>(
+                      isExpanded: true, value: _selectedMonth, menuMaxHeight: 200,
+                      items: List.generate(12, (i) => i + 1).map((m) {
+                        return DropdownMenuItem(value: m, child: Text(_getMonthName(m), style: const TextStyle(fontSize: 11, overflow: TextOverflow.ellipsis)));
+                      }).toList(),
+                      onChanged: (v) => v != null ? setDlgState(() => _selectedMonth = v) : null,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    flex: 1,
+                    child: DropdownButton<int>(
+                      isExpanded: true, value: _selectedDay, menuMaxHeight: 200,
+                      items: List.generate(31, (i) => i + 1).map((d) => DropdownMenuItem(value: d, child: Text(_fmtNum(d), style: const TextStyle(fontSize: 12)))).toList(),
+                      onChanged: (v) => v != null ? setDlgState(() => _selectedDay = v) : null,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context), child: Text(_getText('cancelButton'))),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                onPressed: () { setState(() => _calculateAgeAndBirthday()); Navigator.pop(context); },
+                child: Text(_getText('okButton'), style: const TextStyle(color: Colors.white)),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
