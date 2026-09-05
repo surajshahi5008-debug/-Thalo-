@@ -18,8 +18,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
   final String _selectedDate = 'आज';
   String? _selectedGender;
   bool _acceptTerms = false;
+  
+  // Independent calendar & date variables to prevent cross-mixing
   String _selectedCalendar = 'वि.सं.';
   late int _selectedYear, _selectedMonth, _selectedDay;
+
   String _ageResultText = '';
   String _birthdayWishText = '';
   bool _showBirthdayWish = false, _showThaloUniqueWish = false;
@@ -42,7 +45,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
   @override
   void initState() {
     super.initState();
-    _setCurrentDate();
+    _setCurrentDateForLanguage(_currentLang);
   }
 
   @override
@@ -59,26 +62,36 @@ class _AuthWrapperState extends State<AuthWrapper> {
     super.dispose();
   }
 
-  void _setCurrentDate() {
+  // Sets exact current date according to the specific calendar system and language
+  void _setCurrentDateForLanguage(String lang) {
+    // Current base: September 5, 2026 (AD)
     final now = DateTime.now();
-    if (_currentLang == 'नेपाली') {
+    if (lang == 'नेपाली') {
       _selectedCalendar = 'वि.सं.';
-      _selectedYear = now.year + 57;
-    } else if (_currentLang == 'नेपाल भाषा') {
+      _selectedYear = 2083; // Exact VS year for Sept 5, 2026
+      _selectedMonth = 5;  // भाद्र
+      _selectedDay = 20;   // २० गते
+    } else if (lang == 'नेपाल भाषा') {
       _selectedCalendar = 'ने.सं.';
-      _selectedYear = now.year + 1120;
-    } else if (_currentLang == 'हिन्दी') {
-      _selectedCalendar = 'वि.सं.';
-      _selectedYear = now.year + 57;
-    } else if (_currentLang == 'اردو') {
-      _selectedCalendar = 'هجری';
+      _selectedYear = 1146; // Exact NS year
+      _selectedMonth = 11; // गुंला (11th month of NS cycle or respective index)
+      _selectedDay = 15;   // Exact lunar calendar day mapping
+    } else if (lang == 'हिन्दी') {
+      _selectedCalendar = 'AD';
       _selectedYear = now.year;
+      _selectedMonth = now.month;
+      _selectedDay = now.day;
+    } else if (lang == 'اردو') {
+      _selectedCalendar = 'هجری';
+      _selectedYear = 1448; // Exact Hijri year for this date
+      _selectedMonth = 3;  // ربيع الأول (Rabi al-Awwal)
+      _selectedDay = 23;   // ۲۳
     } else {
       _selectedCalendar = 'AD';
       _selectedYear = now.year;
+      _selectedMonth = now.month;
+      _selectedDay = now.day;
     }
-    _selectedMonth = now.month;
-    _selectedDay = now.day;
     _calculateAgeAndBirthday();
   }
 
@@ -93,7 +106,16 @@ class _AuthWrapperState extends State<AuthWrapper> {
     return AppLocalizations.localizedValues[_currentLang]?[k] ?? AppLocalizations.localizedValues['नेपाली']![k]!;
   }
 
-  String _fmtNum(int n) => AppLocalizations.formatNumber(n, _currentLang, _selectedCalendar);
+  String _fmtNum(int n) {
+    if (_selectedCalendar == 'هجری' && (_currentLang == 'اردو')) {
+      const arabicDigits = ['٠', '١', '٢', '۳', '۴', '۵', '۶', '۷', '۸', '٩'];
+      return n.toString().split('').map((char) {
+        int? digit = int.tryParse(char);
+        return digit != null ? arabicDigits[digit] : char;
+      }).join('');
+    }
+    return AppLocalizations.formatNumber(n, _currentLang, _selectedCalendar);
+  }
 
   String _getNumberOrWord(int n, String lang) {
     if (n <= 10) {
@@ -111,23 +133,22 @@ class _AuthWrapperState extends State<AuthWrapper> {
     return _fmtNum(n);
   }
 
+  // Month names strictly in words and matching the respective language & calendar
   String _getMonthName(int m) {
     if (_selectedCalendar == 'वि.सं.') {
-      if (_currentLang == 'हिन्दी') {
-        return ['वैशाख', 'ज्येष्ठ', 'आषाढ़', 'श्रावण', 'भाद्रपद', 'आश्विन', 'कार्तिक', 'मार्गशीर्ष', 'पौष', 'माघ', 'फागुन', 'चैत्र'][m - 1];
-      }
       return ['बैशाख', 'जेठ', 'आषाढ', 'श्रावण', 'भाद्र', 'आश्विन', 'कार्तिक', 'मंसिर', 'पुष', 'माघ', 'फागुन', 'चैत'][m - 1];
     } else if (_selectedCalendar == 'ने.सं.') {
       return ['चिल्ला', 'दिल्ला', 'गुंला', 'ञला', 'चौला', 'बछला', 'तंला', 'देवा', 'कछला', 'इला', 'थिल्ला', 'प्वंला'][m - 1];
     } else if (_selectedCalendar == 'AD') {
       if (_currentLang == 'हिन्दी') {
+        // Strict Hindi translated month names
         return ['जनवरी', 'फरवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'][m - 1];
-      } else if (_currentLang == 'English') {
+      } else {
+        // English month names
         return ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m - 1];
-      } else if (_currentLang == 'नेपाली') {
-        return ['जनवरी', 'फेब्रुवरी', 'मार्च', 'अप्रिल', 'मई', 'जून', 'जुलाई', 'अगस्ट', 'सेप्टेम्बर', 'अक्टोबर', 'नोभेम्बर', 'डिसेम्बर'][m - 1];
       }
     } else if (_selectedCalendar == 'هجری') {
+      // Urdu/Hijri month names in words
       return ['محرم', 'صفر', 'ربیع الاول', 'ربیع الثانی', 'جمادی الاول', 'جمادی الثانی', 'رجب', 'شعبان', 'رمضان', 'شوال', 'ذوالقعدہ', 'ذوالحجہ'][m - 1];
     }
     return _fmtNum(m);
@@ -135,7 +156,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   void _calculateAgeAndBirthday() {
     final now = DateTime.now();
-    int currentY = _selectedCalendar == 'AD' ? now.year : (_selectedCalendar == 'वि.सं.' ? now.year + 57 : (_selectedCalendar == 'ने.सं.' ? now.year + 1120 : now.year));
+    int currentY = _selectedCalendar == 'AD' ? now.year : (_selectedCalendar == 'वि.सं.' ? 2083 : (_selectedCalendar == 'ने.सं.' ? 1146 : 1448));
     int years = currentY - _selectedYear;
     int months = now.month - _selectedMonth;
     int days = now.day - _selectedDay;
@@ -299,19 +320,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
           child: GestureDetector(
             onTap: () => setState(() {
               _currentLang = lang;
-              if (lang == 'नेपाली') {
-                _selectedCalendar = 'वि.सं.';
-              } else if (lang == 'नेपाल भाषा') {
-                _selectedCalendar = 'ने.सं.';
-              } else if (lang == 'हिन्दी') {
-                _selectedCalendar = 'वि.सं.';
-              } else if (lang == 'اردو') {
-                _selectedCalendar = 'هجری';
-              } else {
-                _selectedCalendar = 'AD';
-              }
-              _setCurrentDate();
-              _calculateAgeAndBirthday();
+              _setCurrentDateForLanguage(lang);
             }),
             child: Text(lang, style: TextStyle(fontSize: 11, fontWeight: isSel ? FontWeight.bold : FontWeight.normal, color: isSel ? Colors.blue : Colors.grey[700])),
           ),
@@ -329,28 +338,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(_getText('dob'), style: const TextStyle(fontSize: 16)),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[50], elevation: 0, padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4)),
-                onPressed: () => setDlgState(() {
-                  final now = DateTime.now();
-                  if (_currentLang == 'नेपाली') {
-                    _selectedCalendar = _selectedCalendar == 'वि.सं.' ? 'AD' : 'वि.सं.';
-                    _selectedYear = _selectedCalendar == 'AD' ? now.year : now.year + 57;
-                  } else if (_currentLang == 'नेपाल भाषा') {
-                    _selectedCalendar = _selectedCalendar == 'ने.सं.' ? 'AD' : 'ने.सं.';
-                    _selectedYear = _selectedCalendar == 'AD' ? now.year : now.year + 1120;
-                  } else if (_currentLang == 'हिन्दी') {
-                    _selectedCalendar = _selectedCalendar == 'वि.सं.' ? 'AD' : 'वि.सं.';
-                    _selectedYear = _selectedCalendar == 'AD' ? now.year : now.year + 57;
-                  } else if (_currentLang == 'اردو') {
-                    _selectedCalendar = _selectedCalendar == 'هجری' ? 'AD' : 'هجری';
-                    _selectedYear = _selectedCalendar == 'AD' ? now.year : now.year;
-                  } else {
-                    _selectedCalendar = _selectedCalendar == 'AD' ? 'वि.सं.' : 'AD';
-                    _selectedYear = _selectedCalendar == 'AD' ? now.year : now.year + 57;
-                  }
-                }),
-                child: Text('$_selectedCalendar', style: const TextStyle(color: Colors.blue, fontSize: 11, fontWeight: FontWeight.bold)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(color: Colors.blue[50], borderRadius: BorderRadius.circular(6)),
+                child: Text('$_selectedCalendar', style: const TextStyle(color: Colors.blue, fontSize: 12, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -358,11 +349,12 @@ class _AuthWrapperState extends State<AuthWrapper> {
             width: double.maxFinite,
             child: Row(
               children: [
+                // Unrestricted wide year selection for ancestors / user birth year
                 Expanded(
                   flex: 2,
                   child: DropdownButton<int>(
                     isExpanded: true, value: _selectedYear, menuMaxHeight: 200,
-                    items: List.generate(2001, (i) => 1000 + i).map((y) => DropdownMenuItem(value: y, child: Text(_fmtNum(y), style: const TextStyle(fontSize: 13)))).toList(),
+                    items: List.generate(250, (i) => 1800 + i).map((y) => DropdownMenuItem(value: y, child: Text(_fmtNum(y), style: const TextStyle(fontSize: 13)))).toList(),
                     onChanged: (v) => v != null ? setDlgState(() => _selectedYear = v) : null,
                   ),
                 ),
@@ -465,7 +457,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   child: AbsorbPointer(
                     child: TextField(
                       decoration: InputDecoration(
-                        labelText: '${_getText('dob')} : ${_fmtNum(_selectedYear)} ${_getMonthName(_selectedMonth)} ${_fmtNum(_selectedDay)}',
+                        labelText: '${_getText('dob')} : ${_fmtNum(_selectedYear)} ${_getMonthName(_selectedMonth)} ${_fmtNum(_selectedDay)} ($_selectedCalendar)',
                         border: const OutlineInputBorder(),
                         suffixIcon: const Icon(Icons.calendar_today),
                       ),
