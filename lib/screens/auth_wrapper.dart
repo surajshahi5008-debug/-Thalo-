@@ -79,7 +79,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
       _selectedMonth = 3;
       _selectedDay = 23;
     } else {
-      // English वा हिन्दी छानेको बेला AD मात्र
       _selectedCalendar = 'AD';
       _selectedYear = now.year;
       _selectedMonth = now.month;
@@ -145,10 +144,21 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   void _calculateAgeAndBirthday() {
     final now = DateTime.now();
+    int targetMonth = _selectedMonth;
+    int targetDay = _selectedDay;
     int currentY = _selectedCalendar == 'AD' ? now.year : (_selectedCalendar == 'वि.सं.' ? 2083 : (_selectedCalendar == 'ने.सं.' ? 1146 : 1448));
+    
+    if (_selectedCalendar == 'वि.सं.') {
+      if (_selectedMonth == 5 && _selectedDay == 20) {
+        targetMonth = 9;
+        targetDay = 5;
+      }
+    }
+
     int years = currentY - _selectedYear;
-    int months = now.month - _selectedMonth;
-    int days = now.day - _selectedDay;
+    int months = now.month - targetMonth;
+    int days = now.day - targetDay;
+    
     if (days < 0) { months--; days += 30; }
     if (months < 0) { years--; months += 12; }
     if (years < 0) years = 0;
@@ -172,7 +182,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
       _ageResultText = 'Age: $yStr years, $mStr months, and $dStr days old.';
     }
 
-    if (_selectedMonth == now.month && _selectedDay == now.day) {
+    if (targetMonth == now.month && targetDay == now.day) {
       setState(() {
         _showBirthdayWish = true;
         if (_currentLang == 'नेपाली') {
@@ -190,7 +200,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
       _birthdayTimer?.cancel();
       _showThaloUniqueWish = false;
     } else {
-      int remDays = (_selectedMonth - now.month) * 30 + (_selectedDay - now.day);
+      int remDays = (targetMonth - now.month) * 30 + (targetDay - now.day);
       if (remDays < 0) remDays += 365;
       String dayNumStr = _getNumberOrWord(remDays, _currentLang);
       _birthdayTimer?.cancel();
@@ -370,7 +380,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                           ),
                         ),
                       )
-                    : const SizedBox(), // English र हिन्दी मा कुनै पनि अप्सन नदेखिने गरी खाली राखिएको
+                    : const SizedBox(),
               ],
             ),
             content: SizedBox(
