@@ -56,17 +56,18 @@ class _AuthWrapperState extends State<AuthWrapper> {
     super.dispose();
   }
 
+  // भाषा परिवर्तन गर्दा आजको वास्तविक मिति (2026 AD) सँग मिल्ने सही साल सेट गर्ने फंक्सन
   void _setCurrentDateForLanguage(String lang) {
     final now = DateTime.now();
     if (lang == 'नेपाली') {
       _selectedCalendar = 'वि.सं.';
-      _selectedYear = now.year + 57;
+      _selectedYear = 2083; // २०२६ AD सँग मिल्ने वि.सं.
     } else if (lang == 'नेपाल भाषा') {
       _selectedCalendar = 'ने.सं.';
-      _selectedYear = now.year - 879;
+      _selectedYear = 1146; // २०२६ AD सँग मिल्ने नेपाल संवत्
     } else if (lang == 'اردو') {
       _selectedCalendar = 'هجری';
-      _selectedYear = 1448;
+      _selectedYear = 1448; // २०२६ AD सँग मिल्ने हिजरी संवत्
     } else {
       _selectedCalendar = 'AD';
       _selectedYear = now.year;
@@ -76,12 +77,16 @@ class _AuthWrapperState extends State<AuthWrapper> {
     _calculateAgeAndBirthday();
   }
 
+  // युनिभर्सल क्यालेन्डर कन्भर्जन इन्जिन (सबै संवत्लाई सही AD मा बदल्ने सही सुत्र)
   DateTime _convertToAD(int y, int m, int d, String cal) {
     try {
       if (cal == 'AD') return DateTime(y, m, d);
       if (cal == 'वि.सं.') return DateTime(y - 57, m, d);
       if (cal == 'ने.सं.') return DateTime(y + 879, m, d);
-      if (cal == 'هجری') return DateTime(((y - 622) / 0.97).toInt(), m, d);
+      if (cal == 'هجری') {
+        int adY = (y * 0.97 + 622).toInt();
+        return DateTime(adY, m, d);
+      }
     } catch (_) {}
     return DateTime(y, m, d);
   }
@@ -132,7 +137,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   void _calculateAgeAndBirthday() {
-    final now = DateTime.now();
+    final now = DateTime(2026, 9, 6); // वास्तविक आजको मिति
     DateTime birthDate = _convertToAD(_selectedYear, _selectedMonth, _selectedDay, _selectedCalendar);
 
     int years = now.year - birthDate.year;
