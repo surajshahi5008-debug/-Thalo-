@@ -144,30 +144,51 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   void _calculateAgeAndBirthday() {
     final now = DateTime.now();
-    int targetMonth = _selectedMonth;
-    int targetDay = _selectedDay;
-    int currentY = _selectedCalendar == 'AD' ? now.year : (_selectedCalendar == 'वि.सं.' ? 2083 : (_selectedCalendar == 'ने.सं.' ? 1146 : 1448));
-    
+    int adYear = _selectedYear;
+    int adMonth = _selectedMonth;
+    int adDay = _selectedDay;
+
     if (_selectedCalendar == 'वि.सं.') {
-      if (_selectedMonth == 5 && _selectedDay == 20) {
-        targetMonth = 9;
-        targetDay = 5;
-      }
+      adYear = _selectedYear - 57;
+      adMonth = _selectedMonth > 4 ? _selectedMonth - 4 : _selectedMonth + 8;
+      if (_selectedMonth <= 4) adYear--;
+      adDay = _selectedDay; 
+    } else if (_selectedCalendar == 'ने.सं.') {
+      adYear = _selectedYear + 879;
+      adMonth = _selectedMonth;
+      adDay = _selectedDay;
+    } else if (_selectedCalendar == 'هجری') {
+      adYear = (_selectedYear * 0.97).toInt() + 622;
+      adMonth = _selectedMonth;
+      adDay = _selectedDay;
     }
 
-    int years = currentY - _selectedYear;
-    int months = now.month - targetMonth;
-    int days = now.day - targetDay;
-    
-    if (days < 0) { months--; days += 30; }
-    if (months < 0) { years--; months += 12; }
+    DateTime birthDate;
+    try {
+      birthDate = DateTime(_selectedCalendar == 'AD' ? _selectedYear : adYear, adMonth, adDay);
+    } catch (_) {
+      birthDate = DateTime(now.year, now.month, now.day);
+    }
+
+    int years = now.year - birthDate.year;
+    int months = now.month - birthDate.month;
+    int days = now.day - birthDate.day;
+
+    if (days < 0) {
+      months--;
+      DateTime prevMonth = DateTime(now.year, now.month, 0);
+      days += prevMonth.day;
+    }
+    if (months < 0) {
+      years--;
+      months += 12;
+    }
     if (years < 0) years = 0;
     if (months < 0) months = 0;
     if (days < 0) days = 0;
-    
+
     String yStr = _fmtNum(years), mStr = _fmtNum(months), dStr = _fmtNum(days);
     int currentAgeYears = years;
-    if (currentAgeYears < 0) currentAgeYears = 0;
     String formattedAgeNum = _getNumberOrWord(currentAgeYears, _currentLang);
 
     if (_currentLang == 'नेपाली') {
@@ -177,31 +198,39 @@ class _AuthWrapperState extends State<AuthWrapper> {
     } else if (_currentLang == 'हिन्दी') {
       _ageResultText = 'आपकी आयु: $yStr वर्ष, $mStr महीने, और $dStr दिन हो गई है।';
     } else if (_currentLang == 'اردو') {
-      _ageResultText = 'آپ کی عمر: $yStr سال، $mStr مہینے، اور $dStr دن ہے۔';
+      _ageResultText = 'آپ کی عمر: $yStr سال، $مہینے، اور $dStr دن ہے۔';
     } else {
       _ageResultText = 'Age: $yStr years, $mStr months, and $dStr days old.';
     }
 
-    if (targetMonth == now.month && targetDay == now.day) {
+    DateTime nextBirthday = DateTime(now.year, birthDate.month, birthDate.day);
+    if (nextBirthday.isBefore(now) || nextBirthday.isAtSameMomentAs(now)) {
+      if (!(nextBirthday.month == now.month && nextBirthday.day == now.day)) {
+        nextBirthday = DateTime(now.year + 1, birthDate.month, birthDate.day);
+      }
+    }
+
+    int remDays = nextBirthday.difference(now).inDays;
+
+    if (birthDate.month == now.month && birthDate.day == now.day) {
       setState(() {
         _showBirthdayWish = true;
+        int exactAge = now.year - birthDate.year;
+        String exactAgeNum = _getNumberOrWord(exactAge, _currentLang);
         if (_currentLang == 'नेपाली') {
-          _birthdayWishText = 'थलो परिवारको तर्फबाट तपाईंलाई $formattedAgeNum औँ जन्मदिनको हार्दिक मंगलमय शुभकामना! 🎂';
+          _birthdayWishText = 'थलो परिवारको तर्फबाट तपाईंलाई $exactAgeNum औँ जन्मदिनको हार्दिक मंगलमय शुभकामना! 🎂';
         } else if (_currentLang == 'नेपाल भाषा') {
-          _birthdayWishText = 'थलो परिवारया तर्फबाट छयात $formattedAgeNum गःगु बुगुन्हिया तःधंगु भिंतुना! 🎂';
+          _birthdayWishText = 'थलो परिवारया तर्फबाट छयात $exactAgeNum गःगु बुगुन्हिया तःधंगु भिंतुना! 🎂';
         } else if (_currentLang == 'हिन्दी') {
-          _birthdayWishText = 'थलो परिवार की ओर से आपको आपके $formattedAgeNum वाँ जन्मदिन की हार्दिक शुभकामनाएं! 🎂';
+          _birthdayWishText = 'थलो परिवार की ओर से आपको आपके $exactAgeNum वाँ जन्मदिन की हार्दिक शुभकामनाएं! 🎂';
         } else if (_currentLang == 'اردو') {
-          _birthdayWishText = 'تھلو فیملی کی طرف سے آپ کو $formattedAgeNum ویں سالگرہ کی مبارکباد! 🎂';
+          _birthdayWishText = 'تھلو فیملی کی طرف سے آپ کو $exactAgeNum ویں سالگرہ کی مبارکباد! 🎂';
         } else {
-          _birthdayWishText = 'Warmest wishes from the Thalo family on your $currentAgeYears${_getEnglishSuffix(currentAgeYears)} birthday! 🎂';
+          _birthdayWishText = 'Warmest wishes from the Thalo family on your $exactAge${_getEnglishSuffix(exactAge)} birthday! 🎂';
         }
       });
       _birthdayTimer?.cancel();
-      _showThaloUniqueWish = false;
     } else {
-      int remDays = (targetMonth - now.month) * 30 + (targetDay - now.day);
-      if (remDays < 0) remDays += 365;
       String dayNumStr = _getNumberOrWord(remDays, _currentLang);
       _birthdayTimer?.cancel();
       setState(() {
