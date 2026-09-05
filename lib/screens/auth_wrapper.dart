@@ -73,17 +73,13 @@ class _AuthWrapperState extends State<AuthWrapper> {
       _selectedYear = 1146;
       _selectedMonth = 3;
       _selectedDay = 15;
-    } else if (lang == 'हिन्दी') {
-      _selectedCalendar = 'AD';
-      _selectedYear = now.year;
-      _selectedMonth = now.month;
-      _selectedDay = now.day;
     } else if (lang == 'اردو') {
       _selectedCalendar = 'هجری';
       _selectedYear = 1448;
       _selectedMonth = 3;
       _selectedDay = 23;
     } else {
+      // English वा हिन्दी छानेको बेला AD मात्र
       _selectedCalendar = 'AD';
       _selectedYear = now.year;
       _selectedMonth = now.month;
@@ -332,28 +328,49 @@ class _AuthWrapperState extends State<AuthWrapper> {
           int endYear = baseYear + 150;
           List<int> years = List.generate(endYear - startYear + 1, (i) => startYear + i);
 
+          String altCalendar = 'वि.सं.';
+          if (_currentLang == 'नेपाली') altCalendar = 'वि.सं.';
+          else if (_currentLang == 'नेपाल भाषा') altCalendar = 'ने.सं.';
+          else if (_currentLang == 'اردو') altCalendar = 'هجری';
+
+          bool hasSwitch = _currentLang == 'नेपाली' || _currentLang == 'नेपाल भाषा' || _currentLang == 'اردو';
+
           return AlertDialog(
             title: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(_getText('dob'), style: const TextStyle(fontSize: 15)),
-                // Integrated calendar switcher dropdown inside the dialog
-                DropdownButton<String>(
-                  value: _selectedCalendar,
-                  underline: const SizedBox(),
-                  items: ['वि.सं.', 'AD', 'ने.सं.', 'هجری'].map((cal) => DropdownMenuItem(value: cal, child: Text(cal, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blue)))).toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      setDlgState(() {
-                        _selectedCalendar = val;
-                        if (val == 'वि.सं.') { _selectedYear = 2083; _selectedMonth = 5; _selectedDay = 20; }
-                        else if (val == 'AD') { _selectedYear = 2026; _selectedMonth = 9; _selectedDay = 5; }
-                        else if (val == 'ने.सं.') { _selectedYear = 1146; _selectedMonth = 3; _selectedDay = 15; }
-                        else if (val == 'هجری') { _selectedYear = 1448; _selectedMonth = 3; _selectedDay = 23; }
-                      });
-                    }
-                  },
-                ),
+                hasSwitch
+                    ? GestureDetector(
+                        onTap: () {
+                          setDlgState(() {
+                            if (_selectedCalendar == 'AD') {
+                              _selectedCalendar = altCalendar;
+                              if (altCalendar == 'वि.सं.') { _selectedYear = 2083; _selectedMonth = 5; _selectedDay = 20; }
+                              else if (altCalendar == 'ने.सं.') { _selectedYear = 1146; _selectedMonth = 3; _selectedDay = 15; }
+                              else if (altCalendar == 'هجری') { _selectedYear = 1448; _selectedMonth = 3; _selectedDay = 23; }
+                            } else {
+                              _selectedCalendar = 'AD';
+                              _selectedYear = 2026; _selectedMonth = 9; _selectedDay = 5;
+                            }
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(color: Colors.blue[50], borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.blue.shade200)),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(_selectedCalendar, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blue)),
+                              const SizedBox(width: 4),
+                              const Icon(Icons.swap_horiz, size: 14, color: Colors.blue),
+                              const SizedBox(width: 4),
+                              Text(_selectedCalendar == 'AD' ? altCalendar : 'AD', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                            ],
+                          ),
+                        ),
+                      )
+                    : const SizedBox(), // English र हिन्दी मा कुनै पनि अप्सन नदेखिने गरी खाली राखिएको
               ],
             ),
             content: SizedBox(
