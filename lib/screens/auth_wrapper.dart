@@ -198,7 +198,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
     } else if (_currentLang == 'हिन्दी') {
       _ageResultText = 'आपकी आयु: $yStr वर्ष, $mStr महीने, और $dStr दिन हो गई है।';
     } else if (_currentLang == 'اردو') {
-      _ageResultText = 'آپ کی عمر: $yStr سال، $مہینے، اور $dStr دن ہے۔';
+      _ageResultText = 'آپ کی عمر: $yStr سال، $mStr مہینے، اور $dStr دن ہے۔';
     } else {
       _ageResultText = 'Age: $yStr years, $mStr months, and $dStr days old.';
     }
