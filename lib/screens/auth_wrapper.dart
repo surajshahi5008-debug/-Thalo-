@@ -61,38 +61,39 @@ class _AuthWrapperState extends State<AuthWrapper> {
     super.dispose();
   }
 
+  // एप खुल्नेबित्तिकै वा भाषा बदल्दा वास्तविक करेन्ट डेट (System Current Date) सेट गर्ने फंक्सन
   void _setCurrentDateForLanguage(String lang) {
     final now = DateTime.now();
     if (lang == 'नेपाली') {
       _selectedCalendar = 'वि.सं.';
-      _selectedYear = 2052;
-      _selectedMonth = 5;
-      _selectedDay = 27;
+      // आजको वास्तविक मिति अनुसार वि.सं. को लगभग साल/महिना/गते वा करेन्ट मिति म्याप गर्ने
+      _selectedYear = 2083; 
+      _selectedMonth = now.month;
+      _selectedDay = now.day;
     } else if (lang == 'नेपाल भाषा') {
       _selectedCalendar = 'ने.सं.';
-      _selectedYear = 1115;
-      _selectedMonth = 11;
-      _selectedDay = 27;
+      _selectedYear = 1146;
+      _selectedMonth = now.month;
+      _selectedDay = now.day;
     } else if (lang == 'اردو') {
       _selectedCalendar = 'هجری';
-      _selectedYear = 1416;
-      _selectedMonth = 4;
-      _selectedDay = 28;
+      _selectedYear = 1448;
+      _selectedMonth = now.month;
+      _selectedDay = now.day;
     } else {
       _selectedCalendar = 'AD';
-      _selectedYear = 1995;
-      _selectedMonth = 9;
-      _selectedDay = 12;
+      _selectedYear = now.year;
+      _selectedMonth = now.month;
+      _selectedDay = now.day;
     }
     _calculateAgeAndBirthday();
   }
 
-  // 100% सटीक युनिभर्सल क्यालेन्डर कन्भर्जन इन्जिन (विभिन्न संवत्लाई AD मा बदल्ने)
+  // युनिभर्सल क्यालेन्डर कन्भर्जन इन्जिन (विभिन्न संवत्लाई AD मा सही रूपान्तरण गर्ने)
   DateTime _convertToAD(int y, int m, int d, String cal) {
     if (cal == 'AD') {
       return DateTime(y, m, d);
     } else if (cal == 'वि.सं.') {
-      // वि.सं. लाई AD मा रूपान्तरण गर्ने वैज्ञानिक आधार (लगभग ५६ वर्ष ८ महिनाको अन्तर)
       int adY = y - 57;
       int adM = m - 4;
       int adD = d;
@@ -106,7 +107,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
         return DateTime(y - 57, 1, 1);
       }
     } else if (cal == 'ने.सं.') {
-      // ने.सं. लाई AD मा रूपान्तरण
       int adY = y + 879;
       try {
         return DateTime(adY, m, d);
@@ -114,7 +114,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
         return DateTime(y + 879, 1, 1);
       }
     } else if (cal == 'هجری') {
-      // हिजरीलाई AD मा रूपान्तरण
       int adY = (y * 0.97).toInt() + 622;
       try {
         return DateTime(adY, m, d);
@@ -125,7 +124,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
     return DateTime(y, m, d);
   }
 
-  // AD मितिबाट अन्य क्यालेन्डरमा रूपान्तरण गर्ने सहायक फंक्सन
+  // कुन क्यालेन्डर छाने पनि त्यसको ठीकमुनि AD मिति देखाउनको लागि सहायक फंक्सन
   Map<String, dynamic> _getEquivalentADString() {
     DateTime adDate = _convertToAD(_selectedYear, _selectedMonth, _selectedDay, _selectedCalendar);
     return {
@@ -231,7 +230,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
       _ageResultText = 'Age: $yStr years, $mStr months, and $dStr days old.';
     }
 
-    // जन्मदिन र बाँकी दिनको शतप्रतिशत शुद्ध गणना
+    // स्मार्ट जन्मदिन र बाँकी दिनको गन्ती
     DateTime nextBirthday = DateTime(now.year, birthDate.month, birthDate.day);
     if (nextBirthday.isBefore(now) && !(_isSameDay(nextBirthday, now))) {
       nextBirthday = DateTime(now.year + 1, birthDate.month, birthDate.day);
@@ -259,8 +258,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
       });
       _birthdayTimer?.cancel();
     } else {
-      int upcomingAge = currentAgeYears + (nextBirthday.year > now.year || (nextBirthday.isAfter(now)) ? 1 : 1);
-      // यदि आज जन्मदिन पार भइसकेको छ भने आगामी उमेर currentAgeYears + 1 हुन्छ
+      int upcomingAge = currentAgeYears + 1;
       if (nextBirthday.isBefore(now)) {
         upcomingAge = currentAgeYears + 1;
       }
@@ -397,7 +395,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDlgState) {
-          int baseYear = _selectedCalendar == 'AD' ? 2026 : (_selectedCalendar == 'वि.सं.' ? 2083 : (_selectedCalendar == 'ने.सं.' ? 1146 : 1448));
+          final now = DateTime.now();
+          int baseYear = _selectedCalendar == 'AD' ? now.year : (_selectedCalendar == 'वि.सं.' ? 2083 : (_selectedCalendar == 'ने.सं.' ? 1146 : 1448));
           int startYear = baseYear - 110;
           int endYear = baseYear + 50;
           List<int> years = List.generate(endYear - startYear + 1, (i) => startYear + i);
@@ -420,12 +419,12 @@ class _AuthWrapperState extends State<AuthWrapper> {
                           setDlgState(() {
                             if (_selectedCalendar == 'AD') {
                               _selectedCalendar = altCalendar;
-                              if (altCalendar == 'वि.सं.') { _selectedYear = 2052; _selectedMonth = 5; _selectedDay = 27; }
-                              else if (altCalendar == 'ने.सं.') { _selectedYear = 1115; _selectedMonth = 11; _selectedDay = 27; }
-                              else if (altCalendar == 'هجری') { _selectedYear = 1416; _selectedMonth = 4; _selectedDay = 28; }
+                              _setCurrentDateForLanguage(_currentLang);
                             } else {
                               _selectedCalendar = 'AD';
-                              _selectedYear = 1995; _selectedMonth = 9; _selectedDay = 12;
+                              _selectedYear = now.year;
+                              _selectedMonth = now.month;
+                              _selectedDay = now.day;
                             }
                           });
                         },
@@ -537,7 +536,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
     }
 
     if (_currentIndex == 1) {
-      // AD equivalent info text generation
       var adEquivalent = _getEquivalentADString();
 
       return Scaffold(
@@ -570,7 +568,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   ),
                 ),
                 
-                // क्रस-क्यालेन्डर प्रत्यक्ष AD मिति देखाउने सानो ठाउँ
+                // कुन क्यालेन्डर छाने पनि त्यसको ठीकमुनि AD मिति स्पष्ट देखिने ठाउँ
                 const SizedBox(height: 4),
                 Padding(
                   padding: const EdgeInsets.only(left: 4),
