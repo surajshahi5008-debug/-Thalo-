@@ -56,6 +56,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
     super.dispose();
   }
 
+  // आजको वास्तविक मिति: 2026 September 6 (वि.सं. २०८३ भदौ २१)
   void _setCurrentDateForLanguage(String lang) {
     final now = DateTime(2026, 9, 6);
     setState(() {
@@ -63,18 +64,18 @@ class _AuthWrapperState extends State<AuthWrapper> {
       if (lang == 'नेपाली') {
         _selectedCalendar = 'वि.सं.';
         _selectedYear = 2083;
-        _selectedMonth = 5;
-        _selectedDay = 23;
+        _selectedMonth = 5; // भाद्र (५ औं महिना वा सहि अफसेट अनुसार)
+        _selectedDay = 21;  // आजको वास्तविक भदौ २१ गते
       } else if (lang == 'नेपाल भाषा') {
         _selectedCalendar = 'ने.सं.';
         _selectedYear = 1146;
         _selectedMonth = 11;
-        _selectedDay = 23;
+        _selectedDay = 21;
       } else if (lang == 'اردو') {
         _selectedCalendar = 'هجری';
         _selectedYear = 1448;
         _selectedMonth = 3;
-        _selectedDay = 23;
+        _selectedDay = 21;
       } else {
         _selectedCalendar = 'AD';
         _selectedYear = now.year;
