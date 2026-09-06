@@ -1,49 +1,148 @@
-import 'package:intl/intl.dart';
+import 'package:flutter/material.dart';
 
 class CalendarHelper {
-  // हालको AD (अंग्रेजी) मिति प्राप्त गर्ने
-  static DateTime getTodayAD() {
-    return DateTime.now();
+  static DateTime getTodayAD() => DateTime.now();
+
+  static const Map<int, List<int>> _bsMonthDays = {
+    2028: [31, 31, 32, 31, 31, 30, 30, 29, 30, 29, 30, 30],
+    2029: [31, 31, 32, 31, 31, 30, 30, 30, 29, 29, 30, 30],
+    2030: [31, 31, 32, 31, 31, 30, 30, 30, 29, 29, 30, 30],
+    2031: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2032: [30, 32, 31, 32, 30, 31, 30, 30, 29, 30, 29, 31],
+    2033: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2034: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2035: [31, 32, 31, 32, 30, 31, 30, 30, 29, 30, 29, 31],
+    2036: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2037: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2038: [31, 32, 31, 32, 30, 31, 30, 30, 29, 30, 29, 31],
+    2039: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2040: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2041: [31, 32, 31, 32, 30, 31, 30, 30, 29, 30, 29, 31],
+    2042: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2043: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2044: [31, 32, 31, 32, 30, 31, 30, 30, 29, 30, 29, 31],
+    2045: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2046: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2047: [31, 32, 31, 32, 30, 31, 30, 30, 29, 30, 29, 31],
+    2048: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2049: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2050: [31, 32, 31, 32, 30, 31, 30, 30, 29, 30, 29, 31],
+    2051: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2052: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2053: [31, 32, 31, 32, 30, 31, 30, 30, 29, 30, 29, 31],
+    2054: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2055: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2056: [31, 32, 31, 32, 30, 31, 30, 30, 29, 30, 29, 31],
+    2057: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2058: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2059: [31, 32, 31, 32, 30, 31, 30, 30, 29, 30, 29, 31],
+    2060: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2061: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2062: [31, 32, 31, 32, 30, 31, 30, 30, 29, 30, 29, 31],
+    2063: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2064: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2065: [31, 32, 31, 32, 30, 31, 30, 30, 29, 30, 29, 31],
+    2066: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2067: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2068: [31, 32, 31, 32, 30, 31, 30, 30, 29, 30, 29, 31],
+    2069: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2070: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2071: [31, 32, 31, 32, 30, 31, 30, 30, 29, 30, 29, 31],
+    2072: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2073: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2074: [31, 32, 31, 32, 30, 31, 30, 30, 29, 30, 29, 31],
+    2075: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2076: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2077: [31, 32, 31, 32, 30, 31, 30, 30, 29, 30, 29, 31],
+    2078: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2079: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2080: [31, 32, 31, 32, 30, 31, 30, 30, 29, 30, 29, 31],
+    2081: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2082: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2083: [31, 32, 31, 32, 30, 31, 30, 30, 29, 30, 29, 31],
+    2084: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2085: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2086: [31, 32, 31, 32, 30, 31, 30, 30, 29, 30, 29, 31],
+    2087: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2088: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+    2089: [31, 32, 31, 32, 30, 31, 30, 30, 29, 30, 29, 31],
+    2090: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
+  };
+
+  static final DateTime _bsEpochAD = DateTime(2024, 4, 13);
+  static final int _bsEpochYear = 2081;
+
+  // वर्षको लिमिट निकाल्ने फंक्सन (हालको वर्षभन्दा ११० वर्ष तल र १५० वर्ष माथि)
+  static List<int> getYearRange(int currentYear) {
+    int startYear = currentYear - 110;
+    int endYear = currentYear + 150;
+    return List.generate(endYear - startYear + 1, (index) => startYear + index);
   }
 
-  // विभिन्न क्यालेन्डर (वि.सं., ने.सं., हिजरी, AD) लाई AD मा रूपान्तरण गर्ने सामान्य लजिक
-  static DateTime convertToAD(int year, int month, int day, String calendarType) {
-    if (calendarType == 'वि.सं.') {
-      // अनुमानित वि.सं. देखि AD रूपान्तरण (करिब ५६ वर्ष ७ महिनाको भिन्नता हुन्छ)
-      // उदाहरणको लागि: २०८३ बैशाख १ लाई আনুমানিক रूपमा कन्भर्ट गर्न सकिन्छ
-      int adYear = year - 57;
-      int adMonth = month - 3 <= 0 ? month + 9 : month - 3;
-      if (month <= 3) adYear--;
-      try {
-        return DateTime(adYear, adMonth, day);
-      } catch (_) {
-        return DateTime.now();
+  static DateTime convertBS_To_AD(int bsYear, int bsMonth, int bsDay) {
+    int totalDays = 0;
+    if (bsYear >= _bsEpochYear) {
+      for (int y = _bsEpochYear; y < bsYear; y++) {
+        List<int>? months = _bsMonthDays[y];
+        if (months != null) {
+          for (int m = 0; m < 12; m++) totalDays += months[m];
+        }
       }
-    } else if (calendarType == 'ने.सं.') {
-      int adYear = year + 879;
-      try {
-        return DateTime(adYear, month, day);
-      } catch (_) {
-        return DateTime.now();
+      List<int>? currentMonths = _bsMonthDays[bsYear];
+      if (currentMonths != null) {
+        for (int m = 0; m < bsMonth - 1; m++) totalDays += currentMonths[m];
       }
-    } else if (calendarType == 'هجری') {
-      // इस्लामिक क्यालेन्डर अनुमानित रूपमा AD मा म्याप गर्ने
-      int adYear = (year * 0.97) ~/ 1 + 622;
-      try {
-        return DateTime(adYear, month, day);
-      } catch (_) {
-        return DateTime.now();
+      totalDays += (bsDay - 1);
+      return _bsEpochAD.add(Duration(days: totalDays));
+    } else {
+      for (int y = bsYear; y < _bsEpochYear; y++) {
+        List<int>? months = _bsMonthDays[y];
+        if (months != null) {
+          for (int m = 0; m < 12; m++) totalDays += months[m];
+        }
       }
+      List<int>? currentMonths = _bsMonthDays[bsYear];
+      if (currentMonths != null) {
+        for (int m = 0; m < bsMonth - 1; m++) totalDays += currentMonths[m];
+      }
+      totalDays += (bsDay - 1);
+      return _bsEpochAD.subtract(Duration(days: totalDays));
     }
-    // यदि AD नै हो भने
+  }
+
+  static DateTime convertNS_To_AD(int nsYear, int nsMonth, int nsDay) {
+    int approxAdYear = nsYear + 879;
+    DateTime baseDate = DateTime(approxAdYear, 11, 2);
+    int totalDays = (nsMonth - 1) * 29 + (nsDay - 1);
+    return baseDate.add(Duration(days: totalDays));
+  }
+
+  static DateTime convertHijri_To_AD(int hijriYear, int hijriMonth, int hijriDay) {
+    int jd = (11 * hijriYear + 3) ~/ 30 + 354 * hijriYear + 30 * hijriMonth - (hijriMonth - 1) ~/ 2 + hijriDay + 1948440 - 385;
+    int l = jd + 68569;
+    int n = (4 * l) ~/ 146097;
+    l = l - (146097 * n + 3) ~/ 4;
+    int i = (4000 * (l + 1)) ~/ 1461001;
+    l = l - (1461 * i) ~/ 4 + 31;
+    int j = (80 * l) ~/ 2447;
+    int d = l - (2447 * j) ~/ 80;
+    l = j ~/ 11;
+    int m = j + 2 - (12 * l);
+    int y = 100 * (n - 49) + i + l;
+    return DateTime(y, m, d);
+  }
+
+  static DateTime convertToAD(int year, int month, int day, String calendarType) {
     try {
+      if (calendarType == 'वि.सं.') return convertBS_To_AD(year, month, day);
+      if (calendarType == 'ने.सं.') return convertNS_To_AD(year, month, day);
+      if (calendarType == 'هجری') return convertHijri_To_AD(year, month, day);
       return DateTime(year, month, day);
     } catch (_) {
       return DateTime.now();
     }
   }
 
-  // उमेर र जन्मदिनको काउन्टडाउन निकाल्ने मुख्य फंक्सन
   static Map<String, dynamic> calculateAgeAndCountdown({
     required int year,
     required int month,
@@ -59,49 +158,44 @@ class CalendarHelper {
 
     if (ageDays < 0) {
       ageMonths--;
-      // अघिल्लो महिनाको दिनहरू जोड्ने
-      final prevMonth = DateTime(todayAD.year, todayAD.month, 0);
-      ageDays += prevMonth.day;
+      ageDays += DateTime(todayAD.year, todayAD.month, 0).day;
     }
-
     if (ageMonths < 0) {
       ageYears--;
       ageMonths += 12;
     }
-
     if (ageYears < 0) {
       ageYears = 0;
       ageMonths = 0;
       ageDays = 0;
     }
 
-    // अर्को जन्मदिन कहिले पर्छ हिसाब गर्ने
     DateTime nextBirthday = DateTime(todayAD.year, birthAD.month, birthAD.day);
     if (nextBirthday.isBefore(todayAD) || nextBirthday.isAtSameMomentAs(todayAD)) {
       if (nextBirthday.day == todayAD.day && nextBirthday.month == todayAD.month) {
-        // आज नै जन्मदिन हो भने
-        return {
-          'years': ageYears,
-          'months': ageMonths,
-          'days': ageDays,
-          'targetAge': ageYears,
-          'remainingDays': 0,
-          'isBirthdayToday': true,
-        };
+        return {'years': ageYears, 'months': ageMonths, 'days': ageDays, 'targetAge': ageYears, 'remainingDays': 0, 'isBirthdayToday': true};
       }
       nextBirthday = DateTime(todayAD.year + 1, birthAD.month, birthAD.day);
     }
-
-    int remainingDays = nextBirthday.difference(todayAD).inDays;
-    int targetAge = ageYears + (nextBirthday.year > todayAD.year ? 1 : 0);
 
     return {
       'years': ageYears,
       'months': ageMonths,
       'days': ageDays,
-      'targetAge': targetAge,
-      'remainingDays': remainingDays,
+      'targetAge': ageYears + (nextBirthday.year > todayAD.year ? 1 : 0),
+      'remainingDays': nextBirthday.difference(todayAD).inDays,
       'isBirthdayToday': false,
     };
+  }
+
+  static String getMonthName(int month, String languageCode) {
+    const monthsMap = {
+      'en': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+      'hi': ['जनवरी', 'फरवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'],
+      'ne': ['बैशाख', 'जेठ', 'असार', 'साउन', 'भदौ', 'असोज', 'कार्तिक', 'मंसिर', 'पुष', 'माघ', 'फागुन', 'चैत'],
+      'new': ['कछला', 'थिला', 'पोथिला', 'सिल्ला', 'चला', 'बछला', 'तछला', 'दिल्ला', 'गुंला', 'ञला', 'चौला', 'अछला'],
+      'ur': ['محرم', 'صفر', 'ربیع الاول', 'ربیع الثانی', 'جمادی الاول', 'جمادی الثانی', 'رجب', 'شعبان', 'رمضان', 'شوال', 'ذوالقعدہ', 'ذوالحجہ'],
+    };
+    return monthsMap[languageCode]?[month - 1] ?? '';
   }
 }
