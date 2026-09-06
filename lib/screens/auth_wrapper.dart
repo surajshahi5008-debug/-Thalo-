@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 import '../utils/helpers.dart';
+import 'calendar_helper.dart';
 import 'home_screen.dart';
 
 class AuthWrapper extends StatefulWidget {
@@ -56,16 +57,16 @@ class _AuthWrapperState extends State<AuthWrapper> {
     super.dispose();
   }
 
-  // आजको वास्तविक मिति: 2026 September 6 (वि.सं. २०८३ भदौ २१)
+  // आजको वास्तविक मिति र क्यालेन्डर सेट गर्ने
   void _setCurrentDateForLanguage(String lang) {
-    final now = DateTime(2026, 9, 6);
+    final now = CalendarHelper.getTodayAD();
     setState(() {
       _currentLang = lang;
       if (lang == 'नेपाली') {
         _selectedCalendar = 'वि.सं.';
         _selectedYear = 2083;
-        _selectedMonth = 5; // भाद्र (५ औं महिना वा सहि अफसेट अनुसार)
-        _selectedDay = 21;  // आजको वास्तविक भदौ २१ गते
+        _selectedMonth = 5; 
+        _selectedDay = 21;  
       } else if (lang == 'नेपाल भाषा') {
         _selectedCalendar = 'ने.सं.';
         _selectedYear = 1146;
@@ -86,30 +87,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
     });
   }
 
-  DateTime _convertToAD(int y, int m, int d, String cal) {
-    try {
-      if (cal == 'AD') return DateTime(y, m, d);
-      if (cal == 'वि.सं.') {
-        int adYear = y - 57;
-        int adMonth = m - 8;
-        int adDay = d;
-        if (adMonth <= 0) {
-          adMonth += 12;
-          adYear -= 1;
-        }
-        return DateTime(adYear, adMonth, adDay);
-      }
-      if (cal == 'ने.सं.') return DateTime(y + 879, m, d);
-      if (cal == 'هجری') {
-        int adYear = (y * 0.97022 + 621.57).toInt();
-        return DateTime(adYear, m, d);
-      }
-    } catch (_) {}
-    return DateTime(y, m, d);
-  }
-
   Map<String, dynamic> _getEquivalentADString() {
-    DateTime adDate = _convertToAD(_selectedYear, _selectedMonth, _selectedDay, _selectedCalendar);
+    DateTime adDate = CalendarHelper.convertToAD(_selectedYear, _selectedMonth, _selectedDay, _selectedCalendar);
     return {
       'year': adDate.year, 'month': adDate.month, 'day': adDate.day,
       'formatted': '${adDate.year} ${_getADMonthName(adDate.month)} ${adDate.day} (AD)'
@@ -153,40 +132,33 @@ class _AuthWrapperState extends State<AuthWrapper> {
     return _getADMonthName(m);
   }
 
+  // अब क्यालेन्डर हेल्परबाट उमेर र जन्मदिनको सहि हिसाब गर्ने
   void _calculateAgeAndBirthday() {
-    final now = DateTime(2026, 9, 6);
-    DateTime birthDate = _convertToAD(_selectedYear, _selectedMonth, _selectedDay, _selectedCalendar);
+    final result = CalendarHelper.calculateAgeAndCountdown(
+      year: _selectedYear,
+      month: _selectedMonth,
+      day: _selectedDay,
+      calendarType: _selectedCalendar,
+    );
 
-    int years = now.year - birthDate.year;
-    int months = now.month - birthDate.month;
-    int days = now.day - birthDate.day;
-
-    if (days < 0) { months--; days += DateTime(now.year, now.month, 0).day; }
-    if (months < 0) { years--; months += 12; }
-    if (years < 0) years = 0;
-    if (months < 0) months = 0;
-    if (days < 0) days = 0;
+    int years = result['years'];
+    int months = result['months'];
+    int days = result['days'];
+    int targetAge = result['targetAge'];
+    int remDays = result['remainingDays'];
+    bool isBirthdayToday = result['isBirthdayToday'];
 
     String yStr = _fmtNum(years), mStr = _fmtNum(months), dStr = _fmtNum(days);
 
-    _ageResultText = {
-      'नेपाली': 'तपाईंको उमेर: $yStr वर्ष, $mStr महिना, र $dStr दिन भयो।',
-      'नेपाल भाषा': 'छगु उमेर: $yStr दँ, $mStr महिना, व $dStr न्हिं जूगु दु।',
-      'हिन्दी': 'आपकी आयु: $yStr वर्ष, $mStr महीने, और $dStr दिन हो गई है।',
-      'اردو': 'آپ کی عمر: $yStr سال، $mStr مہینے، اور $dStr دن ہے۔',
-    }[_currentLang] ?? 'Age: $yStr years, $mStr months, and $dStr days old.';
-
-    DateTime nextBirthday = DateTime(now.year, birthDate.month, birthDate.day);
-    if (nextBirthday.isBefore(now) && !_isSameDay(nextBirthday, now)) {
-      nextBirthday = DateTime(now.year + 1, birthDate.month, birthDate.day);
-    }
-
-    int remDays = nextBirthday.difference(now).inDays;
-    if (remDays < 0) remDays = 0;
-
     setState(() {
-      _showBirthdayWish = _isSameDay(birthDate, now) || (birthDate.month == now.month && birthDate.day == now.day);
-      int targetAge = _showBirthdayWish ? now.year - birthDate.year : (nextBirthday.isBefore(now) ? years + 1 : years + 1);
+      _showBirthdayWish = isBirthdayToday;
+      _ageResultText = {
+        'नेपाली': 'तपाईंको उमेर: $yStr वर्ष, $mStr महिना, र $dStr दिन भयो।',
+        'नेपाल भाषा': 'छगु उमेर: $yStr दँ, $mStr महिना, व $dStr न्हिं जूगु दु।',
+        'हिन्दी': 'आपकी आयु: $yStr वर्ष, $mStr महीने, और $dStr दिन हो गई है।',
+        'اردو': 'آپ کی عمر: $yStr سال، $mStr مہینے، اور $dStr دن ہے۔',
+      }[_currentLang] ?? 'Age: $yStr years, $mStr months, and $dStr days old.';
+
       String ageNumStr = _getNumberOrWord(targetAge, _currentLang);
       String dayNumStr = _getNumberOrWord(remDays, _currentLang);
 
@@ -208,7 +180,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
     });
   }
 
-  bool _isSameDay(DateTime d1, DateTime d2) => d1.year == d2.year && d1.month == d2.month && d1.day == d2.day;
   String _getEnglishSuffix(int age) => (age % 100 >= 11 && age % 100 <= 13) ? 'th' : {1: 'st', 2: 'nd', 3: 'rd'}[age % 10] ?? 'th';
 
   void _handleLogin() {
@@ -280,7 +251,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDlgState) {
-          final now = DateTime(2026, 9, 6);
+          final now = CalendarHelper.getTodayAD();
           int baseYear = _selectedCalendar == 'AD' ? now.year : (_selectedCalendar == 'वि.सं.' ? 2083 : (_selectedCalendar == 'ने.सं.' ? 1146 : 1448));
           List<int> years = List.generate(161, (i) => baseYear - 110 + i);
           String altCalendar = {'नेपाली': 'वि.सं.', 'नेपाल भाषा': 'ने.सं.', 'اردو': 'هجری'}[_currentLang] ?? 'वि.सं.';
