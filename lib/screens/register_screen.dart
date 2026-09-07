@@ -29,9 +29,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
   
   String _selectedCalendar = 'वि.सं.';
   String _selectedDateStr = '';
-  int _selectedYear = 2081;
+  int _selectedYear = 2083;
   int _selectedMonth = 1;
   int _selectedDay = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    // प्रणालीको वास्तविक करेन्ट डेट (Current Date) लिने
+    DateTime now = DateTime.now();
+    _selectedYear = now.year + 57; // आवश्यकता अनुसार वर्ष मिलाउन सकिन्छ
+    _selectedMonth = now.month;
+    _selectedDay = now.day;
+
+    String monthName = CalendarHelper.getMonthName(_selectedMonth, widget.currentLang);
+    _selectedDateStr = '$_selectedYear-${monthName.isEmpty ? _selectedMonth : monthName}-$_selectedDay ($_selectedCalendar)';
+  }
 
   void _showCalendarPickerModal(BuildContext context) {
     showModalBottomSheet(
@@ -70,9 +83,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       children: [
                         Expanded(
                           child: ListView.builder(
-                            itemCount: CalendarHelper.getYearRange(2081).length,
+                            itemCount: CalendarHelper.getYearRange(2083).length,
                             itemBuilder: (context, index) {
-                              int year = CalendarHelper.getYearRange(2081)[index];
+                              int year = CalendarHelper.getYearRange(2083)[index];
                               return ListTile(
                                 title: Text(year.toString(), textAlign: TextAlign.center),
                                 selected: _selectedYear == year,
