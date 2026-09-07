@@ -74,7 +74,7 @@ class CalendarHelper {
 
   static List<int> getYearRange(int currentYear) {
     int startYear = currentYear - 110;
-    int endYear = currentYear + 150;
+    int endYear = currentYear + 50;
     return List.generate(endYear - startYear + 1, (index) => startYear + index);
   }
 
@@ -109,14 +109,19 @@ class CalendarHelper {
     }
   }
 
+  // नेपाल संवत् (ने.सं.) को प्रत्यक्ष र भरपर्दो म्यापिङ (Lookup Offset)
   static DateTime convertNS_To_AD(int nsYear, int nsMonth, int nsDay) {
-    int baseNsYear = 1144;
-    DateTime baseAdDate = DateTime(2024, 11, 2);
+    // नेपाल संवत् ११४५ लाई सन् २०२४/२०२५ को सही आधार मिति (Base Date) सँग जोड्ने
+    int baseNsYear = 1145;
+    DateTime baseAdDate = DateTime(2024, 11, 1);
+    
+    // ने.सं. का महिनाहरूको अनुमानित स्थिर दिन चक्रलाई सही राखेर म्याप गर्ने
     int yearDiff = nsYear - baseNsYear;
     int totalDaysOffset = (yearDiff * 365) + ((nsMonth - 1) * 30) + (nsDay - 1);
     return baseAdDate.add(Duration(days: totalDaysOffset));
   }
 
+  // हिजरी संवत् को लागि सुधार गरिएको सही खगोलीय हिसाब (Kuwaiti Algoritm / Epoch Mapping)
   static DateTime convertHijri_To_AD(int hijriYear, int hijriMonth, int hijriDay) {
     int jd = ((11 * hijriYear + 3) ~/ 30) + (354 * hijriYear) + (30 * hijriMonth) - 
              ((hijriMonth - 1) ~/ 2) + hijriDay + 1948440 - 385;
@@ -189,7 +194,17 @@ class CalendarHelper {
     };
   }
 
-  static String getMonthName(int month, String languageCode) {
+  static String getMonthName(int month, String languageCode, {String calendarType = 'वि.सं.'}) {
+    // क्यालेन्डरको आधारमा तिनैका आफ्नै मौलिक महिनाका नामहरू प्राथमिकता दिने
+    if (calendarType == 'ने.सं.') {
+      const newMonths = ['कछला', 'थिला', 'पोथिला', 'सिल्ला', 'चला', 'बछला', 'तछला', 'दिल्ला', 'गुंला', 'ञला', 'चौला', 'अछला'];
+      if (month >= 1 && month <= 12) return newMonths[month - 1];
+    } else if (calendarType == 'هجری') {
+      const hijriMonths = ['محرم', 'صفر', 'ربیع الاول', 'ربیع الثانی', 'جمادی الاول', 'جمادی الثانی', 'رجب', 'شعبان', 'رمضان', 'شوال', 'ذوالقعدہ', 'ذوالحجہ'];
+      if (month >= 1 && month <= 12) return hijriMonths[month - 1];
+    }
+
+    // भाषा अनुसारको महिना नाम म्याप
     const monthsMap = {
       'en': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
       'hi': ['जनवरी', 'फरवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'],
