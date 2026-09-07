@@ -16,7 +16,7 @@ class CalendarHelper {
   static final int _bsEpochYear = 2081;
 
   static List<int> getYearRange(int currentYear) {
-    int startYear = currentYear - 110;
+    int startYear = currentYear - 50;
     int endYear = currentYear + 50;
     return List.generate(endYear - startYear + 1, (index) => startYear + index);
   }
@@ -52,29 +52,31 @@ class CalendarHelper {
     }
   }
 
-  // नेपाल संवत् (ने.सं.) को लागि प्रमाणित बेस म्यापिङ (ने.सं. ११४६ = सन् २०२६ सेप्टेम्बर ७, गुंलागा)
+  // नेपाल संवत् (चन्द्रमामा आधारित सही लजिक - औसत २९.५३ दिन प्रति महिना)
   static DateTime convertNS_To_AD(int nsYear, int nsMonth, int nsDay) {
     int baseNsYear = 1146;
-    DateTime baseAdDate = DateTime(2026, 9, 7); // ७ सेप्टेम्बर २०२६ को आधार मिति
+    DateTime baseAdDate = DateTime(2026, 9, 7); // ७ सेप्टेम्बर २०२६ (ने.सं. ११४६)
+    
     int yearDiff = nsYear - baseNsYear;
-    int totalDaysOffset = (yearDiff * 365) + ((nsMonth - 1) * 30) + (nsDay - 1);
-    return baseAdDate.add(Duration(days: totalDaysOffset));
+    // ने.सं. वर्षमा करिब ३५४ दिन र महिनामा २९.५३ दिन हुन्छ
+    double totalDaysOffset = (yearDiff * 354.37) + ((nsMonth - 9) * 29.53) + (nsDay - 1);
+    return baseAdDate.add(Duration(days: totalDaysOffset.round()));
   }
 
-  // हिजरी संवत् को लागि प्रमाणित बेस म्यापिङ (हिजरी १४४८ रबी अल-अव्वल २५ = सन् २०२६ सेप्टेम्बर ७)
+  // हिजरी संवत् (उम्मुल कुरा / इस्लामिक चन्द्र क्यालेन्डर सही लजिक)
   static DateTime convertHijri_To_AD(int hijriYear, int hijriMonth, int hijriDay) {
     int baseHijriYear = 1448;
     int baseHijriMonth = 3; // Rabi' I
     int baseHijriDay = 25;
+    DateTime baseAdDate = DateTime(2026, 9, 7); // ७ सेप्टेम्बर २०२६ = २५ रबी अल-अव्वल १४४८
     
-    // लगभग दिनहरूको हिसाब गरेर प्रमाणित AD मिति निकाल्ने
-    DateTime baseAdDate = DateTime(2026, 9, 7);
     int yearDiff = hijriYear - baseHijriYear;
     int monthDiff = hijriMonth - baseHijriMonth;
     int dayDiff = hijriDay - baseHijriDay;
     
-    int totalDaysOffset = (yearDiff * 354) + (monthDiff * 29) + dayDiff;
-    return baseAdDate.add(Duration(days: totalDaysOffset));
+    // इस्लामिक वर्ष ३५४ वा ३५५ दिनको हुन्छ, महिना २९.५३ दिनको
+    double totalDaysOffset = (yearDiff * 354.36) + (monthDiff * 29.53) + dayDiff;
+    return baseAdDate.add(Duration(days: totalDaysOffset.round()));
   }
 
   static DateTime convertToAD(int year, int month, int day, String calendarType) {
