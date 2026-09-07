@@ -28,22 +28,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   
   String _selectedCalendar = 'वि.सं.';
-  String _selectedDateStr = '';
   int _selectedYear = 2083;
-  int _selectedMonth = 1;
-  int _selectedDay = 1;
+  int _selectedMonth = 5; // भदौ (प्रमाणित आधार मिति अनुसार)
+  int _selectedDay = 22;   // २२ गते
 
   @override
   void initState() {
     super.initState();
-    // प्रणालीको वास्तविक करेन्ट डेट (Current Date) लिने
-    DateTime now = DateTime.now();
-    _selectedYear = now.year + 57; // आवश्यकता अनुसार वर्ष मिलाउन सकिन्छ
-    _selectedMonth = now.month;
-    _selectedDay = now.day;
-
-    String monthName = CalendarHelper.getMonthName(_selectedMonth, widget.currentLang);
-    _selectedDateStr = '$_selectedYear-${monthName.isEmpty ? _selectedMonth : monthName}-$_selectedDay ($_selectedCalendar)';
+    // प्रमाणित आधार मिति (७ सेप्टेम्बर २०२६ = वि.सं. २०८३ भदौ २२) लाई डिफल्ट सेट गर्ने
+    _selectedYear = 2083;
+    _selectedMonth = 5;
+    _selectedDay = 22;
   }
 
   void _showCalendarPickerModal(BuildContext context) {
@@ -54,7 +49,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             return Container(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(16.0,),
               height: 400,
               child: Column(
                 children: [
@@ -70,6 +65,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             if (selected) {
                               setModalState(() {
                                 _selectedCalendar = cal;
+                                // क्यालेन्डर फेर्दा त्यसको प्रमाणित आधार वर्ष/महिना/गते सेट गर्ने
+                                if (cal == 'هجری') {
+                                  _selectedYear = 1448;
+                                  _selectedMonth = 3; // Rabi' I
+                                  _selectedDay = 25;
+                                } else if (cal == 'ने.सं.') {
+                                  _selectedYear = 1146;
+                                  _selectedMonth = 9; // गुंला
+                                  _selectedDay = 1;
+                                } else {
+                                  _selectedYear = 2083;
+                                  _selectedMonth = 5; // भदौ
+                                  _selectedDay = 22;
+                                }
                               });
                             }
                           },
@@ -83,9 +92,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       children: [
                         Expanded(
                           child: ListView.builder(
-                            itemCount: CalendarHelper.getYearRange(2083).length,
+                            itemCount: CalendarHelper.getYearRange(_selectedCalendar == 'هجری' ? 1448 : (_selectedCalendar == 'ने.सं.' ? 1146 : 2083)).length,
                             itemBuilder: (context, index) {
-                              int year = CalendarHelper.getYearRange(2083)[index];
+                              int baseY = _selectedCalendar == 'هجری' ? 1448 : (_selectedCalendar == 'ने.सं.' ? 1146 : 2083);
+                              int year = CalendarHelper.getYearRange(baseY)[index];
                               return ListTile(
                                 title: Text(year.toString(), textAlign: TextAlign.center),
                                 selected: _selectedYear == year,
@@ -103,7 +113,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             itemCount: 12,
                             itemBuilder: (context, index) {
                               int month = index + 1;
-                              String monthName = CalendarHelper.getMonthName(month, widget.currentLang);
+                              String monthName = CalendarHelper.getMonthName(month, widget.currentLang, calendarType: _selectedCalendar);
                               return ListTile(
                                 title: Text(monthName.isEmpty ? '$month' : monthName, textAlign: TextAlign.center),
                                 selected: _selectedMonth == month,
@@ -118,7 +128,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         Expanded(
                           child: ListView.builder(
-                            itemCount: 32,
+                            itemCount: 31,
                             itemBuilder: (context, index) {
                               int day = index + 1;
                               return ListTile(
@@ -138,10 +148,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   ElevatedButton(
                     onPressed: () {
-                      String monthName = CalendarHelper.getMonthName(_selectedMonth, widget.currentLang);
-                      setState(() {
-                        _selectedDateStr = '$_selectedYear-${monthName.isEmpty ? _selectedMonth : monthName}-$_selectedDay ($_selectedCalendar)';
-                      });
+                      setState(() {});
                       Navigator.pop(context);
                     },
                     child: const Text('मिति छान्नुहोस्'),
@@ -157,6 +164,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    String monthName = CalendarHelper.getMonthName(_selectedMonth, widget.currentLang, calendarType: _selectedCalendar);
+    String selectedDateStr = '$_selectedYear-${monthName.isEmpty ? _selectedMonth : monthName}-$_selectedDay ($_selectedCalendar)';
+
+    // उमेर र AD मिति सही रूपमा क्याल्कुलेट गर्ने
+    Map<String, dynamic> ageData = CalendarHelper.calculateAgeAndCountdown(
+      year: _selectedYear,
+      month: _selectedMonth,
+      day: _selectedDay,
+      calendarType: _selectedCalendar,
+    );
+
+    DateTime adConverted = CalendarHelper.convertToAD(_selectedYear, _selectedMonth, _selectedDay, _selectedCalendar);
+
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -169,12 +189,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                child: ListView(
                   children: [
                     const Text(
                       'नयाँ खाता खोल्नुहोस् (Register)',
                       style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 20),
                     TextField(
@@ -195,8 +215,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: 12),
                     CalendarPickerWidget(
-                      selectedDate: _selectedDateStr,
+                      selectedDate: selectedDateStr,
                       onCalendarTap: () => _showCalendarPickerModal(context),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'AD आधारमा: ${adConverted.year}-${adConverted.month}-${adConverted.day} (AD)',
+                      style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.blueGrey),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'उमेर: ${ageData['years']} वर्ष, ${ageData['months']} महिना, र ${ageData['days']} दिन भयो।',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      ageData['isBirthdayToday'] 
+                          ? 'तपाईंलाई जन्मदिनको शुभकामना! 🎂' 
+                          : 'तपाईंको ${ageData['targetAge']} औं जन्मदिन आउन ${ageData['remainingDays']} दिन बाँकी छ।',
+                      style: const TextStyle(fontSize: 14, color: Colors.purple),
                     ),
                     const SizedBox(height: 20),
                     ElevatedButton(
@@ -205,7 +242,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     TextButton(
                       onPressed: widget.goTologin,
-                      child: const Text('पहिले नै खाता छ? लगईन गर्नुहोहोस्'),
+                      child: const Text('पहिले नै खाता छ? लगईन गर्नुहोस्'),
                     ),
                   ],
                 ),
