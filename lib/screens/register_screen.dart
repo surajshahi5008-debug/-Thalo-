@@ -29,16 +29,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
   
   String _selectedCalendar = 'वि.सं.';
   int _selectedYear = 2083;
-  int _selectedMonth = 5; // भदौ (प्रमाणित आधार मिति अनुसार)
-  int _selectedDay = 22;   // २२ गते
+  int _selectedMonth = 5; // भदौ
+  int _selectedDay = 23;   // आजको आधार: ८ सेप्टेम्बर २०२६ = वि.सं. २०८३ भदौ २३
 
   @override
   void initState() {
     super.initState();
-    // प्रमाणित आधार मिति (७ सेप्टेम्बर २०२६ = वि.सं. २०८३ भदौ २२) लाई डिफल्ट सेट गर्ने
-    _selectedYear = 2083;
-    _selectedMonth = 5;
-    _selectedDay = 22;
+    _resetToToday();
+  }
+
+  void _resetToToday() {
+    // आजको सही मिति (८ सेप्टेम्बर २०२६) अनुसार डिफल्ट सेट गर्ने
+    if (_selectedCalendar == 'هجری') {
+      _selectedYear = 1448;
+      _selectedMonth = 3;
+      _selectedDay = 26;
+    } else if (_selectedCalendar == 'ने.सं.') {
+      _selectedYear = 1146;
+      _selectedMonth = 9;
+      _selectedDay = 2;
+    } else {
+      _selectedYear = 2083;
+      _selectedMonth = 5;
+      _selectedDay = 23;
+    }
   }
 
   void _showCalendarPickerModal(BuildContext context) {
@@ -49,7 +63,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             return Container(
-              padding: const EdgeInsets.all(16.0,),
+              padding: const EdgeInsets.all(16.0),
               height: 400,
               child: Column(
                 children: [
@@ -65,19 +79,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             if (selected) {
                               setModalState(() {
                                 _selectedCalendar = cal;
-                                // क्यालेन्डर फेर्दा त्यसको प्रमाणित आधार वर्ष/महिना/गते सेट गर्ने
                                 if (cal == 'هجری') {
                                   _selectedYear = 1448;
-                                  _selectedMonth = 3; // Rabi' I
-                                  _selectedDay = 25;
+                                  _selectedMonth = 3;
+                                  _selectedDay = 26;
                                 } else if (cal == 'ने.सं.') {
                                   _selectedYear = 1146;
-                                  _selectedMonth = 9; // गुंला
-                                  _selectedDay = 1;
+                                  _selectedMonth = 9;
+                                  _selectedDay = 2;
                                 } else {
                                   _selectedYear = 2083;
-                                  _selectedMonth = 5; // भदौ
-                                  _selectedDay = 22;
+                                  _selectedMonth = 5;
+                                  _selectedDay = 23;
                                 }
                               });
                             }
@@ -90,6 +103,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   Expanded(
                     child: Row(
                       children: [
+                        // वर्ष चयन गर्ने लिस्ट
                         Expanded(
                           child: ListView.builder(
                             itemCount: CalendarHelper.getYearRange(_selectedCalendar == 'هجری' ? 1448 : (_selectedCalendar == 'ने.सं.' ? 1146 : 2083)).length,
@@ -108,6 +122,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             },
                           ),
                         ),
+                        // महिना चयन गर्ने लिस्ट
                         Expanded(
                           child: ListView.builder(
                             itemCount: 12,
@@ -126,6 +141,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             },
                           ),
                         ),
+                        // दिन चयन गर्ने लिस्ट
                         Expanded(
                           child: ListView.builder(
                             itemCount: 31,
@@ -148,7 +164,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   ElevatedButton(
                     onPressed: () {
-                      setState(() {});
+                      setState(() {}); // मुख्य स्क्रिनको स्टेट अपडेट गर्न
                       Navigator.pop(context);
                     },
                     child: const Text('मिति छान्नुहोस्'),
@@ -167,7 +183,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     String monthName = CalendarHelper.getMonthName(_selectedMonth, widget.currentLang, calendarType: _selectedCalendar);
     String selectedDateStr = '$_selectedYear-${monthName.isEmpty ? _selectedMonth : monthName}-$_selectedDay ($_selectedCalendar)';
 
-    // उमेर र AD मिति सही रूपमा क्याल्कुलेट गर्ने
     Map<String, dynamic> ageData = CalendarHelper.calculateAgeAndCountdown(
       year: _selectedYear,
       month: _selectedMonth,
