@@ -123,8 +123,12 @@ class CalendarHelper {
     } else if (calendarType.contains('هجری') || calendarType == 'هجری') {
       const hijriMonths = ['محرم', 'صفر', 'ربیع الاول', 'ربیع الثانی', 'جمادی الاول', 'جمادی الثانی', 'رجب', 'شعبان', 'رمضان', 'شوال', 'ذوالقعدہ', 'ذوالحجہ'];
       if (month >= 1 && month <= 12) return hijriMonths[month - 1];
+    } else if (calendarType.contains('वि.सं.') || calendarType == 'वि.सं.') {
+      const bsMonths = ['बैशाख', 'जेठ', 'असार', 'साउन', 'भदौ', 'असोज', 'कार्तिक', 'मंसिर', 'पुष', 'माघ', 'फागुन', 'चैत'];
+      if (month >= 1 && month <= 12) return bsMonths[month - 1];
     }
 
+    // अङ्ग्रेजीमा मात्र महिनाको नाम संक्षिप्त (Short) मा देखाउने
     const monthsMap = {
       'en': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
       'hi': ['जनवरी', 'फरवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'],
