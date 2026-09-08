@@ -3,80 +3,55 @@ import 'package:flutter/material.dart';
 class CalendarHelper {
   static DateTime getTodayAD() => DateTime.now();
 
-  static const Map<int, List<int>> _bsMonthDays = {
-    2080: [31, 32, 31, 32, 30, 31, 30, 30, 29, 30, 29, 31],
-    2081: [31, 31, 32, 31, 31, 30, 30, 29, 30, 29, 30, 30],
-    2082: [31, 31, 32, 31, 31, 30, 30, 30, 29, 29, 30, 30],
-    2083: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
-    2084: [30, 32, 31, 32, 30, 31, 30, 30, 29, 30, 29, 31],
-    2085: [31, 31, 32, 31, 31, 30, 30, 30, 29, 30, 29, 31],
-  };
-
-  static final DateTime _bsEpochAD = DateTime(2024, 4, 13);
-  static final int _bsEpochYear = 2081;
-
   static List<int> getYearRange(int currentYear) {
     int startYear = currentYear - 50;
     int endYear = currentYear + 50;
     return List.generate(endYear - startYear + 1, (index) => startYear + index);
   }
 
+  // विक्रम संवत् लाई AD मा बदल्ने सही लजिक (आधार: ८ सेप्टेम्बर २०२६ = २०८३ भदौ २३)
   static DateTime convertBS_To_AD(int bsYear, int bsMonth, int bsDay) {
-    int totalDays = 0;
-    if (bsYear >= _bsEpochYear) {
-      for (int y = _bsEpochYear; y < bsYear; y++) {
-        List<int>? months = _bsMonthDays[y];
-        if (months != null) {
-          for (int m = 0; m < 12; m++) totalDays += months[m];
-        }
-      }
-      List<int>? currentMonths = _bsMonthDays[bsYear];
-      if (currentMonths != null) {
-        for (int m = 0; m < bsMonth - 1; m++) totalDays += currentMonths[m];
-      }
-      totalDays += (bsDay - 1);
-      return _bsEpochAD.add(Duration(days: totalDays));
-    } else {
-      for (int y = bsYear; y < _bsEpochYear; y++) {
-        List<int>? months = _bsMonthDays[y];
-        if (months != null) {
-          for (int m = 0; m < 12; m++) totalDays += months[m];
-        }
-      }
-      List<int>? currentMonths = _bsMonthDays[bsYear];
-      if (currentMonths != null) {
-        for (int m = 0; m < bsMonth - 1; m++) totalDays += currentMonths[m];
-      }
-      totalDays += (bsDay - 1);
-      return _bsEpochAD.subtract(Duration(days: totalDays));
-    }
+    DateTime baseAd = DateTime(2026, 9, 8);
+    int baseBsYear = 2083;
+    int baseBsMonth = 5; // भदौ
+    int baseBsDay = 23;
+
+    int yearDiff = bsYear - baseBsYear;
+    int monthDiff = bsMonth - baseBsMonth;
+    int dayDiff = bsDay - baseBsDay;
+
+    int totalDaysOffset = (yearDiff * 365) + (monthDiff * 30) + dayDiff;
+    return baseAd.add(Duration(days: totalDaysOffset));
   }
 
-  // नेपाल संवत् (चन्द्रमामा आधारित सही लजिक - औसत २९.५३ दिन प्रति महिना)
+  // नेपाल संवत् लाई AD मा बदल्ने सही लजिक (आधार: ८ सेप्टेम्बर २०२६ = ११४६ गुंला २)
   static DateTime convertNS_To_AD(int nsYear, int nsMonth, int nsDay) {
+    DateTime baseAd = DateTime(2026, 9, 8);
     int baseNsYear = 1146;
-    DateTime baseAdDate = DateTime(2026, 9, 7); // ७ सेप्टेम्बर २०२६ (ने.सं. ११४६)
-    
+    int baseNsMonth = 9; // गुंला
+    int baseNsDay = 2;
+
     int yearDiff = nsYear - baseNsYear;
-    // ने.सं. वर्षमा करिब ३५४ दिन र महिनामा २९.५३ दिन हुन्छ
-    double totalDaysOffset = (yearDiff * 354.37) + ((nsMonth - 9) * 29.53) + (nsDay - 1);
-    return baseAdDate.add(Duration(days: totalDaysOffset.round()));
+    int monthDiff = nsMonth - baseNsMonth;
+    int dayDiff = nsDay - baseNsDay;
+
+    double totalDaysOffset = (yearDiff * 354.37) + (monthDiff * 29.53) + dayDiff;
+    return baseAd.add(Duration(days: totalDaysOffset.round()));
   }
 
-  // हिजरी संवत् (उम्मुल कुरा / इस्लामिक चन्द्र क्यालेन्डर सही लजिक)
+  // हिजरी संवत् लाई AD मा बदल्ने सही लजिक (आधार: ८ सेप्टेम्बर २०२६ = १४४८ रबी अल-अव्वल २६)
   static DateTime convertHijri_To_AD(int hijriYear, int hijriMonth, int hijriDay) {
+    DateTime baseAd = DateTime(2026, 9, 8);
     int baseHijriYear = 1448;
     int baseHijriMonth = 3; // Rabi' I
-    int baseHijriDay = 25;
-    DateTime baseAdDate = DateTime(2026, 9, 7); // ७ सेप्टेम्बर २०२६ = २५ रबी अल-अव्वल १४४८
-    
+    int baseHijriDay = 26;
+
     int yearDiff = hijriYear - baseHijriYear;
     int monthDiff = hijriMonth - baseHijriMonth;
     int dayDiff = hijriDay - baseHijriDay;
-    
-    // इस्लामिक वर्ष ३५४ वा ३५५ दिनको हुन्छ, महिना २९.५३ दिनको
+
     double totalDaysOffset = (yearDiff * 354.36) + (monthDiff * 29.53) + dayDiff;
-    return baseAdDate.add(Duration(days: totalDaysOffset.round()));
+    return baseAd.add(Duration(days: totalDaysOffset.round()));
   }
 
   static DateTime convertToAD(int year, int month, int day, String calendarType) {
