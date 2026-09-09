@@ -1,5 +1,28 @@
 import 'package:flutter/material.dart';
-import 'calendars/english_calendar.dart';
+
+class EnglishCalendar {
+  static const List<String> shortMonths = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+
+  static const List<String> fullMonthsHindi = [
+    'जनवरी', 'फरवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 
+    'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'
+  ];
+
+  static String getMonthName(int month, String languageCode) {
+    if (month < 1 || month > 12) return '';
+    if (languageCode == 'hi') {
+      return fullMonthsHindi[month - 1];
+    }
+    return shortMonths[month - 1];
+  }
+
+  static DateTime toAD(int year, int month, int day) {
+    return DateTime(year, month, day);
+  }
+}
 
 class CalendarHelper {
   static DateTime getTodayAD() => DateTime.now();
@@ -10,11 +33,10 @@ class CalendarHelper {
     return List.generate(endYear - startYear + 1, (index) => startYear + index);
   }
 
-  // विक्रम संवत् लाई AD मा बदल्ने सही लजिक
   static DateTime convertBS_To_AD(int bsYear, int bsMonth, int bsDay) {
     DateTime baseAd = DateTime(2026, 9, 8);
     int baseBsYear = 2083;
-    int baseBsMonth = 5; // भदौ
+    int baseBsMonth = 5; 
     int baseBsDay = 23;
 
     int yearDiff = bsYear - baseBsYear;
@@ -25,11 +47,10 @@ class CalendarHelper {
     return baseAd.add(Duration(days: totalDaysOffset));
   }
 
-  // नेपाल संवत् लाई AD मा बदल्ने सही लजिक
   static DateTime convertNS_To_AD(int nsYear, int nsMonth, int nsDay) {
     DateTime baseAd = DateTime(2026, 9, 8);
     int baseNsYear = 1146;
-    int baseNsMonth = 9; // गुंला
+    int baseNsMonth = 9; 
     int baseNsDay = 2;
 
     int yearDiff = nsYear - baseNsYear;
@@ -40,11 +61,10 @@ class CalendarHelper {
     return baseAd.add(Duration(days: totalDaysOffset.round()));
   }
 
-  // हिजरी संवत् लाई AD मा बदल्ने सही लजिक
   static DateTime convertHijri_To_AD(int hijriYear, int hijriMonth, int hijriDay) {
     DateTime baseAd = DateTime(2026, 9, 8);
     int baseHijriYear = 1448;
-    int baseHijriMonth = 3; // Rabi' I
+    int baseHijriMonth = 3; 
     int baseHijriDay = 26;
 
     int yearDiff = hijriYear - baseHijriYear;
@@ -57,7 +77,6 @@ class CalendarHelper {
 
   static DateTime convertToAD(int year, int month, int day, String calendarType, {String languageCode = 'ne'}) {
     try {
-      // यदि भाषा अंग्रेजी वा हिन्दी हो भने सधैं AD मात्र प्रयोग गर्ने (अन्य क्यालेन्डर स्विच गर्न नदिने)
       if (languageCode == 'en' || languageCode == 'hi') {
         return EnglishCalendar.toAD(year, month, day);
       }
@@ -124,7 +143,6 @@ class CalendarHelper {
   }
 
   static String getMonthName(int month, String languageCode, {String calendarType = 'वि.सं.'}) {
-    // अंग्रेजी र हिन्दीका लागि छुट्टै बनाएको EnglishCalendar फाइल प्रयोग गर्ने
     if (languageCode == 'en' || languageCode == 'hi') {
       return EnglishCalendar.getMonthName(month, languageCode);
     }
