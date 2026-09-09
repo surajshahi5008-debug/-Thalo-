@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+// अङ्ग्रेजी र हिन्दी महिनाहरूको लागि बनाइएको क्लास
 class EnglishCalendar {
   static const List<String> shortMonths = [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
@@ -33,6 +34,7 @@ class CalendarHelper {
     return List.generate(endYear - startYear + 1, (index) => startYear + index);
   }
 
+  // विक्रम संवत् लाई AD मा बदल्ने लजिक
   static DateTime convertBS_To_AD(int bsYear, int bsMonth, int bsDay) {
     DateTime baseAd = DateTime(2026, 9, 8);
     int baseBsYear = 2083;
@@ -47,6 +49,7 @@ class CalendarHelper {
     return baseAd.add(Duration(days: totalDaysOffset));
   }
 
+  // नेपाल संवत् लाई AD मा बदल्ने लजिक
   static DateTime convertNS_To_AD(int nsYear, int nsMonth, int nsDay) {
     DateTime baseAd = DateTime(2026, 9, 8);
     int baseNsYear = 1146;
@@ -61,6 +64,7 @@ class CalendarHelper {
     return baseAd.add(Duration(days: totalDaysOffset.round()));
   }
 
+  // हिजरी संवत् लाई AD मा बदल्ने लजिक
   static DateTime convertHijri_To_AD(int hijriYear, int hijriMonth, int hijriDay) {
     DateTime baseAd = DateTime(2026, 9, 8);
     int baseHijriYear = 1448;
@@ -77,6 +81,7 @@ class CalendarHelper {
 
   static DateTime convertToAD(int year, int month, int day, String calendarType, {String languageCode = 'ne'}) {
     try {
+      // अंग्रेजी वा हिन्दी भाषा चयन हुँदा क्यालेन्डर स्वतः AD मा मात्र चल्ने
       if (languageCode == 'en' || languageCode == 'hi') {
         return EnglishCalendar.toAD(year, month, day);
       }
