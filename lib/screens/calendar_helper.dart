@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'calendars/english_calendar.dart';
 
 class CalendarHelper {
   static DateTime getTodayAD() => DateTime.now();
@@ -9,7 +10,7 @@ class CalendarHelper {
     return List.generate(endYear - startYear + 1, (index) => startYear + index);
   }
 
-  // विक्रम संवत् लाई AD मा बदल्ने सही लजिक (आधार: ८ सेप्टेम्बर २०२६ = २०८३ भदौ २३)
+  // विक्रम संवत् लाई AD मा बदल्ने सही लजिक
   static DateTime convertBS_To_AD(int bsYear, int bsMonth, int bsDay) {
     DateTime baseAd = DateTime(2026, 9, 8);
     int baseBsYear = 2083;
@@ -24,7 +25,7 @@ class CalendarHelper {
     return baseAd.add(Duration(days: totalDaysOffset));
   }
 
-  // नेपाल संवत् लाई AD मा बदल्ने सही लजिक (आधार: ८ सेप्टेम्बर २०२६ = ११४६ गुंला २)
+  // नेपाल संवत् लाई AD मा बदल्ने सही लजिक
   static DateTime convertNS_To_AD(int nsYear, int nsMonth, int nsDay) {
     DateTime baseAd = DateTime(2026, 9, 8);
     int baseNsYear = 1146;
@@ -39,7 +40,7 @@ class CalendarHelper {
     return baseAd.add(Duration(days: totalDaysOffset.round()));
   }
 
-  // हिजरी संवत् लाई AD मा बदल्ने सही लजिक (आधार: ८ सेप्टेम्बर २०२६ = १४४८ रबी अल-अव्वल २६)
+  // हिजरी संवत् लाई AD मा बदल्ने सही लजिक
   static DateTime convertHijri_To_AD(int hijriYear, int hijriMonth, int hijriDay) {
     DateTime baseAd = DateTime(2026, 9, 8);
     int baseHijriYear = 1448;
@@ -54,8 +55,13 @@ class CalendarHelper {
     return baseAd.add(Duration(days: totalDaysOffset.round()));
   }
 
-  static DateTime convertToAD(int year, int month, int day, String calendarType) {
+  static DateTime convertToAD(int year, int month, int day, String calendarType, {String languageCode = 'ne'}) {
     try {
+      // यदि भाषा अंग्रेजी वा हिन्दी हो भने सधैं AD मात्र प्रयोग गर्ने (अन्य क्यालेन्डर स्विच गर्न नदिने)
+      if (languageCode == 'en' || languageCode == 'hi') {
+        return EnglishCalendar.toAD(year, month, day);
+      }
+
       if (calendarType.contains('वि.सं.') || calendarType == 'वि.सं.') {
         return convertBS_To_AD(year, month, day);
       }
@@ -76,8 +82,9 @@ class CalendarHelper {
     required int month,
     required int day,
     required String calendarType,
+    String languageCode = 'ne',
   }) {
-    DateTime birthAD = convertToAD(year, month, day, calendarType);
+    DateTime birthAD = convertToAD(year, month, day, calendarType, languageCode: languageCode);
     DateTime todayAD = DateTime.now();
 
     int ageYears = todayAD.year - birthAD.year;
@@ -117,6 +124,11 @@ class CalendarHelper {
   }
 
   static String getMonthName(int month, String languageCode, {String calendarType = 'वि.सं.'}) {
+    // अंग्रेजी र हिन्दीका लागि छुट्टै बनाएको EnglishCalendar फाइल प्रयोग गर्ने
+    if (languageCode == 'en' || languageCode == 'hi') {
+      return EnglishCalendar.getMonthName(month, languageCode);
+    }
+
     if (calendarType.contains('ने.सं.') || calendarType == 'ने.सं.') {
       const newMonths = ['कछला', 'थिला', 'पोथिला', 'सिल्ला', 'चला', 'बछला', 'तछला', 'दिल्ला', 'गुंला', 'ञला', 'चौला', 'अछला'];
       if (month >= 1 && month <= 12) return newMonths[month - 1];
@@ -128,10 +140,7 @@ class CalendarHelper {
       if (month >= 1 && month <= 12) return bsMonths[month - 1];
     }
 
-    // अङ्ग्रेजीमा मात्र महिनाको नाम संक्षिप्त (Short) मा देखाउने
     const monthsMap = {
-      'en': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-      'hi': ['जनवरी', 'फरवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'],
       'ne': ['बैशाख', 'जेठ', 'असार', 'साउन', 'भदौ', 'असोज', 'कार्तिक', 'मंसिर', 'पुष', 'माघ', 'फागुन', 'चैत'],
       'new': ['कछला', 'थिला', 'पोथिला', 'सिल्ला', 'चला', 'बछला', 'तछला', 'दिल्ला', 'गुंला', 'ञला', 'चौला', 'अछला'],
       'ur': ['محرم', 'صفر', 'ربیع الاول', 'ربیع الثانی', 'جمادی الاول', 'جمادی الثانی', 'رجب', 'شعبان', 'رمضان', 'شوال', 'ذوالقعدہ', 'ذوالحجہ'],
