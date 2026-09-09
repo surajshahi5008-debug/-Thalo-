@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-// अङ्ग्रेजी र हिन्दी महिनाहरूको लागि बनाइएको क्लास
 class EnglishCalendar {
   static const List<String> shortMonths = [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
@@ -34,7 +33,6 @@ class CalendarHelper {
     return List.generate(endYear - startYear + 1, (index) => startYear + index);
   }
 
-  // विक्रम संवत् लाई AD मा बदल्ने लजिक
   static DateTime convertBS_To_AD(int bsYear, int bsMonth, int bsDay) {
     DateTime baseAd = DateTime(2026, 9, 8);
     int baseBsYear = 2083;
@@ -49,7 +47,6 @@ class CalendarHelper {
     return baseAd.add(Duration(days: totalDaysOffset));
   }
 
-  // नेपाल संवत् लाई AD मा बदल्ने लजिक
   static DateTime convertNS_To_AD(int nsYear, int nsMonth, int nsDay) {
     DateTime baseAd = DateTime(2026, 9, 8);
     int baseNsYear = 1146;
@@ -64,7 +61,6 @@ class CalendarHelper {
     return baseAd.add(Duration(days: totalDaysOffset.round()));
   }
 
-  // हिजरी संवत् लाई AD मा बदल्ने लजिक
   static DateTime convertHijri_To_AD(int hijriYear, int hijriMonth, int hijriDay) {
     DateTime baseAd = DateTime(2026, 9, 8);
     int baseHijriYear = 1448;
@@ -81,7 +77,7 @@ class CalendarHelper {
 
   static DateTime convertToAD(int year, int month, int day, String calendarType, {String languageCode = 'ne'}) {
     try {
-      // अंग्रेजी वा हिन्दी भाषा चयन हुँदा क्यालेन्डर स्वतः AD मा मात्र चल्ने
+      // अंग्रेजी वा हिन्दी भाषा छ भने सधैं AD मात्र प्रयोग हुने (अनिवार्य नियम)
       if (languageCode == 'en' || languageCode == 'hi') {
         return EnglishCalendar.toAD(year, month, day);
       }
@@ -153,7 +149,7 @@ class CalendarHelper {
     }
 
     if (calendarType.contains('ने.सं.') || calendarType == 'ने.सं.') {
-      const newMonths = ['कछला', 'थिला', 'पोथिला', 'सिल्ला', 'चला', 'बछला', 'तछला', 'दिल्ला', 'गुंला', 'ञला', 'चौला', 'अछला'];
+      const newMonths = ['कछला', 'थिला', 'पोथिला', 'सिल्ला', 'चला', 'bछला', 'तछला', 'दिल्ला', 'गुंला', 'ञला', 'चौला', 'अछला'];
       if (month >= 1 && month <= 12) return newMonths[month - 1];
     } else if (calendarType.contains('هجری') || calendarType == 'هجری') {
       const hijriMonths = ['محرم', 'صفر', 'ربیع الاول', 'ربیع الثانی', 'جمادی الاول', 'جمادی الثانی', 'رجب', 'شعبان', 'رمضان', 'شوال', 'ذوالقعدہ', 'ذوالحجہ'];
@@ -169,5 +165,56 @@ class CalendarHelper {
       'ur': ['محرم', 'صفر', 'ربیع الاول', 'ربیع الثانی', 'جمادی الاول', 'جمادی الثانی', 'رجب', 'شعبان', 'رمضان', 'شوال', 'ذوالقعدہ', 'ذوالحجہ'],
     };
     return monthsMap[languageCode]?[month - 1] ?? '';
+  }
+
+  // भाषा अनुसार UI का टेक्स्टहरू अनुवाद गर्ने फङ्सन
+  static String getLocalizedText(String key, String lang) {
+    final Map<String, Map<String, String>> localizedTexts = {
+      'ad_base': {
+        'ne': 'AD आधारमा',
+        'hi': 'AD आधार पर',
+        'en': 'Based on AD',
+        'ur': 'بنیاد پر AD',
+      },
+      'age_text': {
+        'ne': 'उमेर',
+        'hi': 'आयु',
+        'en': 'Age',
+        'ur': 'عمر',
+      },
+      'years': {
+        'ne': 'वर्ष',
+        'hi': 'वर्ष',
+        'en': 'years',
+        'en_unit': 'years',
+        'ur': 'سال',
+      },
+      'months': {
+        'ne': 'महिना',
+        'hi': 'महीने',
+        'en': 'months',
+        'ur': 'مہینے',
+      },
+      'days': {
+        'ne': 'दिन',
+        'hi': 'दिन',
+        'en': 'days',
+        'ur': 'دن',
+      },
+      'birthday_today': {
+        'ne': 'तपाईंलाई जन्मदिनको शुभकामना! 🎂',
+        'hi': 'आपको जन्मदिन की शुभकामनाएँ! 🎂',
+        'en': 'Happy Birthday! 🎂',
+        'ur': 'سالگرہ مبارک ہو! 🎂',
+      },
+      'birthday_countdown': {
+        'ne': 'तपाईंको जन्मदिन आउन बाँकी दिन',
+        'hi': 'आपके जन्मदिन में बाकी दिन',
+        'en': 'Days remaining for your birthday',
+        'ur': 'آپ کی سالگرہ میں باقی دن',
+      },
+    };
+
+    return localizedTexts[key]?[lang] ?? localizedTexts[key]?['ne'] ?? '';
   }
 }
