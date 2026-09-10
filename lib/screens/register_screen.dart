@@ -30,27 +30,56 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String _selectedCalendar = 'वि.सं.';
   int _selectedYear = 2083;
   int _selectedMonth = 5; 
-  int _selectedDay = 23;   
+  int _selectedDay = 25;   
 
   @override
   void initState() {
     super.initState();
+    _updateCalendarBasedOnLanguage(widget.currentLang);
     _resetToToday();
   }
 
+  @override
+  void didUpdateWidget(covariant RegisterScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentLang != widget.currentLang) {
+      _updateCalendarBasedOnLanguage(widget.currentLang);
+    }
+  }
+
+  void _updateCalendarBasedOnLanguage(String lang) {
+    setState(() {
+      if (lang == 'en' || lang == 'hi') {
+        _selectedCalendar = 'AD';
+        _selectedYear = 2026;
+        _selectedMonth = 9;
+        _selectedDay = 10;
+      } else {
+        if (_selectedCalendar == 'AD') {
+          _selectedCalendar = 'वि.सं.';
+        }
+        _resetToToday();
+      }
+    });
+  }
+
   void _resetToToday() {
-    if (_selectedCalendar == 'هجری') {
+    if (widget.currentLang == 'en' || widget.currentLang == 'hi') {
+      _selectedYear = 2026;
+      _selectedMonth = 9;
+      _selectedDay = 10;
+    } else if (_selectedCalendar == 'هجری') {
       _selectedYear = 1448;
       _selectedMonth = 3;
-      _selectedDay = 26;
+      _selectedDay = 27;
     } else if (_selectedCalendar == 'ने.सं.') {
       _selectedYear = 1146;
-      _selectedMonth = 9;
-      _selectedDay = 2;
+      _selectedMonth = 10;
+      _selectedDay = 1;
     } else {
       _selectedYear = 2083;
       _selectedMonth = 5;
-      _selectedDay = 23;
+      _selectedDay = 25;
     }
   }
 
@@ -66,7 +95,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
               height: 400,
               child: Column(
                 children: [
-                  // यदि भाषा अंग्रेजी वा हिन्दी छ भने क्यालेन्डर विकल्प नदेखाउने वा AD मात्र राख्ने
                   if (widget.currentLang != 'en' && widget.currentLang != 'hi')
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -83,15 +111,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   if (cal == 'هجری') {
                                     _selectedYear = 1448;
                                     _selectedMonth = 3;
-                                    _selectedDay = 26;
+                                    _selectedDay = 27;
                                   } else if (cal == 'ने.सं.') {
                                     _selectedYear = 1146;
-                                    _selectedMonth = 9;
-                                    _selectedDay = 2;
+                                    _selectedMonth = 10;
+                                    _selectedDay = 1;
                                   } else {
                                     _selectedYear = 2083;
                                     _selectedMonth = 5;
-                                    _selectedDay = 23;
+                                    _selectedDay = 25;
                                   }
                                 });
                               }
@@ -106,9 +134,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       children: [
                         Expanded(
                           child: ListView.builder(
-                            itemCount: CalendarHelper.getYearRange(_selectedCalendar == 'هجری' ? 1448 : (_selectedCalendar == 'ने.सं.' ? 1146 : 2083)).length,
+                            itemCount: CalendarHelper.getYearRange(
+                              widget.currentLang == 'en' || widget.currentLang == 'hi' 
+                                  ? 2026 
+                                  : (_selectedCalendar == 'هجری' ? 1448 : (_selectedCalendar == 'ने.सं.' ? 1146 : 2083))
+                            ).length,
                             itemBuilder: (context, index) {
-                              int baseY = _selectedCalendar == 'هجری' ? 1448 : (_selectedCalendar == 'ने.सं.' ? 1146 : 2083);
+                              int baseY = widget.currentLang == 'en' || widget.currentLang == 'hi'
+                                  ? 2026
+                                  : (_selectedCalendar == 'هجری' ? 1448 : (_selectedCalendar == 'ने.सं.' ? 1146 : 2083));
                               int year = CalendarHelper.getYearRange(baseY)[index];
                               return ListTile(
                                 title: Text(year.toString(), textAlign: TextAlign.center),
@@ -127,7 +161,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             itemCount: 12,
                             itemBuilder: (context, index) {
                               int month = index + 1;
-                              String monthName = CalendarHelper.getMonthName(month, widget.currentLang, calendarType: _selectedCalendar);
+                              String monthName = CalendarHelper.getMonthName(
+                                month, 
+                                widget.currentLang, 
+                                calendarType: widget.currentLang == 'en' || widget.currentLang == 'hi' ? 'AD' : _selectedCalendar,
+                                shortForm: true,
+                              );
                               return ListTile(
                                 title: Text(monthName.isEmpty ? '$month' : monthName, textAlign: TextAlign.center),
                                 selected: _selectedMonth == month,
@@ -178,19 +217,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    String monthName = CalendarHelper.getMonthName(_selectedMonth, widget.currentLang, calendarType: _selectedCalendar);
-    String selectedDateStr = '$_selectedYear-${monthName.isEmpty ? _selectedMonth : monthName}-$_selectedDay (${widget.currentLang == 'en' || widget.currentLang == 'hi' ? 'AD' : _selectedCalendar})';
+    String activeCalType = (widget.currentLang == 'en' || widget.currentLang == 'hi') ? 'AD' : _selectedCalendar;
+    String monthName = CalendarHelper.getMonthName(_selectedMonth, widget.currentLang, calendarType: activeCalType, shortForm: true);
+    
+    String selectedDateStr = '$_selectedYear-$monthName-$_selectedDay ($activeCalType)';
 
-    // भाषा कोड (currentLang) पास गरिएको छ ताकि अंग्रेजी/हिन्दीमा स्वतः AD मात्र गणना होस्
     Map<String, dynamic> ageData = CalendarHelper.calculateAgeAndCountdown(
       year: _selectedYear,
       month: _selectedMonth,
       day: _selectedDay,
-      calendarType: _selectedCalendar,
+      calendarType: activeCalType,
       languageCode: widget.currentLang,
     );
 
-    DateTime adConverted = CalendarHelper.convertToAD(_selectedYear, _selectedMonth, _selectedDay, _selectedCalendar, languageCode: widget.currentLang);
+    DateTime adConverted = CalendarHelper.convertToAD(_selectedYear, _selectedMonth, _selectedDay, activeCalType, languageCode: widget.currentLang);
 
     String adBaseText = CalendarHelper.getLocalizedText('ad_base', widget.currentLang);
     String ageLabel = CalendarHelper.getLocalizedText('age_text', widget.currentLang);
@@ -204,7 +244,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
           children: [
             LanguageBar(
               currentLang: widget.currentLang,
-              onLanguageChanged: widget.onLanguageChanged,
+              onLanguageChanged: (newLang) {
+                widget.onLanguageChanged(newLang);
+                _updateCalendarBasedOnLanguage(newLang);
+              },
               onNotificationTap: widget.onNotificationTap,
             ),
             Expanded(
@@ -213,7 +256,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: ListView(
                   children: [
                     const Text(
-                      'نیاں खाता खोल्नुहोस् (Register)',
+                      'नयाँ खाता खोल्नुहोस् (Register)',
                       style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                       textAlign: TextAlign.center,
                     ),
@@ -253,7 +296,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     Text(
                       ageData['isBirthdayToday'] 
                           ? CalendarHelper.getLocalizedText('birthday_today', widget.currentLang)
-                          : '${CalendarHelper.getLocalizedText('birthday_countdown', widget.currentLang)} ${ageData['remainingDays']} ${CalendarHelper.getLocalizedText('days', widget.currentLang)}',
+                          : '${CalendarHelper.getLocalizedText('birthday_countdown', widget.currentLang)} ${ageData['remainingDays']} $dayUnit',
                       style: const TextStyle(fontSize: 14, color: Colors.purple),
                     ),
                     const SizedBox(height: 20),
