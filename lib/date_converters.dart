@@ -25,7 +25,7 @@ class DateConverters {
   static AdDate bsToAd(int bsYear, int bsMonth, int bsDay) {
     final nepaliDate = NepaliDateTime(bsYear, bsMonth, bsDay);
     final ad = nepaliDate.toDateTime();
-    return AdDate(ad.year, ad.month, ad.day);
+    return AdDate(date.year, date.month, date.day);
   }
 
   static NepaliDateTime adToBs(DateTime adDate) {
@@ -92,7 +92,7 @@ class DateConverters {
       lunarMonth,
       tithi,
       adYearForLookup,
-      City.kathmandu,
+      City.of('Kathmandu'),
     );
 
     return AdDate(date.year, date.month, date.day);
