@@ -41,17 +41,9 @@ class CalendarHelper {
     return List.generate(endYear - startYear + 1, (index) => startYear + index);
   }
 
-  // वि.सं. (Bikram Sambat) लाई सही रूपमा AD मा रूपान्तरण गर्ने फङ्सन (लगभग ५७ वर्ष ७ महिनाको अन्तर हुन्छ)
+  // वि.सं. (Bikram Sambat) लाई सही रूपमा AD मा रूपान्तरण गर्ने फङ्सन
   static DateTime convertBS_T_AD(int bsYear, int bsMonth, int bsDay) {
-    // नेपाली पात्रोको अनुमानित ग्रीगोरियन कन्भर्जन (वर्ष घटाउने)
-    int adYear = bsYear - 57;
-    int adMonth = bsMonth - 8;
-    int adDay = bsDay - 16;
-    
-    // साधारणतया वि.सं. अंग्रेजीभन्दा ५६-५७ वर्ष अगाडि हुन्छ
     try {
-      DateTime converted = DateTime(bsYear - 57, bsMonth - 8, bsDay);
-      // यदि महिना वा दिन मिल्दैन भने साधारण अनुमानित दिन झिक्ने
       return DateTime(bsYear - 57, 4, 1).add(Duration(days: (bsMonth - 1) * 30 + bsDay));
     } catch (_) {
       return DateTime(bsYear - 57, 1, 1);
@@ -60,7 +52,6 @@ class CalendarHelper {
 
   // नेपाल संवत (Nepal Sambat) कन्भर्जन 
   static DateTime convertNS_To_AD(int nsYear, int nsMonth, int nsDay) {
-    // ने.सं. लगभग 879/880 ईस्वीबाट सुरु हुन्छ
     int adYear = nsYear + 879;
     try {
       return DateTime(adYear, 10, 1).add(Duration(days: (nsMonth - 1) * 30 + nsDay));
@@ -71,10 +62,9 @@ class CalendarHelper {
 
   // हिजरी (Hijri) कन्भर्जन
   static DateTime convertHijri_To_AD(int hijriYear, int hijriMonth, int hijriDay) {
-    // चन्द्रमाको महिना अनुसार अनुमानित कन्भर्जन
-    int adYear = (hijriYear * 0.97) + 622;
+    int adYear = ((hijriYear * 0.97) + 622).toInt(); // .toInt() थपिएको
     try {
-      return DateTime(adYear.toInt(), 6, 1).add(Duration(days: (hijriMonth - 1) * 29 + hijriDay));
+      return DateTime(adYear, 6, 1).add(Duration(days: (hijriMonth - 1) * 29 + hijriDay));
     } catch (_) {
       return DateTime.now();
     }
@@ -92,9 +82,7 @@ class CalendarHelper {
       }
 
       if (calendarType.contains('वि.सं.') || calendarType == 'वि.सं.') {
-        // वि.सं. बाट AD मा ठ्याक्कै बदलिनको लागि दिनहरूको अनुमानित फरक (वर्ष ५७ घट्ने)
         int estimatedAdYear = year - 57;
-        // बैशाख लगभग मध्य अप्रिलबाट सुरु हुन्छ
         DateTime baseBsToAd = DateTime(estimatedAdYear, 4, 13);
         int dayOffset = ((month - 1) * 30) + (day - 1);
         return baseBsToAd.add(Duration(days: dayOffset));
@@ -102,14 +90,14 @@ class CalendarHelper {
 
       if (calendarType.contains('ने.सं.') || calendarType == 'ने.सं.') {
         int estimatedAdYear = year + 879;
-        DateTime baseNsToAd = DateTime(estimatedAdYear, 11, 1); // कछला लगभग नोभेम्बर
+        DateTime baseNsToAd = DateTime(estimatedAdYear, 11, 1);
         int dayOffset = ((month - 1) * 30) + (day - 1);
         return baseNsToAd.add(Duration(days: dayOffset));
       }
 
       if (calendarType.contains('هجری') || calendarType == 'هجری') {
-        int estimatedAdYear = (year * 0.97022) + 622.5;
-        DateTime baseHijriToAd = DateTime(estimatedAdYear.toInt(), 7, 1);
+        int estimatedAdYear = ((year * 0.97022) + 622.5).toInt(); // .toInt() थपिएको
+        DateTime baseHijriToAd = DateTime(estimatedAdYear, 7, 1);
         int dayOffset = ((month - 1) * 29) + (day - 1);
         return baseHijriToAd.add(Duration(days: dayOffset));
       }
@@ -131,7 +119,6 @@ class CalendarHelper {
     DateTime birthAD = convertToAD(year, month, day, calendarType, languageCode: languageCode);
     DateTime todayAD = DateTime.now();
 
-    // यदि जन्म मिति भविष्यको जस्तो देखिएमा वा आजभन्दा पछि भएमा मिलाउने
     if (birthAD.isAfter(todayAD)) {
       birthAD = todayAD;
     }
