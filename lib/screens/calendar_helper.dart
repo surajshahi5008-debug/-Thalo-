@@ -41,7 +41,7 @@ class CalendarHelper {
     return List.generate(endYear - startYear + 1, (index) => startYear + index);
   }
 
-  // स्क्रिनसट अनुसारको आधार मिति (Sep 10, 2026 = BS 2083-5-25 = NS 1146-10-x = Hijri 1448-3-27)
+  // वि.सं. (Bikram Sambat) लाई AD मा रूपान्तरण
   static DateTime convertBS_To_AD(int bsYear, int bsMonth, int bsDay) {
     DateTime baseAd = DateTime(2026, 9, 10);
     int baseBsYear = 2083;
@@ -56,6 +56,7 @@ class CalendarHelper {
     return baseAd.add(Duration(days: totalDaysOffset));
   }
 
+  // नेपाल संवत (Nepal Sambat) लाई AD मा रूपान्तरण
   static DateTime convertNS_To_AD(int nsYear, int nsMonth, int nsDay) {
     DateTime baseAd = DateTime(2026, 9, 10);
     int baseNsYear = 1146;
@@ -70,6 +71,7 @@ class CalendarHelper {
     return baseAd.add(Duration(days: totalDaysOffset.round()));
   }
 
+  // हिजरी (Hijri) लाई AD मा रूपान्तरण
   static DateTime convertHijri_To_AD(int hijriYear, int hijriMonth, int hijriDay) {
     DateTime baseAd = DateTime(2026, 9, 10);
     int baseHijriYear = 1448;
@@ -84,6 +86,7 @@ class CalendarHelper {
     return baseAd.add(Duration(days: totalDaysOffset.round()));
   }
 
+  // समग्र क्यालेन्डर प्रकार अनुसार AD मा कन्भर्ट गर्ने मुख्य फङ्सन
   static DateTime convertToAD(int year, int month, int day, String calendarType, {String languageCode = 'ne'}) {
     try {
       if (languageCode == 'en' || languageCode == 'hi') {
@@ -105,6 +108,7 @@ class CalendarHelper {
     }
   }
 
+  // उमेर र जन्मदिनको काउन्टडाउन हिसाब गर्ने फङ्सन
   static Map<String, dynamic> calculateAgeAndCountdown({
     required int year,
     required int month,
@@ -151,6 +155,7 @@ class CalendarHelper {
     };
   }
 
+  // सबै क्यालेन्डर र भाषाहरूका लागि महिनाको नाम पत्ता लगाउने फङ्सन
   static String getMonthName(int month, String languageCode, {String calendarType = 'वि.सं.', bool shortForm = true}) {
     if (languageCode == 'en' || languageCode == 'hi') {
       return EnglishCalendar.getMonthName(month, languageCode, shortForm: shortForm);
@@ -175,6 +180,7 @@ class CalendarHelper {
     return monthsMap[languageCode]?[month - 1] ?? '';
   }
 
+  // भाषा अनुसार UI का टेक्स्टहरू अनुवाद गर्ने फङ्सन
   static String getLocalizedText(String key, String lang) {
     final Map<String, Map<String, String>> localizedTexts = {
       'ad_base': {
