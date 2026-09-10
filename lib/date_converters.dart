@@ -1,5 +1,7 @@
 import 'package:nepali_utils/nepali_utils.dart';
 import 'package:hijri/hijri_calendar.dart';
+import 'package:tithi_engine/tithi_engine.dart';
+import 'package:tithi_engine/data/all.dart';
 
 /// AD मितिलाई साधारण रूपमा बोक्ने structure।
 class AdDate {
@@ -18,7 +20,7 @@ class DateConverters {
   DateConverters._();
 
   // -----------------------------------------------------------------
-  // विक्रम सम्वत (BS) ⇄ AD — nepali_utils प्रयोग गरेर (सही, lookup-table आधारित)
+  // विक्रम सम्वत (BS) ⇄ AD — nepali_utils प्रयोग गरेर
   // -----------------------------------------------------------------
   static AdDate bsToAd(int bsYear, int bsMonth, int bsDay) {
     final nepaliDate = NepaliDateTime(bsYear, bsMonth, bsDay);
@@ -31,7 +33,7 @@ class DateConverters {
   }
 
   // -----------------------------------------------------------------
-  // हिजरी ⇄ AD — hijri प्याकेज प्रयोग गरेर (Umm al-Qura आधारित)
+  // हिजरी ⇄ AD — hijri प्याकेज प्रयोग गरेर
   // -----------------------------------------------------------------
   static AdDate hijriToAd(int hYear, int hMonth, int hDay) {
     final hijri = HijriCalendar();
@@ -40,14 +42,59 @@ class DateConverters {
   }
 
   // -----------------------------------------------------------------
-  // नेपाल सम्वत (NS) ⇄ AD — ⚠️ अझै समाधान नभएको भाग
+  // नेपाल सम्वत (NS) ⇄ AD — tithi_engine (खगोलीय पञ्चाङ्ग) प्रयोग गरेर
   // -----------------------------------------------------------------
-  // Nepal Sambat चन्द्र (lunar) क्यालेन्डर हो, र यसको लागि भरपर्दो
-  // Dart/Flutter प्याकेज भेटिएन। अहिलेलाई error दिने राखिएको छ, ताकि
-  // गलत मिति देखाइहालोस् भन्दा प्रयोगकर्तालाई थाहा होस्।
+  static final Panchang _panchang = Panchang(
+    [registerAllCities],
+    system: MonthSystem.amant,
+  );
+
+  // NS महिना (१=कछला ... १२=कौला) -> हिन्दू लुनार महिना नाम (Amant प्रणाली)
+  static const List<String> _nsToHinduMonthName = [
+    'Kartika', // १ कछला
+    'Margashira', // २ थिंला
+    'Pausha', // ३ पोहेला
+    'Magha', // ४ सिल्ला
+    'Phalguna', // ५ चिल्ला
+    'Chaitra', // ६ चौला
+    'Vaishakha', // ७ बछला
+    'Jyeshtha', // ८ तछला
+    'Ashadha', // ९ दिल्ला
+    'Shravana', // १० गुंला
+    'Bhadrapada', // ११ ञला
+    'Ashwina', // १२ कौला
+  ];
+
   static AdDate nsToAd(int nsYear, int nsMonth, int nsDay) {
-    throw UnimplementedError(
-      'NS→AD conversion अझै टुङ्गिएको छैन — पछि छुट्टै छलफल गरौंला।',
+    if (nsMonth < 1 || nsMonth > 12) {
+      throw ArgumentError('nsMonth 1-12 को बीचमा हुनुपर्छ');
+    }
+    if (nsDay < 1 || nsDay > 30) {
+      throw ArgumentError('nsDay 1-30 को बीचमा हुनुपर्छ');
+    }
+
+    // महिना १-२ (कछला, थिंला = कार्तिक, मंसिर) उही NS वर्षको सुरुवाती
+    // AD वर्षमा पर्छन् (NS_year + 879)। बाँकी १० महिना (पुष देखि आश्विन)
+    // अर्को AD वर्षमा पर्छन् (NS_year + 880)।
+    final adYearForLookup = (nsMonth <= 2) ? nsYear + 879 : nsYear + 880;
+
+    final monthName = _nsToHinduMonthName[nsMonth - 1];
+    final lunarMonth = LunarMonth.values.firstWhere(
+      (m) => m.displayName.toLowerCase() == monthName.toLowerCase(),
+      orElse: () => throw StateError(
+        'LunarMonth "$monthName" भेटिएन — tithi_engine को exact naming जाँच्नुपर्छ',
+      ),
     );
+
+    final tithi = nsDay <= 15 ? Tithi.shukla(nsDay) : Tithi.krishna(nsDay - 15);
+
+    final date = _panchang.findDate(
+      lunarMonth,
+      tithi,
+      adYearForLookup,
+      City.kathmandu,
+    );
+
+    return AdDate(date.year, date.month, date.day);
   }
 }
