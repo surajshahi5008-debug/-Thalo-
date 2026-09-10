@@ -36,35 +36,45 @@ class CalendarHelper {
   static DateTime getTodayAD() => DateTime.now();
 
   static List<int> getYearRange(int currentYear) {
-    int startYear = currentYear - 50;
-    int endYear = currentYear + 50;
+    int startYear = currentYear - 100;
+    int endYear = currentYear; // जन्म मिति भएकोले भविष्यको वर्ष राख्न नदिने वा हालको वर्षसम्म मात्रै राख्ने
     return List.generate(endYear - startYear + 1, (index) => startYear + index);
   }
 
-  // वि.सं. (Bikram Sambat) लाई सही रूपमा AD मा रूपान्तरण गर्ने फङ्सन
-  static DateTime convertBS_T_AD(int bsYear, int bsMonth, int bsDay) {
+  // वि.सं. (Bikram Sambat) लाई सही AD मा बदल्ने सुध्रिएको तरिका
+  static DateTime convertBS_To_AD(int bsYear, int bsMonth, int bsDay) {
+    // वि.सं. बाट लगभग ५६ वर्ष ८ महिना घटाउँदा अंग्रेजी मिति आउँछ
+    int adYear = bsYear - 57;
+    int adMonth = bsMonth - 4;
+    int adDay = bsDay - 16;
     try {
-      return DateTime(bsYear - 57, 4, 1).add(Duration(days: (bsMonth - 1) * 30 + bsDay));
+      // नेपाली महिनाहरूको औसत दिनको आधारमा सही जोडघटाउ
+      DateTime baseDate = DateTime(bsYear - 57, 4, 14); // बैशाख १ लगभग अप्रिल १४ हुन्छ
+      return baseDate.add(Duration(days: ((bsMonth - 1) * 30.44).toInt() + (bsDay - 1)));
     } catch (_) {
       return DateTime(bsYear - 57, 1, 1);
     }
   }
 
-  // नेपाल संवत (Nepal Sambat) कन्भर्जन 
+  // नेपाल संवत (Nepal Sambat) कन्भर्जन
   static DateTime convertNS_To_AD(int nsYear, int nsMonth, int nsDay) {
     int adYear = nsYear + 879;
     try {
-      return DateTime(adYear, 10, 1).add(Duration(days: (nsMonth - 1) * 30 + nsDay));
+      DateTime baseDate = DateTime(adYear, 11, 7); // कछलाको सुरुवाती दिन
+      return baseDate.add(Duration(days: ((nsMonth - 1) * 29.5).toInt() + (bsDaySafe(nsDay))));
     } catch (_) {
       return DateTime.now();
     }
   }
 
+  static int bsDaySafe(int day) => day > 0 ? day - 1 : 0;
+
   // हिजरी (Hijri) कन्भर्जन
   static DateTime convertHijri_To_AD(int hijriYear, int hijriMonth, int hijriDay) {
-    int adYear = ((hijriYear * 0.97) + 622).toInt(); // .toInt() थपिएको
+    // हिजरी र ईस्वी संवतको गणितीय सम्बन्ध (Lunar to Solar conversion approximation)
+    int adYear = (hijriYear * 0.970222 + 621.577).toInt();
     try {
-      return DateTime(adYear, 6, 1).add(Duration(days: (hijriMonth - 1) * 29 + hijriDay));
+      return DateTime(adYear, 7, 1).add(Duration(days: ((hijriMonth - 1) * 29.5).toInt() + (hijriDay - 1)));
     } catch (_) {
       return DateTime.now();
     }
@@ -73,36 +83,20 @@ class CalendarHelper {
   // समग्र क्यालेन्डर प्रकार अनुसार AD मा कन्भर्ट गर्ने मुख्य फङ्सन
   static DateTime convertToAD(int year, int month, int day, String calendarType, {String languageCode = 'ne'}) {
     try {
-      if (calendarType == 'AD' || languageCode == 'en' || languageCode == 'hi' && !calendarType.contains('वि.सं.')) {
-        if (calendarType.contains('वि.सं.') || calendarType.contains('ने.सं.') || calendarType.contains('هجری')) {
-          // लुप कन्भर्जन तल जान्छ
-        } else {
-          return EnglishCalendar.toAD(year, month, day);
-        }
-      }
-
       if (calendarType.contains('वि.सं.') || calendarType == 'वि.सं.') {
-        int estimatedAdYear = year - 57;
-        DateTime baseBsToAd = DateTime(estimatedAdYear, 4, 13);
-        int dayOffset = ((month - 1) * 30) + (day - 1);
-        return baseBsToAd.add(Duration(days: dayOffset));
+        return convertBS_To_AD(year, month, day);
       }
 
       if (calendarType.contains('ने.सं.') || calendarType == 'ने.सं.') {
-        int estimatedAdYear = year + 879;
-        DateTime baseNsToAd = DateTime(estimatedAdYear, 11, 1);
-        int dayOffset = ((month - 1) * 30) + (day - 1);
-        return baseNsToAd.add(Duration(days: dayOffset));
+        return convertNS_To_AD(year, month, day);
       }
 
       if (calendarType.contains('هجری') || calendarType == 'هجری') {
-        int estimatedAdYear = ((year * 0.97022) + 622.5).toInt(); // .toInt() थपिएको
-        DateTime baseHijriToAd = DateTime(estimatedAdYear, 7, 1);
-        int dayOffset = ((month - 1) * 29) + (day - 1);
-        return baseHijriToAd.add(Duration(days: dayOffset));
+        return convertHijri_To_AD(year, month, day);
       }
 
-      return EnglishCalendar.toAD(year, month, day);
+      // Default AD
+      return DateTime(year, month, day);
     } catch (_) {
       return DateTime.now();
     }
@@ -119,6 +113,7 @@ class CalendarHelper {
     DateTime birthAD = convertToAD(year, month, day, calendarType, languageCode: languageCode);
     DateTime todayAD = DateTime.now();
 
+    // यदि प्रयोगकर्ताले भविष्यको मिति छानेमा आजकै मिति मान्ने (त्रुटि नआउनका लागि)
     if (birthAD.isAfter(todayAD)) {
       birthAD = todayAD;
     }
@@ -162,14 +157,8 @@ class CalendarHelper {
     };
   }
 
-  // सबै क्यालेन्डर र भाषाहरूका लागि महिनाको नाम पत्ता लगाउने फङ्सन
+  // महिनाको नाम निकाल्ने फङ्सन
   static String getMonthName(int month, String languageCode, {String calendarType = 'वि.सं.', bool shortForm = true}) {
-    if (languageCode == 'en' || languageCode == 'hi' && !calendarType.contains('वि.सं.')) {
-      if (!calendarType.contains('वि.सं.') && !calendarType.contains('ने.सं.')) {
-        return EnglishCalendar.getMonthName(month, languageCode, shortForm: shortForm);
-      }
-    }
-
     if (calendarType.contains('ने.सं.') || calendarType == 'ने.सं.') {
       const newMonths = ['कछला', 'थिला', 'पोथिला', 'सिल्ला', 'चला', 'बछला', 'तछला', 'दिल्ला', 'गुंला', 'ञला', 'चौला', 'अछला'];
       if (month >= 1 && month <= 12) return newMonths[month - 1];
@@ -181,12 +170,7 @@ class CalendarHelper {
       if (month >= 1 && month <= 12) return bsMonths[month - 1];
     }
 
-    const monthsMap = {
-      'ne': ['बैशाख', 'जेठ', 'असार', 'साउन', 'भदौ', 'असोज', 'कार्तिक', 'मंसिर', 'पुष', 'माघ', 'फागुन', 'चैत'],
-      'new': ['कछला', 'थिला', 'पोथिला', 'सिल्ला', 'चला', 'बछला', 'तछला', 'दिल्ला', 'गुंला', 'ञला', 'चौला', 'अछला'],
-      'ur': ['محرم', 'صفر', 'ربیع الاول', 'ربیع الثانی', 'جمادی الاول', 'جمادی الثانی', 'رجب', 'شعبان', 'رمضان', 'شوال', 'ذوالقعدہ', 'ذوالحجہ'],
-    };
-    return monthsMap[languageCode]?[month - 1] ?? '';
+    return EnglishCalendar.getMonthName(month, languageCode, shortForm: shortForm);
   }
 
   // भाषा अनुसार UI का टेक्स्टहरू अनुवाद गर्ने फङ्सन
