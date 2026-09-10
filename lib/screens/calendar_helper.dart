@@ -6,15 +6,23 @@ class EnglishCalendar {
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
   ];
 
+  static const List<String> fullMonths = [
+    'January', 'February', 'March', 'April', 'May', 'June', 
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
   static const List<String> fullMonthsHindi = [
     'जनवरी', 'फरवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 
     'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'
   ];
 
-  static String getMonthName(int month, String languageCode) {
+  static String getMonthName(int month, String languageCode, {bool shortForm = true}) {
     if (month < 1 || month > 12) return '';
     if (languageCode == 'hi') {
       return fullMonthsHindi[month - 1];
+    }
+    if (languageCode == 'en') {
+      return shortForm ? shortMonths[month - 1] : fullMonths[month - 1];
     }
     return shortMonths[month - 1];
   }
@@ -33,11 +41,12 @@ class CalendarHelper {
     return List.generate(endYear - startYear + 1, (index) => startYear + index);
   }
 
+  // स्क्रिनसट अनुसारको आधार मिति (Sep 10, 2026 = BS 2083-5-25 = NS 1146-10-x = Hijri 1448-3-27)
   static DateTime convertBS_To_AD(int bsYear, int bsMonth, int bsDay) {
-    DateTime baseAd = DateTime(2026, 9, 8);
+    DateTime baseAd = DateTime(2026, 9, 10);
     int baseBsYear = 2083;
     int baseBsMonth = 5; 
-    int baseBsDay = 23;
+    int baseBsDay = 25;
 
     int yearDiff = bsYear - baseBsYear;
     int monthDiff = bsMonth - baseBsMonth;
@@ -48,10 +57,10 @@ class CalendarHelper {
   }
 
   static DateTime convertNS_To_AD(int nsYear, int nsMonth, int nsDay) {
-    DateTime baseAd = DateTime(2026, 9, 8);
+    DateTime baseAd = DateTime(2026, 9, 10);
     int baseNsYear = 1146;
-    int baseNsMonth = 9; 
-    int baseNsDay = 2;
+    int baseNsMonth = 10; 
+    int baseNsDay = 1;
 
     int yearDiff = nsYear - baseNsYear;
     int monthDiff = nsMonth - baseNsMonth;
@@ -62,10 +71,10 @@ class CalendarHelper {
   }
 
   static DateTime convertHijri_To_AD(int hijriYear, int hijriMonth, int hijriDay) {
-    DateTime baseAd = DateTime(2026, 9, 8);
+    DateTime baseAd = DateTime(2026, 9, 10);
     int baseHijriYear = 1448;
     int baseHijriMonth = 3; 
-    int baseHijriDay = 26;
+    int baseHijriDay = 27;
 
     int yearDiff = hijriYear - baseHijriYear;
     int monthDiff = hijriMonth - baseHijriMonth;
@@ -77,7 +86,6 @@ class CalendarHelper {
 
   static DateTime convertToAD(int year, int month, int day, String calendarType, {String languageCode = 'ne'}) {
     try {
-      // अंग्रेजी वा हिन्दी भाषा छ भने सधैं AD मात्र प्रयोग हुने (अनिवार्य नियम)
       if (languageCode == 'en' || languageCode == 'hi') {
         return EnglishCalendar.toAD(year, month, day);
       }
@@ -143,13 +151,13 @@ class CalendarHelper {
     };
   }
 
-  static String getMonthName(int month, String languageCode, {String calendarType = 'वि.सं.'}) {
+  static String getMonthName(int month, String languageCode, {String calendarType = 'वि.सं.', bool shortForm = true}) {
     if (languageCode == 'en' || languageCode == 'hi') {
-      return EnglishCalendar.getMonthName(month, languageCode);
+      return EnglishCalendar.getMonthName(month, languageCode, shortForm: shortForm);
     }
 
     if (calendarType.contains('ने.सं.') || calendarType == 'ने.सं.') {
-      const newMonths = ['कछला', 'थिला', 'पोथिला', 'सिल्ला', 'चला', 'bछला', 'तछला', 'दिल्ला', 'गुंला', 'ञला', 'चौला', 'अछला'];
+      const newMonths = ['कछला', 'थिला', 'पोथिला', 'सिल्ला', 'चला', 'बछला', 'तछला', 'दिल्ला', 'गुंला', 'ञला', 'चौला', 'अछला'];
       if (month >= 1 && month <= 12) return newMonths[month - 1];
     } else if (calendarType.contains('هجری') || calendarType == 'هجری') {
       const hijriMonths = ['محرم', 'صفر', 'ربیع الاول', 'ربیع الثانی', 'جمادی الاول', 'جمادی الثانی', 'رجب', 'شعبان', 'رمضان', 'شوال', 'ذوالقعدہ', 'ذوالحجہ'];
@@ -167,7 +175,6 @@ class CalendarHelper {
     return monthsMap[languageCode]?[month - 1] ?? '';
   }
 
-  // भाषा अनुसार UI का टेक्स्टहरू अनुवाद गर्ने फङ्सन
   static String getLocalizedText(String key, String lang) {
     final Map<String, Map<String, String>> localizedTexts = {
       'ad_base': {
@@ -186,7 +193,6 @@ class CalendarHelper {
         'ne': 'वर्ष',
         'hi': 'वर्ष',
         'en': 'years',
-        'en_unit': 'years',
         'ur': 'سال',
       },
       'months': {
