@@ -42,7 +42,7 @@ class CalendarHelper {
   }
 
   // वि.सं. (Bikram Sambat) लाई AD मा रूपान्तरण
-  static DateTime convertBS_To_AD(int bsYear, int bsMonth, int bsDay) {
+  static DateTime convertBS_T_AD(int bsYear, int bsMonth, int bsDay) {
     DateTime baseAd = DateTime(2026, 9, 10);
     int baseBsYear = 2083;
     int baseBsMonth = 5; 
@@ -89,12 +89,12 @@ class CalendarHelper {
   // समग्र क्यालेन्डर प्रकार अनुसार AD मा कन्भर्ट गर्ने मुख्य फङ्सन
   static DateTime convertToAD(int year, int month, int day, String calendarType, {String languageCode = 'ne'}) {
     try {
-      if (languageCode == 'en' || languageCode == 'hi') {
+      if (languageCode == 'en' || languageCode == 'hi' || calendarType == 'AD') {
         return EnglishCalendar.toAD(year, month, day);
       }
 
       if (calendarType.contains('वि.सं.') || calendarType == 'वि.सं.') {
-        return convertBS_To_AD(year, month, day);
+        return convertBS_T_AD(year, month, day);
       }
       if (calendarType.contains('ने.सं.') || calendarType == 'ने.सं.') {
         return convertNS_To_AD(year, month, day);
@@ -108,7 +108,7 @@ class CalendarHelper {
     }
   }
 
-  // उमेर र जन्मदिनको काउन्टडाउन हिसाब गर्ने फङ्सन
+  // उमेर र जन्मदिनको काउन्टडाउन सहि हिसाब गर्ने फङ्सन
   static Map<String, dynamic> calculateAgeAndCountdown({
     required int year,
     required int month,
@@ -125,7 +125,8 @@ class CalendarHelper {
 
     if (ageDays < 0) {
       ageMonths--;
-      ageDays += DateTime(todayAD.year, todayAD.month, 0).day;
+      DateTime prevMonth = DateTime(todayAD.year, todayAD.month, 0);
+      ageDays += prevMonth.day;
     }
     if (ageMonths < 0) {
       ageYears--;
@@ -138,26 +139,28 @@ class CalendarHelper {
     }
 
     DateTime nextBirthday = DateTime(todayAD.year, birthAD.month, birthAD.day);
-    if (nextBirthday.isBefore(todayAD) || nextBirthday.isAtSameMomentAs(todayAD)) {
-      if (nextBirthday.day == todayAD.day && nextBirthday.month == todayAD.month) {
-        return {'years': ageYears, 'months': ageMonths, 'days': ageDays, 'targetAge': ageYears, 'remainingDays': 0, 'isBirthdayToday': true};
-      }
+    if (nextBirthday.isBefore(todayAD) && !(nextBirthday.day == todayAD.day && nextBirthday.month == todayAD.month)) {
       nextBirthday = DateTime(todayAD.year + 1, birthAD.month, birthAD.day);
     }
+
+    int remainingDays = nextBirthday.difference(todayAD).inDays;
+    if (remainingDays < 0) remainingDays = 0;
+
+    bool isBirthdayToday = (birthAD.month == todayAD.month && birthAD.day == todayAD.day);
 
     return {
       'years': ageYears,
       'months': ageMonths,
       'days': ageDays,
-      'targetAge': ageYears + (nextBirthday.year > todayAD.year ? 1 : 0),
-      'remainingDays': nextBirthday.difference(todayAD).inDays,
-      'isBirthdayToday': false,
+      'targetAge': ageYears + (isBirthdayToday ? 0 : 1),
+      'remainingDays': remainingDays,
+      'isBirthdayToday': isBirthdayToday,
     };
   }
 
   // सबै क्यालेन्डर र भाषाहरूका लागि महिनाको नाम पत्ता लगाउने फङ्सन
   static String getMonthName(int month, String languageCode, {String calendarType = 'वि.सं.', bool shortForm = true}) {
-    if (languageCode == 'en' || languageCode == 'hi') {
+    if (languageCode == 'en' || languageCode == 'hi' || calendarType == 'AD') {
       return EnglishCalendar.getMonthName(month, languageCode, shortForm: shortForm);
     }
 
