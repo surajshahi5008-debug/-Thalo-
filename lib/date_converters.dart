@@ -16,6 +16,14 @@ class AdDate {
   String toString() => '$year-$month-$day';
 }
 
+/// कुनै पनि क्यालेन्डरको वर्ष/महिना/गते बोक्ने साधारण structure।
+class CalendarDate {
+  final int year;
+  final int month;
+  final int day;
+  const CalendarDate(this.year, this.month, this.day);
+}
+
 class DateConverters {
   DateConverters._();
 
@@ -28,8 +36,9 @@ class DateConverters {
     return AdDate(ad.year, ad.month, ad.day);
   }
 
-  static NepaliDateTime adToBs(DateTime adDate) {
-    return adDate.toNepaliDateTime();
+  static CalendarDate adToBs(DateTime adDate) {
+    final nd = adDate.toNepaliDateTime();
+    return CalendarDate(nd.year, nd.month, nd.day);
   }
 
   // -----------------------------------------------------------------
@@ -39,6 +48,11 @@ class DateConverters {
     final hijri = HijriCalendar();
     final ad = hijri.hijriToGregorian(hYear, hMonth, hDay);
     return AdDate(ad.year, ad.month, ad.day);
+  }
+
+  static CalendarDate adToHijri(DateTime adDate) {
+    final hijri = HijriCalendar.fromDate(adDate);
+    return CalendarDate(hijri.hYear, hijri.hMonth, hijri.hDay);
   }
 
   // -----------------------------------------------------------------
@@ -97,5 +111,28 @@ class DateConverters {
       );
     }
     return AdDate(foundDate.year, foundDate.month, foundDate.day);
+  }
+
+  /// AD मितिबाट NS वर्ष/महिना/गते निकाल्ने (उल्टो दिशा)।
+  static CalendarDate adToNs(DateTime adDate) {
+    final info = _panchang.tithiOnDate(adDate, City.of('Kathmandu'));
+
+    final hinduMonthName = info.month.displayName;
+    final nsMonth = _nsToHinduMonthName.indexWhere(
+          (name) => name.toLowerCase() == hinduMonthName.toLowerCase(),
+        ) +
+        1;
+    if (nsMonth == 0) {
+      throw StateError('हिन्दू महिना "$hinduMonthName" को NS म्यापिङ भेटिएन');
+    }
+
+    final nsDay = info.paksha == Paksha.shukla
+        ? info.tithiInPaksha
+        : info.tithiInPaksha + 15;
+
+    // AD वर्षबाट NS वर्ष निकाल्ने (nsToAd को ठीक उल्टो सूत्र)
+    final nsYear = (nsMonth <= 2) ? adDate.year - 879 : adDate.year - 880;
+
+    return CalendarDate(nsYear, nsMonth, nsDay);
   }
 }
