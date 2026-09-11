@@ -65,17 +65,30 @@ class DateConverters {
 
   static City get _kathmandu => City.of('Kathmandu');
 
-  /// कुनै मितिपछिको सबैभन्दा नजिकको "शुक्ल प्रतिपदा" (लुनार महिनाको सुरुवात) पत्ता लगाउने।
-  /// (डिबग: असफल भए ३५ दिनका वास्तविक TithiInfo नतिजाहरू एरर म्यासेजमा देखाउँछ)
+  /// कुनै मितिपछिको सबैभन्दा नजिकको लुनार महिना सुरुवात मिति पत्ता लगाउने।
+  ///
+  /// सामान्यतया यो "शुक्ल प्रतिपदा" (tithiInPaksha == 1) भएको दिन हो। तर कहिलेकाहीं
+  /// प्रतिपदा "क्षय तिथि" हुन्छ — अर्थात् त्यो तिथि कुनै पनि पूरा सौर्य दिनमा नपरी
+  /// हराउँछ (अमावस्यापछिको भोलिपल्ट सिधै द्वितीया देखिन्छ)। त्यस्तो अवस्थामा
+  /// कृष्ण पक्षबाट सिधै शुक्ल पक्षमा फड्केको दिनलाई नै महिनाको पहिलो दिन मानिन्छ,
+  /// तिथिको नम्बर जे भए पनि।
   static DateTime _nextShuklaPratipada(DateTime after) {
     final debugLines = <String>[];
+    TithiInfo? prevInfo;
     for (int i = 1; i <= 35; i++) {
       final candidate = after.add(Duration(days: i));
       final info = _panchang.tithiOnDate(candidate, _kathmandu);
       debugLines.add('${candidate.toIso8601String().substring(0, 10)}: $info');
-      if (info.paksha == Paksha.shukla && info.tithiInPaksha == 1) {
+
+      final isPratipada = info.paksha == Paksha.shukla && info.tithiInPaksha == 1;
+      final isKshayaPratipada = info.paksha == Paksha.shukla &&
+          prevInfo != null &&
+          prevInfo.paksha == Paksha.krishna;
+
+      if (isPratipada || isKshayaPratipada) {
         return DateTime(candidate.year, candidate.month, candidate.day);
       }
+      prevInfo = info;
     }
     throw StateError(
       'शुक्ल प्रतिपदा भेटिएन (३५ दिनभित्र) — वास्तविक डेटा:\n${debugLines.join('\n')}',
@@ -120,10 +133,16 @@ class DateConverters {
     final newYearDate = _nsNewYearDate(nsYear);
     final monthStart = _nthLunarMonthStart(newYearDate, nsMonth);
 
+    // day 1 चाहिँ monthStart आफैं हो — तिथि खोजेर पत्ता लगाउनु पर्दैन।
+    // (प्रतिपदा क्षय भएको महिनामा tithiInPaksha==1 कुनै दिनमा नै नआउन सक्छ)
+    if (nsDay == 1) {
+      return AdDate(monthStart.year, monthStart.month, monthStart.day);
+    }
+
     final wantPaksha = nsDay <= 15 ? Paksha.shukla : Paksha.krishna;
     final wantTithi = nsDay <= 15 ? nsDay : nsDay - 15;
 
-    for (int i = 0; i <= 32; i++) {
+    for (int i = 1; i <= 32; i++) {
       final candidate = monthStart.add(Duration(days: i));
       final info = _panchang.tithiOnDate(candidate, _kathmandu);
       if (info.paksha == wantPaksha && info.tithiInPaksha == wantTithi) {
@@ -162,6 +181,14 @@ class DateConverters {
       } else {
         break;
       }
+    }
+
+    // adDate आफैं महिनाको पहिलो दिन (monthStart) हो भने nsDay सिधै 1 हो —
+    // तिथि नम्बर जे भए पनि (क्षय प्रतिपदाको अवस्था ह्यान्डल गर्न)।
+    if (adDate.year == monthStart.year &&
+        adDate.month == monthStart.month &&
+        adDate.day == monthStart.day) {
+      return CalendarDate(nsYear, monthCount, 1);
     }
 
     final info = _panchang.tithiOnDate(adDate, _kathmandu);
