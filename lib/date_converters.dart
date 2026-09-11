@@ -25,7 +25,7 @@ class DateConverters {
   static AdDate bsToAd(int bsYear, int bsMonth, int bsDay) {
     final nepaliDate = NepaliDateTime(bsYear, bsMonth, bsDay);
     final ad = nepaliDate.toDateTime();
-    return AdDate(date.year, date.month, date.day);
+    return AdDate(ad.year, ad.month, ad.day);
   }
 
   static NepaliDateTime adToBs(DateTime adDate) {
@@ -49,7 +49,6 @@ class DateConverters {
     system: MonthSystem.amant,
   );
 
-  // NS महिना (१=कछला ... १२=कौला) -> हिन्दू लुनार महिना नाम (Amant प्रणाली)
   static const List<String> _nsToHinduMonthName = [
     'Kartika', // १ कछला
     'Margashira', // २ थिंला
@@ -73,9 +72,6 @@ class DateConverters {
       throw ArgumentError('nsDay 1-30 को बीचमा हुनुपर्छ');
     }
 
-    // महिना १-२ (कछला, थिंला = कार्तिक, मंसिर) उही NS वर्षको सुरुवाती
-    // AD वर्षमा पर्छन् (NS_year + 879)। बाँकी १० महिना (पुष देखि आश्विन)
-    // अर्को AD वर्षमा पर्छन् (NS_year + 880)।
     final adYearForLookup = (nsMonth <= 2) ? nsYear + 879 : nsYear + 880;
 
     final monthName = _nsToHinduMonthName[nsMonth - 1];
@@ -88,13 +84,18 @@ class DateConverters {
 
     final tithi = nsDay <= 15 ? Tithi.shukla(nsDay) : Tithi.krishna(nsDay - 15);
 
-    final date = _panchang.findDate(
+    final foundDate = _panchang.findDate(
       lunarMonth,
       tithi,
       adYearForLookup,
       City.of('Kathmandu'),
     );
 
-    return AdDate(date.year, date.month, date.day);
+    if (foundDate == null) {
+      throw StateError(
+        'यो NS मितिको लागि AD मिति भेटिएन (अधिक महिना वा सीमा-बाहिरको वर्ष हुन सक्छ)',
+      );
+    }
+    return AdDate(foundDate.year, foundDate.month, foundDate.day);
   }
 }
