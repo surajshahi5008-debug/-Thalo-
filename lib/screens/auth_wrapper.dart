@@ -74,7 +74,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   // आजको वास्तविक AD मितिलाई तोकिएको क्यालेन्डर लेबलमा बदल्ने (वास्तविक कन्भर्जन प्रयोग गरेर)
-  // त्रुटि आएमा समात्ने र स्क्रिनमा देखाउने (डिबग गर्न सजिलो होस् भनेर)
+  // त्रुटि आएमा समात्ने र स्क्रिनमा (स्क्रोल गर्न मिल्ने SnackBar मा) देखाउने
   ({int year, int month, int day}) _todayIn(String calendarLabel) {
     final now = DateTime.now();
     try {
@@ -97,8 +97,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('त्रुटि ($calendarLabel): $e'),
-              duration: const Duration(seconds: 12),
+              content: SingleChildScrollView(
+                child: Text('त्रुटि ($calendarLabel): $e'),
+              ),
+              duration: const Duration(seconds: 30),
             ),
           );
         }
