@@ -145,12 +145,14 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   String _getADMonthName(int m) => ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m - 1];
 
+  String _getADMonthShort(int m) => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m - 1];
+
   String _getMonthName(int m) {
     if (_selectedCalendar == 'वि.सं.') return ['बैशाख', 'जेठ', 'आषाढ', 'श्रावण', 'भाद्र', 'आश्विन', 'कार्तिक', 'मंसिर', 'पुष', 'माघ', 'फागुन', 'चैत'][m - 1];
     if (_selectedCalendar == 'ने.सं.') return ['चिल्ला', 'दिल्ला', 'गुंला', 'ञला', 'चौला', 'बछला', 'तंला', 'देवा', 'कछला', 'इला', 'थिल्ला', 'प्वंला'][m - 1];
     if (_selectedCalendar == 'AD' && _currentLang == 'हिन्दी') return ['जनवरी', 'फरवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'][m - 1];
     if (_selectedCalendar == 'هجری') return ['محرم', 'صفر', 'ربیع الاول', 'ربیع الثانی', 'جمادی الاول', 'جمادی الثانی', 'رجب', 'شعبان', 'رمضان', 'شوال', 'ذوالقعدہ', 'ذوالحجہ'][m - 1];
-    return _getADMonthName(m);
+    return _getADMonthShort(m);
   }
 
   // अब क्यालेन्डर हेल्परबाट उमेर र जन्मदिनको सहि हिसाब गर्ने
