@@ -56,83 +56,121 @@ class DateConverters {
   }
 
   // -----------------------------------------------------------------
-  // नेपाल सम्वत (NS) ⇄ AD — tithi_engine (खगोलीय पञ्चाङ्ग) प्रयोग गरेर
+  // नेपाल सम्वत (NS) ⇄ AD — tithi_engine प्रयोग गरेर
+  // तरिका: "हिन्दू महिना नाम" म्याच गर्ने होइन, कार्तिक (NS नयाँ वर्ष)
+  // बाट क्रमैसँग लुनार महिना गन्ती गर्ने — किनभने अधिक-महिना परेको वर्षमा
+  // NS महिनाको वास्तविक हिन्दू-नाम फेरिन सक्छ (जस्तै "गुंला" कहिले श्रावण
+  // कहिले भाद्रपदसँग मिल्छ), तर यसको क्रमिक स्थान (कार्तिकदेखि १०औं) स्थिर रहन्छ।
   // -----------------------------------------------------------------
   static final Panchang _panchang = Panchang(
     [registerAllCities],
     system: MonthSystem.amant,
   );
 
-  static const List<String> _nsToHinduMonthName = [
-    'Kartika', // १ कछला
-    'Margashira', // २ थिंला
-    'Pausha', // ३ पोहेला
-    'Magha', // ४ सिल्ला
-    'Phalguna', // ५ चिल्ला
-    'Chaitra', // ६ चौला
-    'Vaishakha', // ७ बछला
-    'Jyeshtha', // ८ तछला
-    'Ashadha', // ९ दिल्ला
-    'Shravana', // १० गुंला
-    'Bhadrapada', // ११ ञला
-    'Ashwina', // १२ कौला
-  ];
+  static City get _kathmandu => City.of('Kathmandu');
 
+  /// कुनै मितिपछिको सबैभन्दा नजिकको "शुक्ल प्रतिपदा" (लुनार महिनाको सुरुवात) पत्ता लगाउने।
+  static DateTime _nextShuklaPratipada(DateTime after) {
+    for (int i = 1; i <= 35; i++) {
+      final candidate = after.add(Duration(days: i));
+      final info = _panchang.tithiOnDate(candidate, _kathmandu);
+      if (info.paksha == Paksha.shukla && info.tithiInPaksha == 1) {
+        return DateTime(candidate.year, candidate.month, candidate.day);
+      }
+    }
+    throw StateError('शुक्ल प्रतिपदा भेटिएन (३५ दिनभित्र) — डेटा जाँच्नुपर्छ');
+  }
+
+  /// तोकिएको NS वर्षको नयाँ वर्ष (कार्तिक शुक्ल प्रतिपदा) को AD मिति।
+  static DateTime _nsNewYearDate(int nsYear) {
+    final adYear = nsYear + 879;
+    final date = _panchang.findDate(
+      LunarMonth.values.firstWhere(
+        (m) => m.displayName.toLowerCase() == 'kartika',
+      ),
+      Tithi.shukla(1),
+      adYear,
+      _kathmandu,
+    );
+    if (date == null) {
+      throw StateError('NS $nsYear को नयाँ वर्ष भेटिएन');
+    }
+    return DateTime(date.year, date.month, date.day);
+  }
+
+  /// नयाँ वर्षको मितिबाट क्रमैसँग गनेर n औं लुनार महिनाको सुरुवात मिति पत्ता लगाउने।
+  static DateTime _nthLunarMonthStart(DateTime newYearDate, int n) {
+    var current = newYearDate;
+    for (int i = 1; i < n; i++) {
+      current = _nextShuklaPratipada(current);
+    }
+    return current;
+  }
+
+  /// NS वर्ष/महिना/गते बाट AD मिति निकाल्ने।
   static AdDate nsToAd(int nsYear, int nsMonth, int nsDay) {
-    if (nsMonth < 1 || nsMonth > 12) {
-      throw ArgumentError('nsMonth 1-12 को बीचमा हुनुपर्छ');
+    if (nsMonth < 1 || nsMonth > 13) {
+      throw ArgumentError('nsMonth 1-13 को बीचमा हुनुपर्छ (अधिक-महिना सहित)');
     }
     if (nsDay < 1 || nsDay > 30) {
       throw ArgumentError('nsDay 1-30 को बीचमा हुनुपर्छ');
     }
 
-    final adYearForLookup = (nsMonth <= 2) ? nsYear + 879 : nsYear + 880;
+    final newYearDate = _nsNewYearDate(nsYear);
+    final monthStart = _nthLunarMonthStart(newYearDate, nsMonth);
 
-    final monthName = _nsToHinduMonthName[nsMonth - 1];
-    final lunarMonth = LunarMonth.values.firstWhere(
-      (m) => m.displayName.toLowerCase() == monthName.toLowerCase(),
-      orElse: () => throw StateError(
-        'LunarMonth "$monthName" भेटिएन — tithi_engine को exact naming जाँच्नुपर्छ',
-      ),
-    );
+    final wantPaksha = nsDay <= 15 ? Paksha.shukla : Paksha.krishna;
+    final wantTithi = nsDay <= 15 ? nsDay : nsDay - 15;
 
-    final tithi = nsDay <= 15 ? Tithi.shukla(nsDay) : Tithi.krishna(nsDay - 15);
-
-    final foundDate = _panchang.findDate(
-      lunarMonth,
-      tithi,
-      adYearForLookup,
-      City.of('Kathmandu'),
-    );
-
-    if (foundDate == null) {
-      throw StateError(
-        'यो NS मितिको लागि AD मिति भेटिएन (अधिक महिना वा सीमा-बाहिरको वर्ष हुन सक्छ)',
-      );
+    // महिना सुरुवातको वरिपरि (०-३२ दिन) खोजेर ठ्याक्कै तिथि भेट्टाउने
+    for (int i = 0; i <= 32; i++) {
+      final candidate = monthStart.add(Duration(days: i));
+      final info = _panchang.tithiOnDate(candidate, _kathmandu);
+      if (info.paksha == wantPaksha && info.tithiInPaksha == wantTithi) {
+        return AdDate(candidate.year, candidate.month, candidate.day);
+      }
     }
-    return AdDate(foundDate.year, foundDate.month, foundDate.day);
+    throw StateError('यो NS मितिको लागि AD मिति भेटिएन');
   }
 
   /// AD मितिबाट NS वर्ष/महिना/गते निकाल्ने (उल्टो दिशा)।
   static CalendarDate adToNs(DateTime adDate) {
-    final info = _panchang.tithiOnDate(adDate, City.of('Kathmandu'));
+    // सम्भावित २ NS वर्ष जाँच्ने: गत वर्षको कार्तिकबाट सुरु भएको, र यही वर्षको
+    final candidateOlder = adDate.year - 880;
+    final candidateNewer = adDate.year - 879;
 
-    final hinduMonthName = info.month.displayName;
-    final nsMonth = _nsToHinduMonthName.indexWhere(
-          (name) => name.toLowerCase() == hinduMonthName.toLowerCase(),
-        ) +
-        1;
-    if (nsMonth == 0) {
-      throw StateError('हिन्दू महिना "$hinduMonthName" को NS म्यापिङ भेटिएन');
+    final newYearNewer = _nsNewYearDate(candidateNewer);
+    final int nsYear;
+    final DateTime newYearDate;
+    if (!adDate.isBefore(newYearNewer)) {
+      // यही वर्षको कार्तिक पहिल्यै भइसक्यो
+      nsYear = candidateNewer;
+      newYearDate = newYearNewer;
+    } else {
+      nsYear = candidateOlder;
+      newYearDate = _nsNewYearDate(candidateOlder);
     }
 
-    final nsDay = info.paksha == Paksha.shukla
-        ? info.tithiInPaksha
-        : info.tithiInPaksha + 15;
+    // कार्तिकबाट adDate सम्म कति लुनार महिना बितिसक्यो भनेर गन्ने
+    int monthCount = 1;
+    var monthStart = newYearDate;
+    while (true) {
+      final nextMonthStart = _nextShuklaPratipada(monthStart);
+      if (!adDate.isBefore(nextMonthStart)) {
+        monthStart = nextMonthStart;
+        monthCount++;
+        if (monthCount > 13) {
+          throw StateError('NS महिना गन्तीमा त्रुटि (१३ भन्दा बढी भयो)');
+        }
+      } else {
+        break;
+      }
+    }
 
-    // AD वर्षबाट NS वर्ष निकाल्ने (nsToAd को ठीक उल्टो सूत्र)
-    final nsYear = (nsMonth <= 2) ? adDate.year - 879 : adDate.year - 880;
+    final info = _panchang.tithiOnDate(adDate, _kathmandu);
+    final nsDay =
+        info.paksha == Paksha.shukla ? info.tithiInPaksha : info.tithiInPaksha + 15;
 
-    return CalendarDate(nsYear, nsMonth, nsDay);
+    return CalendarDate(nsYear, monthCount, nsDay);
   }
 }
