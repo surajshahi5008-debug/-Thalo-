@@ -73,32 +73,41 @@ class _AuthWrapperState extends State<AuthWrapper> {
     }
   }
 
+  // आजको वास्तविक AD मितिलाई तोकिएको क्यालेन्डर लेबलमा बदल्ने (वास्तविक कन्भर्जन प्रयोग गरेर)
+  ({int year, int month, int day}) _todayIn(String calendarLabel) {
+    final now = DateTime.now();
+    switch (calendarLabel) {
+      case 'वि.सं.':
+        final bs = DateConverters.adToBs(now);
+        return (year: bs.year, month: bs.month, day: bs.day);
+      case 'ने.सं.':
+        final ns = DateConverters.adToNs(now);
+        return (year: ns.year, month: ns.month, day: ns.day);
+      case 'هجری':
+        final h = DateConverters.adToHijri(now);
+        return (year: h.year, month: h.month, day: h.day);
+      default:
+        return (year: now.year, month: now.month, day: now.day);
+    }
+  }
+
   // आजको वास्तविक मिति र क्यालेन्डर सेट गर्ने
   void _setCurrentDateForLanguage(String lang) {
-    final now = DateTime.now();
     setState(() {
       _currentLang = lang;
       if (lang == 'नेपाली') {
         _selectedCalendar = 'वि.सं.';
-        _selectedYear = 2083;
-        _selectedMonth = 5; 
-        _selectedDay = 21;  
       } else if (lang == 'नेपाल भाषा') {
         _selectedCalendar = 'ने.सं.';
-        _selectedYear = 1146;
-        _selectedMonth = 11;
-        _selectedDay = 21;
       } else if (lang == 'اردو') {
         _selectedCalendar = 'هجری';
-        _selectedYear = 1448;
-        _selectedMonth = 3;
-        _selectedDay = 21;
       } else {
         _selectedCalendar = 'AD';
-        _selectedYear = now.year;
-        _selectedMonth = now.month;
-        _selectedDay = now.day;
       }
+      final today = _todayIn(_selectedCalendar);
+      _selectedYear = today.year;
+      _selectedMonth = today.month;
+      _selectedDay = today.day;
       _calculateAgeAndBirthday();
     });
   }
@@ -275,8 +284,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDlgState) {
-          final now = DateTime.now();
-          int baseYear = _selectedCalendar == 'AD' ? now.year : (_selectedCalendar == 'वि.सं.' ? 2083 : (_selectedCalendar == 'ने.सं.' ? 1146 : 1448));
+          final todayAdParts = _todayIn('AD');
+          final baseYear = _todayIn(_selectedCalendar).year;
           List<int> years = List.generate(161, (i) => baseYear - 110 + i);
           String altCalendar = {'नेपाली': 'वि.सं.', 'नेपाल भाषा': 'ने.सं.', 'اردو': 'هجری'}[_currentLang] ?? 'वि.सं.';
           bool hasSwitch = ['नेपाली', 'नेपाल भाषा', 'اردو'].contains(_currentLang);
@@ -290,10 +299,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   onTap: () => setDlgState(() {
                     if (_selectedCalendar == 'AD') {
                       _selectedCalendar = altCalendar;
-                      _setCurrentDateForLanguage(_currentLang);
+                      final t = _todayIn(_selectedCalendar);
+                      _selectedYear = t.year; _selectedMonth = t.month; _selectedDay = t.day;
                     } else {
                       _selectedCalendar = 'AD';
-                      _selectedYear = now.year; _selectedMonth = now.month; _selectedDay = now.day;
+                      _selectedYear = todayAdParts.year; _selectedMonth = todayAdParts.month; _selectedDay = todayAdParts.day;
                     }
                   }),
                   child: Container(
