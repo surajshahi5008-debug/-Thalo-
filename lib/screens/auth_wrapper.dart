@@ -74,20 +74,36 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   // आजको वास्तविक AD मितिलाई तोकिएको क्यालेन्डर लेबलमा बदल्ने (वास्तविक कन्भर्जन प्रयोग गरेर)
+  // त्रुटि आएमा समात्ने र स्क्रिनमा देखाउने (डिबग गर्न सजिलो होस् भनेर)
   ({int year, int month, int day}) _todayIn(String calendarLabel) {
     final now = DateTime.now();
-    switch (calendarLabel) {
-      case 'वि.सं.':
-        final bs = DateConverters.adToBs(now);
-        return (year: bs.year, month: bs.month, day: bs.day);
-      case 'ने.सं.':
-        final ns = DateConverters.adToNs(now);
-        return (year: ns.year, month: ns.month, day: ns.day);
-      case 'هجری':
-        final h = DateConverters.adToHijri(now);
-        return (year: h.year, month: h.month, day: h.day);
-      default:
-        return (year: now.year, month: now.month, day: now.day);
+    try {
+      switch (calendarLabel) {
+        case 'वि.सं.':
+          final bs = DateConverters.adToBs(now);
+          return (year: bs.year, month: bs.month, day: bs.day);
+        case 'ने.सं.':
+          final ns = DateConverters.adToNs(now);
+          return (year: ns.year, month: ns.month, day: ns.day);
+        case 'هجری':
+          final h = DateConverters.adToHijri(now);
+          return (year: h.year, month: h.month, day: h.day);
+        default:
+          return (year: now.year, month: now.month, day: now.day);
+      }
+    } catch (e, st) {
+      debugPrint('CalendarHelper _todayIn error for $calendarLabel: $e\n$st');
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('त्रुटि ($calendarLabel): $e'),
+              duration: const Duration(seconds: 12),
+            ),
+          );
+        }
+      });
+      return (year: now.year, month: now.month, day: now.day);
     }
   }
 
@@ -158,7 +174,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   String _getMonthName(int m) {
     if (_selectedCalendar == 'वि.सं.') return ['बैशाख', 'जेठ', 'आषाढ', 'श्रावण', 'भाद्र', 'आश्विन', 'कार्तिक', 'मंसिर', 'पुष', 'माघ', 'फागुन', 'चैत'][m - 1];
-    if (_selectedCalendar == 'ने.सं.') return ['चिल्ला', 'दिल्ला', 'गुंला', 'ञला', 'चौला', 'बछला', 'तंला', 'देवा', 'कछला', 'इला', 'थिल्ला', 'प्वंला'][m - 1];
+    if (_selectedCalendar == 'ने.सं.') return ['कछला', 'थिंला', 'पोहेला', 'सिल्ला', 'चिल्ला', 'चौला', 'बछला', 'तछला', 'दिल्ला', 'गुंला', 'ञला', 'कौला', 'अधिक'][m - 1];
     if (_selectedCalendar == 'AD' && _currentLang == 'हिन्दी') return ['जनवरी', 'फरवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'][m - 1];
     if (_selectedCalendar == 'هجری') return ['محرم', 'صفر', 'ربیع الاول', 'ربیع الثانی', 'جمادی الاول', 'جمادی الثانی', 'رجب', 'شعبان', 'رمضان', 'شوال', 'ذوالقعدہ', 'ذوالحجہ'][m - 1];
     return _getADMonthShort(m);
