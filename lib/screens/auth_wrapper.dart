@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 import '../utils/helpers.dart';
 import 'calendar_helper.dart';
+import '../calendar_enums.dart';
+import '../date_converters.dart';
 import 'home_screen.dart';
 
 class AuthWrapper extends StatefulWidget {
@@ -57,9 +59,23 @@ class _AuthWrapperState extends State<AuthWrapper> {
     super.dispose();
   }
 
+  // पुरानो स्ट्रिङ लेबल ('वि.सं.', 'ने.सं.', 'هجری', 'AD') लाई नयाँ CalendarSystem enum मा बदल्ने
+  CalendarSystem _calendarSystemFromLabel(String label) {
+    switch (label) {
+      case 'वि.सं.':
+        return CalendarSystem.bs;
+      case 'ने.सं.':
+        return CalendarSystem.ns;
+      case 'هجری':
+        return CalendarSystem.hijri;
+      default:
+        return CalendarSystem.ad;
+    }
+  }
+
   // आजको वास्तविक मिति र क्यालेन्डर सेट गर्ने
   void _setCurrentDateForLanguage(String lang) {
-    final now = CalendarHelper.getTodayAD();
+    final now = DateTime.now();
     setState(() {
       _currentLang = lang;
       if (lang == 'नेपाली') {
@@ -88,7 +104,12 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   Map<String, dynamic> _getEquivalentADString() {
-    DateTime adDate = CalendarHelper.convertToAD(_selectedYear, _selectedMonth, _selectedDay, _selectedCalendar);
+    final adDate = CalendarHelper.toAd(
+      system: _calendarSystemFromLabel(_selectedCalendar),
+      year: _selectedYear,
+      month: _selectedMonth,
+      day: _selectedDay,
+    ).toDateTime();
     return {
       'year': adDate.year, 'month': adDate.month, 'day': adDate.day,
       'formatted': '${adDate.year} ${_getADMonthName(adDate.month)} ${adDate.day} (AD)'
@@ -134,12 +155,13 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   // अब क्यालेन्डर हेल्परबाट उमेर र जन्मदिनको सहि हिसाब गर्ने
   void _calculateAgeAndBirthday() {
-    final result = CalendarHelper.calculateAgeAndCountdown(
+    final birthAd = CalendarHelper.toAd(
+      system: _calendarSystemFromLabel(_selectedCalendar),
       year: _selectedYear,
       month: _selectedMonth,
       day: _selectedDay,
-      calendarType: _selectedCalendar,
     );
+    final result = CalendarHelper.calculateAgeAndCountdown(birthAd);
 
     int years = result['years'];
     int months = result['months'];
@@ -251,7 +273,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDlgState) {
-          final now = CalendarHelper.getTodayAD();
+          final now = DateTime.now();
           int baseYear = _selectedCalendar == 'AD' ? now.year : (_selectedCalendar == 'वि.सं.' ? 2083 : (_selectedCalendar == 'ने.सं.' ? 1146 : 1448));
           List<int> years = List.generate(161, (i) => baseYear - 110 + i);
           String altCalendar = {'नेपाली': 'वि.सं.', 'नेपाल भाषा': 'ने.सं.', 'اردو': 'هجری'}[_currentLang] ?? 'वि.सं.';
