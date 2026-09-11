@@ -56,11 +56,7 @@ class DateConverters {
   }
 
   // -----------------------------------------------------------------
-  // नेपाल सम्वत (NS) ⇄ AD — tithi_engine प्रयोग गरेर
-  // तरिका: "हिन्दू महिना नाम" म्याच गर्ने होइन, कार्तिक (NS नयाँ वर्ष)
-  // बाट क्रमैसँग लुनार महिना गन्ती गर्ने — किनभने अधिक-महिना परेको वर्षमा
-  // NS महिनाको वास्तविक हिन्दू-नाम फेरिन सक्छ (जस्तै "गुंला" कहिले श्रावण
-  // कहिले भाद्रपदसँग मिल्छ), तर यसको क्रमिक स्थान (कार्तिकदेखि १०औं) स्थिर रहन्छ।
+  // नेपाल सम्वत (NS) ⇄ AD — tithi_engine प्रयोग गरेर (क्रमैसँग महिना गन्ने तरिका)
   // -----------------------------------------------------------------
   static final Panchang _panchang = Panchang(
     [registerAllCities],
@@ -70,15 +66,20 @@ class DateConverters {
   static City get _kathmandu => City.of('Kathmandu');
 
   /// कुनै मितिपछिको सबैभन्दा नजिकको "शुक्ल प्रतिपदा" (लुनार महिनाको सुरुवात) पत्ता लगाउने।
+  /// (डिबग: असफल भए ३५ दिनका वास्तविक TithiInfo नतिजाहरू एरर म्यासेजमा देखाउँछ)
   static DateTime _nextShuklaPratipada(DateTime after) {
+    final debugLines = <String>[];
     for (int i = 1; i <= 35; i++) {
       final candidate = after.add(Duration(days: i));
       final info = _panchang.tithiOnDate(candidate, _kathmandu);
+      debugLines.add('${candidate.toIso8601String().substring(0, 10)}: $info');
       if (info.paksha == Paksha.shukla && info.tithiInPaksha == 1) {
         return DateTime(candidate.year, candidate.month, candidate.day);
       }
     }
-    throw StateError('शुक्ल प्रतिपदा भेटिएन (३५ दिनभित्र) — डेटा जाँच्नुपर्छ');
+    throw StateError(
+      'शुक्ल प्रतिपदा भेटिएन (३५ दिनभित्र) — वास्तविक डेटा:\n${debugLines.join('\n')}',
+    );
   }
 
   /// तोकिएको NS वर्षको नयाँ वर्ष (कार्तिक शुक्ल प्रतिपदा) को AD मिति।
@@ -122,7 +123,6 @@ class DateConverters {
     final wantPaksha = nsDay <= 15 ? Paksha.shukla : Paksha.krishna;
     final wantTithi = nsDay <= 15 ? nsDay : nsDay - 15;
 
-    // महिना सुरुवातको वरिपरि (०-३२ दिन) खोजेर ठ्याक्कै तिथि भेट्टाउने
     for (int i = 0; i <= 32; i++) {
       final candidate = monthStart.add(Duration(days: i));
       final info = _panchang.tithiOnDate(candidate, _kathmandu);
@@ -135,7 +135,6 @@ class DateConverters {
 
   /// AD मितिबाट NS वर्ष/महिना/गते निकाल्ने (उल्टो दिशा)।
   static CalendarDate adToNs(DateTime adDate) {
-    // सम्भावित २ NS वर्ष जाँच्ने: गत वर्षको कार्तिकबाट सुरु भएको, र यही वर्षको
     final candidateOlder = adDate.year - 880;
     final candidateNewer = adDate.year - 879;
 
@@ -143,7 +142,6 @@ class DateConverters {
     final int nsYear;
     final DateTime newYearDate;
     if (!adDate.isBefore(newYearNewer)) {
-      // यही वर्षको कार्तिक पहिल्यै भइसक्यो
       nsYear = candidateNewer;
       newYearDate = newYearNewer;
     } else {
@@ -151,7 +149,6 @@ class DateConverters {
       newYearDate = _nsNewYearDate(candidateOlder);
     }
 
-    // कार्तिकबाट adDate सम्म कति लुनार महिना बितिसक्यो भनेर गन्ने
     int monthCount = 1;
     var monthStart = newYearDate;
     while (true) {
