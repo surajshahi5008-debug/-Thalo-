@@ -130,17 +130,39 @@ class _AuthWrapperState extends State<AuthWrapper> {
     });
   }
 
-  Map<String, dynamic> _getEquivalentADString() {
-    final adDate = CalendarHelper.toAd(
-      system: _calendarSystemFromLabel(_selectedCalendar),
-      year: _selectedYear,
-      month: _selectedMonth,
-      day: _selectedDay,
-    ).toDateTime();
-    return {
-      'year': adDate.year, 'month': adDate.month, 'day': adDate.day,
-      'formatted': '${adDate.year} ${_getADMonthName(adDate.month)} ${adDate.day} (AD)'
-    };
+  // "AD आधारमा" / native-बराबर लाइनको लागि डेटा।
+  // English/हिन्दी मा null फर्काउँछ — त्यहाँ यो लाइन नै देखाउनु पर्दैन।
+  Map<String, String>? _getConversionLine() {
+    final altCalendar = {
+      'नेपाली': 'वि.सं.',
+      'नेपाल भाषा': 'ने.सं.',
+      'اردو': 'هجری',
+    }[_currentLang];
+    if (altCalendar == null) return null;
+
+    if (_selectedCalendar == 'AD') {
+      // प्रयोगकर्ताले AD मा जन्ममिति राखेको छ -> सम्बन्धित भाषाको native क्यालेन्डरमा बराबर देखाउने
+      final system = _calendarSystemFromLabel(altCalendar);
+      final nativeDate = CalendarHelper.fromAd(
+        system,
+        AdDate(_selectedYear, _selectedMonth, _selectedDay),
+      );
+      return {
+        'formatted':
+            '${_fmtNum(nativeDate.year, calendar: altCalendar)} ${_getMonthName(nativeDate.month, calendar: altCalendar)} ${_fmtNum(nativeDate.day, calendar: altCalendar)} ($altCalendar)',
+      };
+    } else {
+      // प्रयोगकर्ताले native क्यालेन्डरमा जन्ममिति राखेको छ -> AD मा बराबर देखाउने
+      final adDate = CalendarHelper.toAd(
+        system: _calendarSystemFromLabel(_selectedCalendar),
+        year: _selectedYear,
+        month: _selectedMonth,
+        day: _selectedDay,
+      ).toDateTime();
+      return {
+        'formatted': '${adDate.year} ${_getADMonthName(adDate.month)} ${adDate.day} (AD)',
+      };
+    }
   }
 
   String _getText(String k) {
@@ -150,12 +172,13 @@ class _AuthWrapperState extends State<AuthWrapper> {
     return AppLocalizations.localizedValues[_currentLang]?[k] ?? AppLocalizations.localizedValues['नेपाली']![k]!;
   }
 
-  String _fmtNum(int n) {
-    if (_selectedCalendar == 'هجری' && _currentLang == 'اردو') {
+  String _fmtNum(int n, {String? calendar}) {
+    final cal = calendar ?? _selectedCalendar;
+    if (cal == 'هجری' && _currentLang == 'اردو') {
       const arabicDigits = ['٠', '١', '٢', '۳', '۴', '۵', '۶', '۷', '۸', '٩'];
       return n.toString().split('').map((c) => arabicDigits[int.tryParse(c) ?? 0]).join('');
     }
-    return AppLocalizations.formatNumber(n, _currentLang, _selectedCalendar);
+    return AppLocalizations.formatNumber(n, _currentLang, cal);
   }
 
   String _getNumberOrWord(int n, String lang) {
@@ -174,11 +197,12 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   String _getADMonthShort(int m) => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m - 1];
 
-  String _getMonthName(int m) {
-    if (_selectedCalendar == 'वि.सं.') return ['बैशाख', 'जेठ', 'आषाढ', 'श्रावण', 'भाद्र', 'आश्विन', 'कार्तिक', 'मंसिर', 'पुष', 'माघ', 'फागुन', 'चैत'][m - 1];
-    if (_selectedCalendar == 'ने.सं.') return ['कछला', 'थिंला', 'पोहेला', 'सिल्ला', 'चिल्ला', 'चौला', 'बछला', 'तछला', 'दिल्ला', 'गुंला', 'ञला', 'कौला', 'अधिक'][m - 1];
-    if (_selectedCalendar == 'AD' && _currentLang == 'हिन्दी') return ['जनवरी', 'फरवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'][m - 1];
-    if (_selectedCalendar == 'هجری') return ['محرم', 'صفر', 'ربیع الاول', 'ربیع الثانی', 'جمادی الاول', 'جمادی الثانی', 'رجب', 'شعبان', 'رمضان', 'شوال', 'ذوالقعدہ', 'ذوالحجہ'][m - 1];
+  String _getMonthName(int m, {String? calendar}) {
+    final cal = calendar ?? _selectedCalendar;
+    if (cal == 'वि.सं.') return ['बैशाख', 'जेठ', 'आषाढ', 'श्रावण', 'भाद्र', 'आश्विन', 'कार्तिक', 'मंसिर', 'पुष', 'माघ', 'फागुन', 'चैत'][m - 1];
+    if (cal == 'ने.सं.') return ['कछला', 'थिंला', 'पोहेला', 'सिल्ला', 'चिल्ला', 'चौला', 'बछला', 'तछला', 'दिल्ला', 'गुंला', 'ञला', 'कौला', 'अधिक'][m - 1];
+    if (cal == 'AD' && _currentLang == 'हिन्दी') return ['जनवरी', 'फरवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'][m - 1];
+    if (cal == 'هجری') return ['محرم', 'صفر', 'ربیع الاول', 'ربیع الثانی', 'جمادی الاول', 'جمادی الثانی', 'رجب', 'شعبان', 'رمضان', 'شوال', 'ذوالقعدہ', 'ذوالحجہ'][m - 1];
     return _getADMonthShort(m);
   }
 
@@ -398,7 +422,13 @@ class _AuthWrapperState extends State<AuthWrapper> {
     }
 
     if (_currentIndex == 1) {
-      var adEquivalent = _getEquivalentADString();
+      final conversionLine = _getConversionLine();
+      final adBaseLabel = {
+        'नेपाली': 'बराबर',
+        'नेपाल भाषा': 'बराबर',
+        'हिन्दी': 'बराबर',
+        'اردو': 'برابر',
+      }[_currentLang] ?? 'Equivalent';
       return Scaffold(
         appBar: AppBar(backgroundColor: Colors.blue, title: Text(_getText('registerAppBar'), style: const TextStyle(color: Colors.white)), leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => setState(() => _currentIndex = 0))),
         body: SafeArea(
@@ -419,8 +449,16 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   onTap: _showDatePicker,
                   child: AbsorbPointer(child: TextField(decoration: InputDecoration(labelText: '${_getText('dob')} : ${_fmtNum(_selectedYear)} ${_getMonthName(_selectedMonth)} ${_fmtNum(_selectedDay)} ($_selectedCalendar)', border: const OutlineInputBorder(), suffixIcon: const Icon(Icons.calendar_today)))),
                 ),
-                const SizedBox(height: 4),
-                Padding(padding: const EdgeInsets.only(left: 4), child: Text('AD आधारमा: ${adEquivalent['formatted']}', style: TextStyle(fontSize: 11, color: Colors.indigo[600], fontStyle: FontStyle.italic, fontWeight: FontWeight.w600))),
+                if (conversionLine != null) ...[
+                  const SizedBox(height: 4),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4),
+                    child: Text(
+                      '$adBaseLabel: ${conversionLine['formatted']}',
+                      style: TextStyle(fontSize: 11, color: Colors.indigo[600], fontStyle: FontStyle.italic, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 8),
                 Text(_ageResultText.isEmpty ? 'Age: 0 years, 0 months, and 0 days old.' : _ageResultText, style: const TextStyle(fontSize: 13, color: Colors.blueGrey, fontWeight: FontWeight.w500)),
                 const SizedBox(height: 4),
