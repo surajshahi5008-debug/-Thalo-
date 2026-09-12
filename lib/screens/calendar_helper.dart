@@ -57,6 +57,21 @@ class CalendarHelper {
     }
   }
 
+  /// AD मितिलाई तोकिएको क्यालेन्डर प्रणालीमा बदल्ने (उल्टो दिशा)।
+  static CalendarDate fromAd(CalendarSystem system, AdDate ad) {
+    final adDateTime = ad.toDateTime();
+    switch (system) {
+      case CalendarSystem.ad:
+        return CalendarDate(ad.year, ad.month, ad.day);
+      case CalendarSystem.bs:
+        return DateConverters.adToBs(adDateTime);
+      case CalendarSystem.ns:
+        return DateConverters.adToNs(adDateTime);
+      case CalendarSystem.hijri:
+        return DateConverters.adToHijri(adDateTime);
+    }
+  }
+
   /// उमेर र जन्मदिन काउन्टडाउन।
   static Map<String, dynamic> calculateAgeAndCountdown(AdDate birth) {
     final birthAD = birth.toDateTime();
