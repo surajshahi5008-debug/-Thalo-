@@ -153,6 +153,9 @@ class DateConverters {
   }
 
   /// AD मितिबाट NS वर्ष/महिना/गते निकाल्ने (उल्टो दिशा)।
+  ///
+  /// DEBUG संस्करण — नेपाल भाषा क्यालेन्डरमा महिना नमिलेको समस्या पत्ता लगाउन
+  /// अस्थायी रूपमा हरेक महिनाको सुरुवात मिति देखाउँछ।
   static CalendarDate adToNs(DateTime adDate) {
     final candidateOlder = adDate.year - 880;
     final candidateNewer = adDate.year - 879;
@@ -168,23 +171,31 @@ class DateConverters {
       newYearDate = _nsNewYearDate(candidateOlder);
     }
 
+    final debugLines = <String>['नयाँ वर्ष सुरु: ${newYearDate.toIso8601String().substring(0, 10)}'];
+
     int monthCount = 1;
     var monthStart = newYearDate;
     while (true) {
       final nextMonthStart = _nextShuklaPratipada(monthStart);
+      debugLines.add(
+        'महिना $monthCount सुरु: ${monthStart.toIso8601String().substring(0, 10)}  |  अर्को महिना सुरु: ${nextMonthStart.toIso8601String().substring(0, 10)}',
+      );
       if (!adDate.isBefore(nextMonthStart)) {
         monthStart = nextMonthStart;
         monthCount++;
         if (monthCount > 13) {
-          throw StateError('NS महिना गन्तीमा त्रुटि (१३ भन्दा बढी भयो)');
+          throw StateError('NS महिना गन्तीमा त्रुटि (१३ भन्दा बढी भयो)\n${debugLines.join('\n')}');
         }
       } else {
         break;
       }
     }
 
-    // adDate आफैं महिनाको पहिलो दिन (monthStart) हो भने nsDay सिधै 1 हो —
-    // तिथि नम्बर जे भए पनि (क्षय प्रतिपदाको अवस्था ह्यान्डल गर्न)।
+    throw StateError(
+      'DEBUG adToNs — लक्षित मिति: ${adDate.toIso8601String().substring(0, 10)}, पत्ता लागेको महिना: $monthCount\n${debugLines.join('\n')}',
+    );
+
+    /* -- असली कोड (debug हटाएपछि यसलाई माथिको throw को साटो फर्काउने) --
     if (adDate.year == monthStart.year &&
         adDate.month == monthStart.month &&
         adDate.day == monthStart.day) {
@@ -196,5 +207,6 @@ class DateConverters {
         info.paksha == Paksha.shukla ? info.tithiInPaksha : info.tithiInPaksha + 15;
 
     return CalendarDate(nsYear, monthCount, nsDay);
+    */
   }
 }
