@@ -75,7 +75,12 @@ class CalendarHelper {
   /// उमेर र जन्मदिन काउन्टडाउन।
   static Map<String, dynamic> calculateAgeAndCountdown(AdDate birth) {
     final birthAD = birth.toDateTime();
-    final todayAD = DateTime.now();
+
+    // समय (घण्टा/मिनेट) हटाएर शुद्ध मिति (midnight) मा ल्याइयो —
+    // नत्र दिनको जुन बेला app खोलियो सोही अनुसार countdown १ दिनले तलमाथि हुन्थ्यो।
+    final now = DateTime.now();
+    final todayAD = DateTime(now.year, now.month, now.day);
+
     final effectiveBirth = birthAD.isAfter(todayAD) ? todayAD : birthAD;
 
     int ageYears = todayAD.year - effectiveBirth.year;
