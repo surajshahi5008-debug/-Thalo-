@@ -86,6 +86,13 @@ class CalendarLocalization {
       AppLanguage.urdu: 'عمر',
       AppLanguage.newari: 'उमेर',
     },
+    'age_text': {
+      AppLanguage.nepali: 'उमेर',
+      AppLanguage.hindi: 'आयु',
+      AppLanguage.english: 'Age',
+      AppLanguage.urdu: 'عمر',
+      AppLanguage.newari: 'उमेर',
+    },
     'years': {
       AppLanguage.nepali: 'वर्ष',
       AppLanguage.hindi: 'वर्ष',
@@ -106,6 +113,34 @@ class CalendarLocalization {
       AppLanguage.english: 'days',
       AppLanguage.urdu: 'دن',
       AppLanguage.newari: 'न्ह्य',
+    },
+    'ad_base': {
+      AppLanguage.nepali: 'AD आधारमा',
+      AppLanguage.hindi: 'AD आधार पर',
+      AppLanguage.english: 'Based on AD',
+      AppLanguage.urdu: 'AD کی بنیاد پر',
+      AppLanguage.newari: 'AD आधारमा',
+    },
+    'birthday_today': {
+      AppLanguage.nepali: 'आज तपाईंको जन्मदिन हो!',
+      AppLanguage.hindi: 'आज आपका जन्मदिन है!',
+      AppLanguage.english: 'It\'s your birthday today!',
+      AppLanguage.urdu: 'آج آپ کی سالگرہ ہے!',
+      AppLanguage.newari: 'थ्व न्हिं छिगु जन्मदिन खः!',
+    },
+    'birthday_countdown': {
+      AppLanguage.nepali: 'जन्मदिन बाँकी:',
+      AppLanguage.hindi: 'जन्मदिन शेष:',
+      AppLanguage.english: 'Days until birthday:',
+      AppLanguage.urdu: 'سالگرہ تک باقی دن:',
+      AppLanguage.newari: 'जन्मदिन बाँकी:',
+    },
+    'choose_date': {
+      AppLanguage.nepali: 'मिति छान्नुहोस्',
+      AppLanguage.hindi: 'तारीख़ चुनें',
+      AppLanguage.english: 'Choose Date',
+      AppLanguage.urdu: 'تاریخ منتخب کریں',
+      AppLanguage.newari: 'मिति छान्नुहोस्',
     },
   };
 
