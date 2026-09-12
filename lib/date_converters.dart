@@ -95,6 +95,14 @@ class DateConverters {
     );
   }
 
+  /// तोकिएको लुनार महिना सुरुवात मिति "अधिक महिना" (adhik maas) हो कि होइन।
+  /// अधिक महिना भनेको जुन महिनाभित्र सूर्यले कुनै राशि परिवर्तन (सङ्क्रान्ति) गर्दैन —
+  /// यस्तो महिना परम्परागत रूपमा छुट्टै नयाँ महिना नाम/नम्बर नपाई अघिल्लै
+  /// महिनाको नाम/नम्बर दोहोऱ्याउँछ।
+  static bool _isAdhikaMonthStart(DateTime monthStart) {
+    return _panchang.tithiOnDate(monthStart, _kathmandu).isAdhika;
+  }
+
   /// तोकिएको NS वर्षको नयाँ वर्ष (कार्तिक शुक्ल प्रतिपदा) को AD मिति।
   static DateTime _nsNewYearDate(int nsYear) {
     final adYear = nsYear + 879;
@@ -112,11 +120,17 @@ class DateConverters {
     return DateTime(date.year, date.month, date.day);
   }
 
-  /// नयाँ वर्षको मितिबाट क्रमैसँग गनेर n औं लुनार महिनाको सुरुवात मिति पत्ता लगाउने।
+  /// नयाँ वर्षको मितिबाट क्रमैसँग गनेर n औं (अधिक महिना नगनी) लुनार महिनाको
+  /// सुरुवात मिति पत्ता लगाउने।
   static DateTime _nthLunarMonthStart(DateTime newYearDate, int n) {
     var current = newYearDate;
-    for (int i = 1; i < n; i++) {
-      current = _nextShuklaPratipada(current);
+    int count = 1;
+    while (count < n) {
+      final next = _nextShuklaPratipada(current);
+      current = next;
+      if (!_isAdhikaMonthStart(next)) {
+        count++;
+      }
     }
     return current;
   }
@@ -153,9 +167,6 @@ class DateConverters {
   }
 
   /// AD मितिबाट NS वर्ष/महिना/गते निकाल्ने (उल्टो दिशा)।
-  ///
-  /// DEBUG संस्करण — नेपाल भाषा क्यालेन्डरमा महिना नमिलेको समस्या पत्ता लगाउन
-  /// अस्थायी रूपमा हरेक महिनाको सुरुवात मिति देखाउँछ।
   static CalendarDate adToNs(DateTime adDate) {
     final candidateOlder = adDate.year - 880;
     final candidateNewer = adDate.year - 879;
@@ -171,31 +182,26 @@ class DateConverters {
       newYearDate = _nsNewYearDate(candidateOlder);
     }
 
-    final debugLines = <String>['नयाँ वर्ष सुरु: ${newYearDate.toIso8601String().substring(0, 10)}'];
-
     int monthCount = 1;
     var monthStart = newYearDate;
     while (true) {
       final nextMonthStart = _nextShuklaPratipada(monthStart);
-      debugLines.add(
-        'महिना $monthCount सुरु: ${monthStart.toIso8601String().substring(0, 10)}  |  अर्को महिना सुरु: ${nextMonthStart.toIso8601String().substring(0, 10)}',
-      );
       if (!adDate.isBefore(nextMonthStart)) {
         monthStart = nextMonthStart;
-        monthCount++;
+        // अधिक महिना भए महिना नम्बर नबढाउने (अघिल्लै नम्बर कायम राख्ने)।
+        if (!_isAdhikaMonthStart(nextMonthStart)) {
+          monthCount++;
+        }
         if (monthCount > 13) {
-          throw StateError('NS महिना गन्तीमा त्रुटि (१३ भन्दा बढी भयो)\n${debugLines.join('\n')}');
+          throw StateError('NS महिना गन्तीमा त्रुटि (१३ भन्दा बढी भयो)');
         }
       } else {
         break;
       }
     }
 
-    throw StateError(
-      'DEBUG adToNs — लक्षित मिति: ${adDate.toIso8601String().substring(0, 10)}, पत्ता लागेको महिना: $monthCount\n${debugLines.join('\n')}',
-    );
-
-    /* -- असली कोड (debug हटाएपछि यसलाई माथिको throw को साटो फर्काउने) --
+    // adDate आफैं महिनाको पहिलो दिन (monthStart) हो भने nsDay सिधै 1 हो —
+    // तिथि नम्बर जे भए पनि (क्षय प्रतिपदाको अवस्था ह्यान्डल गर्न)।
     if (adDate.year == monthStart.year &&
         adDate.month == monthStart.month &&
         adDate.day == monthStart.day) {
@@ -207,6 +213,5 @@ class DateConverters {
         info.paksha == Paksha.shukla ? info.tithiInPaksha : info.tithiInPaksha + 15;
 
     return CalendarDate(nsYear, monthCount, nsDay);
-    */
   }
 }
