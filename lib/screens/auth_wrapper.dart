@@ -27,7 +27,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   String _ageResultText = '';
   String _birthdayWishText = '';
-  bool _showBirthdayWish = false;
+  String _turningAgeText = '';
+  bool _showBirthdayWish = false; // आजै जन्मदिन हो कि होइन
+  bool _wishRevealed = false; // आजै जन्मदिन भएमा: false=उमेर पुगेको सन्देश, true=शुभकामना सन्देश (६ सेकेण्डपछि)
   Timer? _birthdayTimer;
   String _selectedCountryCode = '+91';
   bool _isLoading = false;
@@ -206,8 +208,27 @@ class _AuthWrapperState extends State<AuthWrapper> {
     return _getADMonthShort(m);
   }
 
+  // बाँकी अवधि (आज देखि अर्को जन्मदिनसम्म) लाई महिना+दिनमा तोड्ने।
+  ({int months, int days}) _monthsAndDaysUntil(DateTime todayAD, DateTime nextBirthday) {
+    int months = 0;
+    DateTime cursor = todayAD;
+    while (true) {
+      final nextMonthCursor = DateTime(cursor.year, cursor.month + 1, cursor.day);
+      if (!nextMonthCursor.isAfter(nextBirthday)) {
+        cursor = nextMonthCursor;
+        months++;
+      } else {
+        break;
+      }
+    }
+    final days = nextBirthday.difference(cursor).inDays;
+    return (months: months, days: days);
+  }
+
   // अब क्यालेन्डर हेल्परबाट उमेर र जन्मदिनको सहि हिसाब गर्ने
   void _calculateAgeAndBirthday() {
+    _birthdayTimer?.cancel();
+
     final birthAd = CalendarHelper.toAd(
       system: _calendarSystemFromLabel(_selectedCalendar),
       year: _selectedYear,
@@ -220,13 +241,30 @@ class _AuthWrapperState extends State<AuthWrapper> {
     int months = result['months'];
     int days = result['days'];
     int targetAge = result['targetAge'];
-    int remDays = result['remainingDays'];
     bool isBirthdayToday = result['isBirthdayToday'];
 
     String yStr = _fmtNum(years), mStr = _fmtNum(months), dStr = _fmtNum(days);
 
+    // आजैको जन्मदिन नभए, अर्को जन्मदिनसम्म बाँकी अवधि महिना+दिनमा निकाल्ने
+    int remMonths = 0;
+    int remDays = 0;
+    if (!isBirthdayToday) {
+      final now = DateTime.now();
+      final todayAD = DateTime(now.year, now.month, now.day);
+      final birthDT = birthAd.toDateTime();
+      DateTime nextBirthday = DateTime(todayAD.year, birthDT.month, birthDT.day);
+      if (nextBirthday.isBefore(todayAD)) {
+        nextBirthday = DateTime(todayAD.year + 1, birthDT.month, birthDT.day);
+      }
+      final rem = _monthsAndDaysUntil(todayAD, nextBirthday);
+      remMonths = rem.months;
+      remDays = rem.days;
+    }
+
     setState(() {
       _showBirthdayWish = isBirthdayToday;
+      _wishRevealed = false;
+
       _ageResultText = {
         'नेपाली': 'तपाईंको उमेर: $yStr वर्ष, $mStr महिना, र $dStr दिन भयो।',
         'नेपाल भाषा': 'छगु उमेर: $yStr दँ, $mStr महिना, व $dStr न्हिं जूगु दु।',
@@ -235,22 +273,71 @@ class _AuthWrapperState extends State<AuthWrapper> {
       }[_currentLang] ?? 'Age: $yStr years, $mStr months, and $dStr days old.';
 
       String ageNumStr = _getNumberOrWord(targetAge, _currentLang);
-      String dayNumStr = _getNumberOrWord(remDays, _currentLang);
 
-      if (_showBirthdayWish) {
+      if (isBirthdayToday) {
+        // चरण १: "आज तपाईंको Nth जन्मदिन हो!"
+        _turningAgeText = {
+          'नेपाली': 'आज तपाईंको $ageNumStr औँ जन्मदिन हो!',
+          'नेपाल भाषा': 'आज छगु $ageNumStr गःगु बुगुन्हि खः!',
+          'हिन्दी': 'आज आपका $ageNumStr वाँ जन्मदिन है!',
+          'اردو': 'آج آپ کی $ageNumStr ویں سالگرہ ہے!',
+        }[_currentLang] ?? 'Today is your $targetAge${_getEnglishSuffix(targetAge)} birthday!';
+
+        // चरण २ (६ सेकेण्डपछि): शुभकामना सन्देश
         _birthdayWishText = {
           'नेपाली': 'थलो परिवारको तर्फबाट तपाईंलाई $ageNumStr औँ जन्मदिनको हार्दिक मंगलमय शुभकामना! 🎂',
           'नेपाल भाषा': 'थलो परिवारया तर्फबाट छयात $ageNumStr गःगु बुगुन्हिया तःधंगु भिंतुना! 🎂',
           'हिन्दी': 'थलो परिवार की ओर से आपको आपके $ageNumStr वाँ जन्मदिन की हार्दिक शुभकामनाएं! 🎂',
           'اردو': 'تھلو فیملی کی طرف سے آپ کو $ageNumStr ویں سالگرہ کی مبارکباد! 🎂',
         }[_currentLang] ?? 'Warmest wishes from the Thalo family on your $targetAge${_getEnglishSuffix(targetAge)} birthday! 🎂';
+
+        _birthdayTimer = Timer(const Duration(seconds: 6), () {
+          if (mounted) setState(() => _wishRevealed = true);
+        });
       } else {
-        _birthdayWishText = {
-          'नेपाली': 'तपाईंको $targetAge औँ जन्मदिन आउन $dayNumStr ${remDays == 1 ? 'दिन बाँकी छ' : 'दिन बाँकी छन्'}।',
-          'नेपाल भाषा': 'छगु $targetAge गःगु बुगुन्हि वयेत $dayNumStr न्हिं ल्यं दु।',
-          'हिन्दी': 'आपका $targetAge वाँ जन्मदिन आने में $dayNumStr ${remDays == 1 ? 'दिन बाकी है' : 'दिन बाकी हैं'}।',
-          'اردو': 'آپ کی $targetAge ویں سالگرہ میں $dayNumStr دن باقی ہیں۔',
-        }[_currentLang] ?? '$dayNumStr ${remDays == 1 ? 'day' : 'days'} remaining for your $targetAge${_getEnglishSuffix(targetAge)} birthday.';
+        if (remMonths == 0 && remDays == 1) {
+          // ठ्याक्कै १ दिन बाँकी — विशेष वाक्य
+          _birthdayWishText = {
+            'नेपाली': 'भोलि तपाईंको $ageNumStr औँ जन्मदिन आउँदैछ।',
+            'नेपाल भाषा': 'न्हापांगु न्हिं छगु $ageNumStr गःगु बुगुन्हि वइ।',
+            'हिन्दी': 'कल आपका $ageNumStr वाँ जन्मदिन आ रहा है।',
+            'اردو': 'کل آپ کی $ageNumStr ویں سالگرہ آ رہی ہے۔',
+          }[_currentLang] ?? 'Tomorrow is your $targetAge${_getEnglishSuffix(targetAge)} birthday!';
+        } else {
+          String monthsStr = _getNumberOrWord(remMonths, _currentLang);
+          String daysStr = _getNumberOrWord(remDays, _currentLang);
+
+          String remainingPart;
+          if (remMonths > 0 && remDays > 0) {
+            remainingPart = {
+              'नेपाली': '$monthsStr महिना $daysStr दिन',
+              'नेपाल भाषा': '$monthsStr ला $daysStr न्हिं',
+              'हिन्दी': '$monthsStr महीने $daysStr दिन',
+              'اردو': '$monthsStr مہینے $daysStr دن',
+            }[_currentLang] ?? '$remMonths months $remDays days';
+          } else if (remMonths > 0) {
+            remainingPart = {
+              'नेपाली': '$monthsStr महिना',
+              'नेपाल भाषा': '$monthsStr ला',
+              'हिन्दी': '$monthsStr महीने',
+              'اردو': '$monthsStr مہینے',
+            }[_currentLang] ?? '$remMonths months';
+          } else {
+            remainingPart = {
+              'नेपाली': '$daysStr दिन',
+              'नेपाल भाषा': '$daysStr न्हिं',
+              'हिन्दी': '$daysStr दिन',
+              'اردو': '$daysStr دن',
+            }[_currentLang] ?? '$remDays days';
+          }
+
+          _birthdayWishText = {
+            'नेपाली': 'तपाईंको $ageNumStr औँ जन्मदिन आउन $remainingPart बाँकी छन्।',
+            'नेपाल भाषा': 'छगु $ageNumStr गःगु बुगुन्हि वयेत $remainingPart ल्यं दु।',
+            'हिन्दी': 'आपका $ageNumStr वाँ जन्मदिन आने में $remainingPart बाकी हैं।',
+            'اردو': 'آپ کی $ageNumStr ویں سالگرہ میں $remainingPart باقی ہیں۔',
+          }[_currentLang] ?? '$remainingPart remaining for your $targetAge${_getEnglishSuffix(targetAge)} birthday.';
+        }
       }
     });
   }
@@ -429,6 +516,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
         'हिन्दी': 'बराबर',
         'اردو': 'برابر',
       }[_currentLang] ?? 'Equivalent';
+
+      final String displayBirthdayText = (_showBirthdayWish && !_wishRevealed) ? _turningAgeText : _birthdayWishText;
+
       return Scaffold(
         appBar: AppBar(backgroundColor: Colors.blue, title: Text(_getText('registerAppBar'), style: const TextStyle(color: Colors.white)), leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => setState(() => _currentIndex = 0))),
         body: SafeArea(
@@ -464,7 +554,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 const SizedBox(height: 4),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 500),
-                  child: Text(_birthdayWishText.isEmpty ? '365 days remaining for your birthday.' : _birthdayWishText, key: ValueKey<String>(_birthdayWishText), style: TextStyle(fontSize: 13, color: _showBirthdayWish ? Colors.purple[700] : Colors.green[700], fontWeight: FontWeight.bold, height: 1.3)),
+                  child: Text(displayBirthdayText.isEmpty ? '365 days remaining for your birthday.' : displayBirthdayText, key: ValueKey<String>(displayBirthdayText), style: TextStyle(fontSize: 13, color: _showBirthdayWish ? Colors.purple[700] : Colors.green[700], fontWeight: FontWeight.bold, height: 1.3)),
                 ),
                 const SizedBox(height: 24),
                 SizedBox(width: double.infinity, height: 48, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green), onPressed: () => setState(() => _currentIndex = 11), child: Text(_getText('nextButton'), style: const TextStyle(color: Colors.white)))),
