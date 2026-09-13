@@ -21,15 +21,16 @@ class _AuthWrapperState extends State<AuthWrapper> {
   final String _selectedDate = 'आज';
   String? _selectedGender;
   bool _acceptTerms = false;
-  
+
   String _selectedCalendar = 'वि.सं.';
   late int _selectedYear, _selectedMonth, _selectedDay;
 
   String _ageResultText = '';
   String _birthdayWishText = '';
   String _turningAgeText = '';
-  bool _showBirthdayWish = false; // आजै जन्मदिन हो कि होइन
-  bool _wishRevealed = false; // आजै जन्मदिन भएमा: false=उमेर पुगेको सन्देश, true=शुभकामना सन्देश (६ सेकेण्डपछि)
+  bool _showBirthdayWish = false;
+  bool _wishRevealed = false;
+  bool _hasPickedDate = false; // प्रयोगकर्ताले Date Picker मा गएर मिति साँच्चै छानेको हो कि होइन
   Timer? _birthdayTimer;
   String _selectedCountryCode = '+91';
   bool _isLoading = false;
@@ -61,7 +62,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
     super.dispose();
   }
 
-  // पुरानो स्ट्रिङ लेबल ('वि.सं.', 'ने.सं.', 'هجری', 'AD') लाई नयाँ CalendarSystem enum मा बदल्ने
   CalendarSystem _calendarSystemFromLabel(String label) {
     switch (label) {
       case 'वि.सं.':
@@ -75,8 +75,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
     }
   }
 
-  // आजको वास्तविक AD मितिलाई तोकिएको क्यालेन्डर लेबलमा बदल्ने (वास्तविक कन्भर्जन प्रयोग गरेर)
-  // त्रुटि आएमा समात्ने र स्क्रिनमा (स्क्रोल गर्न मिल्ने SnackBar मा) देखाउने
   ({int year, int month, int day}) _todayIn(String calendarLabel) {
     final now = DateTime.now();
     try {
@@ -111,10 +109,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
     }
   }
 
-  // आजको वास्तविक मिति र क्यालेन्डर सेट गर्ने
   void _setCurrentDateForLanguage(String lang) {
     setState(() {
       _currentLang = lang;
+      _hasPickedDate = false;
       if (lang == 'नेपाली') {
         _selectedCalendar = 'वि.सं.';
       } else if (lang == 'नेपाल भाषा') {
@@ -132,8 +130,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
     });
   }
 
-  // "AD आधारमा" / native-बराबर लाइनको लागि डेटा।
-  // English/हिन्दी मा null फर्काउँछ — त्यहाँ यो लाइन नै देखाउनु पर्दैन।
   Map<String, String>? _getConversionLine() {
     final altCalendar = {
       'नेपाली': 'वि.सं.',
@@ -143,7 +139,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
     if (altCalendar == null) return null;
 
     if (_selectedCalendar == 'AD') {
-      // प्रयोगकर्ताले AD मा जन्ममिति राखेको छ -> सम्बन्धित भाषाको native क्यालेन्डरमा बराबर देखाउने
       final system = _calendarSystemFromLabel(altCalendar);
       final nativeDate = CalendarHelper.fromAd(
         system,
@@ -154,7 +149,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
             '${_fmtNum(nativeDate.year, calendar: altCalendar)} ${_getMonthName(nativeDate.month, calendar: altCalendar)} ${_fmtNum(nativeDate.day, calendar: altCalendar)} ($altCalendar)',
       };
     } else {
-      // प्रयोगकर्ताले native क्यालेन्डरमा जन्ममिति राखेको छ -> AD मा बराबर देखाउने
       final adDate = CalendarHelper.toAd(
         system: _calendarSystemFromLabel(_selectedCalendar),
         year: _selectedYear,
@@ -208,7 +202,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
     return _getADMonthShort(m);
   }
 
-  // बाँकी अवधि (आज देखि अर्को जन्मदिनसम्म) लाई महिना+दिनमा तोड्ने।
   ({int months, int days}) _monthsAndDaysUntil(DateTime todayAD, DateTime nextBirthday) {
     int months = 0;
     DateTime cursor = todayAD;
@@ -225,7 +218,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
     return (months: months, days: days);
   }
 
-  // अब क्यालेन्डर हेल्परबाट उमेर र जन्मदिनको सहि हिसाब गर्ने
   void _calculateAgeAndBirthday() {
     _birthdayTimer?.cancel();
 
@@ -245,7 +237,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
     String yStr = _fmtNum(years), mStr = _fmtNum(months), dStr = _fmtNum(days);
 
-    // आजैको जन्मदिन नभए, अर्को जन्मदिनसम्म बाँकी अवधि महिना+दिनमा निकाल्ने
     int remMonths = 0;
     int remDays = 0;
     if (!isBirthdayToday) {
@@ -275,7 +266,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
       String ageNumStr = _getNumberOrWord(targetAge, _currentLang);
 
       if (isBirthdayToday) {
-        // चरण १: "आज तपाईंको Nth जन्मदिन हो!"
         _turningAgeText = {
           'नेपाली': 'आज तपाईंको $ageNumStr औँ जन्मदिन हो!',
           'नेपाल भाषा': 'आज छगु $ageNumStr गःगु बुगुन्हि खः!',
@@ -283,7 +273,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
           'اردو': 'آج آپ کی $ageNumStr ویں سالگرہ ہے!',
         }[_currentLang] ?? 'Today is your $targetAge${_getEnglishSuffix(targetAge)} birthday!';
 
-        // चरण २ (६ सेकेण्डपछि): शुभकामना सन्देश
         _birthdayWishText = {
           'नेपाली': 'थलो परिवारको तर्फबाट तपाईंलाई $ageNumStr औँ जन्मदिनको हार्दिक मंगलमय शुभकामना! 🎂',
           'नेपाल भाषा': 'थलो परिवारया तर्फबाट छयात $ageNumStr गःगु बुगुन्हिया तःधंगु भिंतुना! 🎂',
@@ -296,7 +285,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
         });
       } else {
         if (remMonths == 0 && remDays == 1) {
-          // ठ्याक्कै १ दिन बाँकी — विशेष वाक्य
           _birthdayWishText = {
             'नेपाली': 'भोलि तपाईंको $ageNumStr औँ जन्मदिन आउँदैछ।',
             'नेपाल भाषा': 'न्हापांगु न्हिं छगु $ageNumStr गःगु बुगुन्हि वइ।',
@@ -461,7 +449,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
             ),
             actions: [
               TextButton(onPressed: () => Navigator.pop(context), child: Text(_getText('cancelButton'))),
-              ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.blue), onPressed: () { setState(() => _calculateAgeAndBirthday()); Navigator.pop(context); }, child: Text(_getText('okButton'), style: const TextStyle(color: Colors.white))),
+              ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.blue), onPressed: () { setState(() { _hasPickedDate = true; _calculateAgeAndBirthday(); }); Navigator.pop(context); }, child: Text(_getText('okButton'), style: const TextStyle(color: Colors.white))),
             ],
           );
         },
@@ -517,7 +505,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
         'اردو': 'برابر',
       }[_currentLang] ?? 'Equivalent';
 
-      final String displayBirthdayText = (_showBirthdayWish && !_wishRevealed) ? _turningAgeText : _birthdayWishText;
+      final String displayBirthdayText = _hasPickedDate
+          ? ((_showBirthdayWish && !_wishRevealed) ? _turningAgeText : _birthdayWishText)
+          : '';
+      final String displayAgeText = _hasPickedDate ? _ageResultText : '';
 
       return Scaffold(
         appBar: AppBar(backgroundColor: Colors.blue, title: Text(_getText('registerAppBar'), style: const TextStyle(color: Colors.white)), leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => setState(() => _currentIndex = 0))),
@@ -550,11 +541,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   ),
                 ],
                 const SizedBox(height: 8),
-                Text(_ageResultText.isEmpty ? 'Age: 0 years, 0 months, and 0 days old.' : _ageResultText, style: const TextStyle(fontSize: 13, color: Colors.blueGrey, fontWeight: FontWeight.w500)),
+                Text(displayAgeText, style: const TextStyle(fontSize: 13, color: Colors.blueGrey, fontWeight: FontWeight.w500)),
                 const SizedBox(height: 4),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 500),
-                  child: Text(displayBirthdayText.isEmpty ? '365 days remaining for your birthday.' : displayBirthdayText, key: ValueKey<String>(displayBirthdayText), style: TextStyle(fontSize: 13, color: _showBirthdayWish ? Colors.purple[700] : Colors.green[700], fontWeight: FontWeight.bold, height: 1.3)),
+                  child: Text(displayBirthdayText, key: ValueKey<String>(displayBirthdayText), style: TextStyle(fontSize: 13, color: _showBirthdayWish ? Colors.purple[700] : Colors.green[700], fontWeight: FontWeight.bold, height: 1.3)),
                 ),
                 const SizedBox(height: 24),
                 SizedBox(width: double.infinity, height: 48, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green), onPressed: () => setState(() => _currentIndex = 11), child: Text(_getText('nextButton'), style: const TextStyle(color: Colors.white)))),
