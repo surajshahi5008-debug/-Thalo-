@@ -332,6 +332,35 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   String _getEnglishSuffix(int age) => (age % 100 >= 11 && age % 100 <= 13) ? 'th' : {1: 'st', 2: 'nd', 3: 'rd'}[age % 10] ?? 'th';
 
+  void _showAccountHelpDialog() {
+    final message = {
+      'नेपाली': 'थलो एपमा तपाईंको खाता पहिले नै दर्ता भइसकेको भए कृपया लगइन गर्नुहोस्।\n\nछैन भने कृपया "साइन अप" बटनमा क्लिक गरेर नयाँ खाता बनाउनुहोस्।\n\nधन्यवाद!',
+      'नेपाल भाषा': 'थलो एपय छगु खाता न्ह्यागु दर्ता जूगु दु धाःसा कृपया लगइन याना दिसँ।\n\nमदु धाःसा कृपया "साइन अप" बटनय क्लिक याना नयाँ खाता तयादिसँ।\n\nधन्यवाद!',
+      'हिन्दी': 'यदि थलो ऐप में आपका खाता पहले से पंजीकृत है, तो कृपया लॉगिन करें।\n\nयदि नहीं है, तो कृपया "साइन अप" बटन पर क्लिक करके नया खाता बनाएं।\n\nधन्यवाद!',
+      'اردو': 'اگر تھلو ایپ میں آپ کا اکاؤنٹ پہلے سے رجسٹرڈ ہے تو براہ کرم لاگ ان کریں۔\n\nاگر نہیں ہے تو براہ کرم "سائن اپ" بٹن پر کلک کر کے نیا اکاؤنٹ بنائیں۔\n\nشکریہ!',
+    }[_currentLang] ?? 'If you already have a Thalo account, please log in.\n\nIf not, tap "Sign Up" to create a new account.\n\nThank you!';
+
+    final closeLabel = {
+      'नेपाली': 'ठीक छ',
+      'नेपाल भाषा': 'ठीक दु',
+      'हिन्दी': 'ठीक है',
+      'اردو': 'ٹھیک ہے',
+    }[_currentLang] ?? 'OK';
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        content: Text(message, style: const TextStyle(fontSize: 14, height: 1.4)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(closeLabel),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _handleLogin() {
     String input = _loginEmailCtrl.text.trim(), pass = _loginPassCtrl.text;
     setState(() {
@@ -544,7 +573,29 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 const SizedBox(height: 24),
                 SizedBox(width: double.infinity, height: 48, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green), onPressed: () => setState(() => _currentIndex = 11), child: Text(_getText('nextButton'), style: const TextStyle(color: Colors.white)))),
                 const SizedBox(height: 16),
-                Center(child: TextButton(onPressed: () => setState(() => _currentIndex = 0), child: Text(_getText('hasAccount')))),
+                Center(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextButton(onPressed: () => setState(() => _currentIndex = 0), child: Text(_getText('hasAccount'))),
+                      const SizedBox(width: 6),
+                      GestureDetector(
+                        onTap: _showAccountHelpDialog,
+                        child: Container(
+                          width: 26,
+                          height: 26,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: const LinearGradient(colors: [Colors.deepPurple, Colors.purpleAccent]),
+                            boxShadow: [BoxShadow(color: Colors.deepPurple.withOpacity(0.4), blurRadius: 5, offset: const Offset(0, 2))],
+                          ),
+                          alignment: Alignment.center,
+                          child: const Text('?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 20), Center(child: _buildLangSelector()),
               ],
             ),
