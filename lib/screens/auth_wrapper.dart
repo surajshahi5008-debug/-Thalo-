@@ -332,6 +332,14 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   String _getEnglishSuffix(int age) => (age % 100 >= 11 && age % 100 <= 13) ? 'th' : {1: 'st', 2: 'nd', 3: 'rd'}[age % 10] ?? 'th';
 
+  // "पहिले नै खाता छ? यहाँ लगइन गर्नुहोस्" जस्तो वाक्यलाई वाक्यभित्रैको "?"
+  // चिन्हको ठाउँमा नै टुक्र्याउने — त्यही "?" लाई अलग क्लिक हुने बटन बनाउनको लागि।
+  ({String before, String after}) _splitAtQuestionMark(String text) {
+    final idx = text.indexOf(RegExp(r'[?؟]'));
+    if (idx == -1) return (before: text, after: '');
+    return (before: text.substring(0, idx), after: text.substring(idx + 1).trim());
+  }
+
   void _showAccountHelpDialog() {
     final message = {
       'नेपाली': 'थलो एपमा तपाईंको खाता पहिले नै दर्ता भइसकेको भए कृपया लगइन गर्नुहोस्।\n\nछैन भने कृपया "साइन अप" बटनमा क्लिक गरेर नयाँ खाता बनाउनुहोस्।\n\nधन्यवाद!',
@@ -574,26 +582,39 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 SizedBox(width: double.infinity, height: 48, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green), onPressed: () => setState(() => _currentIndex = 11), child: Text(_getText('nextButton'), style: const TextStyle(color: Colors.white)))),
                 const SizedBox(height: 16),
                 Center(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextButton(onPressed: () => setState(() => _currentIndex = 0), child: Text(_getText('hasAccount'))),
-                      const SizedBox(width: 6),
-                      GestureDetector(
-                        onTap: _showAccountHelpDialog,
-                        child: Container(
-                          width: 26,
-                          height: 26,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: const LinearGradient(colors: [Colors.deepPurple, Colors.purpleAccent]),
-                            boxShadow: [BoxShadow(color: Colors.deepPurple.withOpacity(0.4), blurRadius: 5, offset: const Offset(0, 2))],
+                  child: Builder(
+                    builder: (context) {
+                      final parts = _splitAtQuestionMark(_getText('hasAccount'));
+                      return Wrap(
+                        alignment: WrapAlignment.center,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          TextButton(
+                            onPressed: () => setState(() => _currentIndex = 0),
+                            child: Text(parts.before),
                           ),
-                          alignment: Alignment.center,
-                          child: const Text('?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                        ),
-                      ),
-                    ],
+                          GestureDetector(
+                            onTap: _showAccountHelpDialog,
+                            child: Container(
+                              width: 26,
+                              height: 26,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: const LinearGradient(colors: [Colors.deepPurple, Colors.purpleAccent]),
+                                boxShadow: [BoxShadow(color: Colors.deepPurple.withOpacity(0.4), blurRadius: 5, offset: const Offset(0, 2))],
+                              ),
+                              alignment: Alignment.center,
+                              child: const Text('?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                            ),
+                          ),
+                          if (parts.after.isNotEmpty)
+                            TextButton(
+                              onPressed: () => setState(() => _currentIndex = 0),
+                              child: Text(parts.after),
+                            ),
+                        ],
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(height: 20), Center(child: _buildLangSelector()),
