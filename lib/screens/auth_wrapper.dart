@@ -498,12 +498,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
     if (_currentIndex == 1) {
       final conversionLine = _getConversionLine();
-      final adBaseLabel = {
-        'नेपाली': 'बराबर',
-        'नेपाल भाषा': 'बराबर',
-        'हिन्दी': 'बराबर',
-        'اردو': 'برابر',
-      }[_currentLang] ?? 'Equivalent';
 
       final String displayBirthdayText = _hasPickedDate
           ? ((_showBirthdayWish && !_wishRevealed) ? _turningAgeText : _birthdayWishText)
@@ -535,7 +529,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   Padding(
                     padding: const EdgeInsets.only(left: 4),
                     child: Text(
-                      '$adBaseLabel: ${conversionLine['formatted']}',
+                      '${conversionLine['formatted']}',
                       style: TextStyle(fontSize: 11, color: Colors.indigo[600], fontStyle: FontStyle.italic, fontWeight: FontWeight.w600),
                     ),
                   ),
