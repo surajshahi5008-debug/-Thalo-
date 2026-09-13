@@ -530,7 +530,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   onTap: _showDatePicker,
                   child: AbsorbPointer(child: TextField(decoration: InputDecoration(labelText: '${_getText('dob')} : ${_fmtNum(_selectedYear)} ${_getMonthName(_selectedMonth)} ${_fmtNum(_selectedDay)} ($_selectedCalendar)', border: const OutlineInputBorder(), suffixIcon: const Icon(Icons.calendar_today)))),
                 ),
-                if (conversionLine != null) ...[
+                if (_hasPickedDate && conversionLine != null) ...[
                   const SizedBox(height: 4),
                   Padding(
                     padding: const EdgeInsets.only(left: 4),
