@@ -369,6 +369,36 @@ class _AuthWrapperState extends State<AuthWrapper> {
     );
   }
 
+  // login screen को "खाता छैन?" प्रश्नको लागि — माथिको भन्दा ठ्याक्कै उल्टो सन्देश
+  void _showNoAccountHelpDialog() {
+    final message = {
+      'नेपाली': 'थलो एपमा तपाईंको खाता अझै नभएको हो भने कृपया "साइन अप" बटनमा क्लिक गरेर नयाँ खाता बनाउनुहोस्।\n\nपहिले नै खाता भइसकेको भए कृपया लगइन गर्नुहोस्।\n\nधन्यवाद!',
+      'नेपाल भाषा': 'थलो एपय छगु खाता मदु धाःसा कृपया "साइन अप" बटनय क्लिक याना नयाँ खाता तयादिसँ।\n\nन्ह्यागु खाता दर्ता जूगु दु धाःसा कृपया लगइन याना दिसँ।\n\nधन्यवाद!',
+      'हिन्दी': 'यदि थलो ऐप में आपका खाता अभी तक नहीं है, तो कृपया "साइन अप" बटन पर क्लिक करके नया खाता बनाएं।\n\nयदि पहले से खाता है, तो कृपया लॉगिन करें।\n\nधन्यवाद!',
+      'اردو': 'اگر تھلو ایپ میں آپ کا اکاؤنٹ ابھی تک نہیں ہے تو براہ کرم "سائن اپ" بٹن پر کلک کر کے نیا اکاؤنٹ بنائیں۔\n\nاگر پہلے سے اکاؤنٹ ہے تو براہ کرم لاگ ان کریں۔\n\nشکریہ!',
+    }[_currentLang] ?? 'If you don\'t have a Thalo account yet, tap "Sign Up" to create a new one.\n\nIf you already have an account, please log in.\n\nThank you!';
+
+    final closeLabel = {
+      'नेपाली': 'ठीक छ',
+      'नेपाल भाषा': 'ठीक दु',
+      'हिन्दी': 'ठीक है',
+      'اردو': 'ٹھیک ہے',
+    }[_currentLang] ?? 'OK';
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        content: Text(message, style: const TextStyle(fontSize: 14, height: 1.4)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(closeLabel),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _handleLogin() {
     String input = _loginEmailCtrl.text.trim(), pass = _loginPassCtrl.text;
     setState(() {
@@ -524,7 +554,42 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 const SizedBox(height: 16),
                 SizedBox(width: double.infinity, height: 48, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.purple[50], elevation: 0), onPressed: _handleLogin, child: Text(_getText('loginButton'), style: const TextStyle(color: Colors.purple)))),
                 const SizedBox(height: 16),
-                TextButton(onPressed: () => setState(() { _loginErrorMessage = ''; _currentIndex = 1; }), child: Text(_getText('noAccount'))),
+                Center(
+                  child: Builder(
+                    builder: (context) {
+                      final parts = _splitAtQuestionMark(_getText('noAccount'));
+                      return Wrap(
+                        alignment: WrapAlignment.center,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          TextButton(
+                            onPressed: () => setState(() { _loginErrorMessage = ''; _currentIndex = 1; }),
+                            child: Text(parts.before),
+                          ),
+                          GestureDetector(
+                            onTap: _showNoAccountHelpDialog,
+                            child: Container(
+                              width: 26,
+                              height: 26,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: const LinearGradient(colors: [Colors.deepPurple, Colors.purpleAccent]),
+                                boxShadow: [BoxShadow(color: Colors.deepPurple.withOpacity(0.4), blurRadius: 5, offset: const Offset(0, 2))],
+                              ),
+                              alignment: Alignment.center,
+                              child: const Text('?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                            ),
+                          ),
+                          if (parts.after.isNotEmpty)
+                            TextButton(
+                              onPressed: () => setState(() { _loginErrorMessage = ''; _currentIndex = 1; }),
+                              child: Text(parts.after),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
                 const SizedBox(height: 30), _buildLangSelector(),
               ],
             ),
@@ -707,4 +772,3 @@ class _AuthWrapperState extends State<AuthWrapper> {
     );
   }
 }
-
