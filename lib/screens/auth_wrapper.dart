@@ -340,6 +340,36 @@ class _AuthWrapperState extends State<AuthWrapper> {
     return (before: text.substring(0, idx), after: text.substring(idx + 1).trim());
   }
 
+  // Popup लाई slow-motion (scale + fade) मा देखाउने साझा helper।
+  void _showAnimatedInfoDialog(String message, String closeLabel) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: '',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 550),
+      pageBuilder: (context, anim1, anim2) => const SizedBox.shrink(),
+      transitionBuilder: (context, anim1, anim2, child) {
+        final curved = CurvedAnimation(parent: anim1, curve: Curves.easeOutBack);
+        return Opacity(
+          opacity: anim1.value.clamp(0.0, 1.0),
+          child: Transform.scale(
+            scale: curved.value,
+            child: AlertDialog(
+              content: Text(message, style: const TextStyle(fontSize: 14, height: 1.4)),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(closeLabel),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _showAccountHelpDialog() {
     final message = {
       'नेपाली': 'थलो एपमा तपाईंको खाता पहिले नै दर्ता भइसकेको भए कृपया लगइन गर्नुहोस्।\n\nछैन भने कृपया "साइन अप" बटनमा क्लिक गरेर नयाँ खाता बनाउनुहोस्।\n\nधन्यवाद!',
@@ -355,18 +385,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
       'اردو': 'ٹھیک ہے',
     }[_currentLang] ?? 'OK';
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        content: Text(message, style: const TextStyle(fontSize: 14, height: 1.4)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(closeLabel),
-          ),
-        ],
-      ),
-    );
+    _showAnimatedInfoDialog(message, closeLabel);
   }
 
   // login screen को "खाता छैन?" प्रश्नको लागि — माथिको भन्दा ठ्याक्कै उल्टो सन्देश
@@ -385,18 +404,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
       'اردو': 'ٹھیک ہے',
     }[_currentLang] ?? 'OK';
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        content: Text(message, style: const TextStyle(fontSize: 14, height: 1.4)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(closeLabel),
-          ),
-        ],
-      ),
-    );
+    _showAnimatedInfoDialog(message, closeLabel);
   }
 
   void _handleLogin() {
@@ -566,20 +574,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                             onPressed: () => setState(() { _loginErrorMessage = ''; _currentIndex = 1; }),
                             child: Text(parts.before),
                           ),
-                          GestureDetector(
-                            onTap: _showNoAccountHelpDialog,
-                            child: Container(
-                              width: 26,
-                              height: 26,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: const LinearGradient(colors: [Colors.deepPurple, Colors.purpleAccent]),
-                                boxShadow: [BoxShadow(color: Colors.deepPurple.withOpacity(0.4), blurRadius: 5, offset: const Offset(0, 2))],
-                              ),
-                              alignment: Alignment.center,
-                              child: const Text('?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                            ),
-                          ),
+                          _PulsingQuestionBadge(onTap: _showNoAccountHelpDialog),
                           if (parts.after.isNotEmpty)
                             TextButton(
                               onPressed: () => setState(() { _loginErrorMessage = ''; _currentIndex = 1; }),
@@ -658,20 +653,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                             onPressed: () => setState(() => _currentIndex = 0),
                             child: Text(parts.before),
                           ),
-                          GestureDetector(
-                            onTap: _showAccountHelpDialog,
-                            child: Container(
-                              width: 26,
-                              height: 26,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: const LinearGradient(colors: [Colors.deepPurple, Colors.purpleAccent]),
-                                boxShadow: [BoxShadow(color: Colors.deepPurple.withOpacity(0.4), blurRadius: 5, offset: const Offset(0, 2))],
-                              ),
-                              alignment: Alignment.center,
-                              child: const Text('?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                            ),
-                          ),
+                          _PulsingQuestionBadge(onTap: _showAccountHelpDialog),
                           if (parts.after.isNotEmpty)
                             TextButton(
                               onPressed: () => setState(() => _currentIndex = 0),
@@ -769,6 +751,55 @@ class _AuthWrapperState extends State<AuthWrapper> {
       selectedDate: _selectedDate,
       onCalendarTap: () {},
       onLogout: () => setState(() { _loginPassCtrl.clear(); _loginErrorMessage = ''; _currentIndex = 0; }),
+    );
+  }
+}
+
+/// सानो, निरन्तर हल्का "pulse" (धड्किने जस्तो) एनिमेसन भएको "?" बटन —
+/// प्रयोगकर्ताको ध्यान आकर्षित गरी क्लिक गर्न उत्साहित बनाउनको लागि।
+class _PulsingQuestionBadge extends StatefulWidget {
+  final VoidCallback onTap;
+  const _PulsingQuestionBadge({required this.onTap});
+
+  @override
+  State<_PulsingQuestionBadge> createState() => _PulsingQuestionBadgeState();
+}
+
+class _PulsingQuestionBadgeState extends State<_PulsingQuestionBadge> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 850))..repeat(reverse: true);
+    _scale = Tween<double>(begin: 0.85, end: 1.2).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: ScaleTransition(
+        scale: _scale,
+        child: Container(
+          width: 20,
+          height: 20,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: const LinearGradient(colors: [Colors.deepPurple, Colors.purpleAccent]),
+            boxShadow: [BoxShadow(color: Colors.deepPurple.withOpacity(0.5), blurRadius: 6, spreadRadius: 1)],
+          ),
+          alignment: Alignment.center,
+          child: const Text('?', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+        ),
+      ),
     );
   }
 }
