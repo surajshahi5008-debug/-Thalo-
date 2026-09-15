@@ -165,7 +165,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
     if (k == 'dob') {
       return {'नेपाली': 'जन्म मिति', 'नेपाल भाषा': 'बुगु मिति', 'हिन्दी': 'जन्म तिथि', 'اردو': 'تاریخ پیدائش'}[_currentLang] ?? 'Date of Birth';
     }
-    return AppLocalizations.localizedValues[_currentLang]?[k] ?? AppLocalizations.localizedValues['नेपाली']![k]!;
+    return AppLocalizations.localizedValues[_currentLang]?[k] ?? AppLocalizations.localizedValues['नेपाली']?[k] ?? k;
   }
 
   String _fmtNum(int n, {String? calendar}) {
@@ -202,20 +202,33 @@ class _AuthWrapperState extends State<AuthWrapper> {
     return _getADMonthShort(m);
   }
 
+  // कुनै महिनाको अन्तिम दिन (महिना-ओभरफ्लो जोगाउन)। जस्तै फेब्रुअरीमा ३१ गते
+  // हुँदैन भने Dart ले स्वतः अर्को महिनामा उफ्रिदिन्छ — यसले त्यो रोक्छ।
+  DateTime _safeDateInYear(int year, int month, int day) {
+    final lastDay = DateTime(year, month + 1, 0).day;
+    return DateTime(year, month, day > lastDay ? lastDay : day);
+  }
+
+  DateTime _addOneMonthClamped(DateTime d) {
+    final totalMonth = d.month; // 1..12, अर्को महिना = totalMonth+1
+    final year = d.year + (totalMonth == 12 ? 1 : 0);
+    final month = totalMonth == 12 ? 1 : totalMonth + 1;
+    return _safeDateInYear(year, month, d.day);
+  }
+
   ({int months, int days}) _monthsAndDaysUntil(DateTime todayAD, DateTime nextBirthday) {
     int months = 0;
     DateTime cursor = todayAD;
     while (true) {
-      final nextMonthCursor = DateTime(cursor.year, cursor.month + 1, cursor.day);
-      if (!nextMonthCursor.isAfter(nextBirthday)) {
-        cursor = nextMonthCursor;
+      final next = _addOneMonthClamped(cursor);
+      if (!next.isAfter(nextBirthday)) {
+        cursor = next;
         months++;
       } else {
         break;
       }
     }
-    final days = nextBirthday.difference(cursor).inDays;
-    return (months: months, days: days);
+    return (months: months, days: nextBirthday.difference(cursor).inDays);
   }
 
   void _calculateAgeAndBirthday() {
@@ -243,9 +256,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
       final now = DateTime.now();
       final todayAD = DateTime(now.year, now.month, now.day);
       final birthDT = birthAd.toDateTime();
-      DateTime nextBirthday = DateTime(todayAD.year, birthDT.month, birthDT.day);
+      DateTime nextBirthday = _safeDateInYear(todayAD.year, birthDT.month, birthDT.day);
       if (nextBirthday.isBefore(todayAD)) {
-        nextBirthday = DateTime(todayAD.year + 1, birthDT.month, birthDT.day);
+        nextBirthday = _safeDateInYear(todayAD.year + 1, birthDT.month, birthDT.day);
       }
       final rem = _monthsAndDaysUntil(todayAD, nextBirthday);
       remMonths = rem.months;
@@ -370,6 +383,13 @@ class _AuthWrapperState extends State<AuthWrapper> {
     );
   }
 
+  String get _dialogCloseLabel => {
+    'नेपाली': 'ठीक छ',
+    'नेपाल भाषा': 'ठीक दु',
+    'हिन्दी': 'ठीक है',
+    'اردو': 'ٹھیک ہے',
+  }[_currentLang] ?? 'OK';
+
   void _showAccountHelpDialog() {
     final message = {
       'नेपाली': 'थलो एपमा तपाईंको खाता पहिले नै दर्ता भइसकेको भए कृपया लगइन गर्नुहोस्।\n\nछैन भने कृपया "साइन अप" बटनमा क्लिक गरेर नयाँ खाता बनाउनुहोस्।\n\nधन्यवाद!',
@@ -378,14 +398,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
       'اردو': 'اگر تھلو ایپ میں آپ کا اکاؤنٹ پہلے سے رجسٹرڈ ہے تو براہ کرم لاگ ان کریں۔\n\nاگر نہیں ہے تو براہ کرم "سائن اپ" بٹن پر کلک کر کے نیا اکاؤنٹ بنائیں۔\n\nشکریہ!',
     }[_currentLang] ?? 'If you already have a Thalo account, please log in.\n\nIf not, tap "Sign Up" to create a new account.\n\nThank you!';
 
-    final closeLabel = {
-      'नेपाली': 'ठीक छ',
-      'नेपाल भाषा': 'ठीक दु',
-      'हिन्दी': 'ठीक है',
-      'اردو': 'ٹھیک ہے',
-    }[_currentLang] ?? 'OK';
-
-    _showAnimatedInfoDialog(message, closeLabel);
+    _showAnimatedInfoDialog(message, _dialogCloseLabel);
   }
 
   // login screen को "खाता छैन?" प्रश्नको लागि — माथिको भन्दा ठ्याक्कै उल्टो सन्देश
@@ -397,14 +410,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
       'اردو': 'اگر تھلو ایپ میں آپ کا اکاؤنٹ ابھی تک نہیں ہے تو براہ کرم "سائن اپ" بٹن پر کلک کر کے نیا اکاؤنٹ بنائیں۔\n\nاگر پہلے سے اکاؤنٹ ہے تو براہ کرم لاگ ان کریں۔\n\nشکریہ!',
     }[_currentLang] ?? 'If you don\'t have a Thalo account yet, tap "Sign Up" to create a new one.\n\nIf you already have an account, please log in.\n\nThank you!';
 
-    final closeLabel = {
-      'नेपाली': 'ठीक छ',
-      'नेपाल भाषा': 'ठीक दु',
-      'हिन्दी': 'ठीक है',
-      'اردو': 'ٹھیک ہے',
-    }[_currentLang] ?? 'OK';
-
-    _showAnimatedInfoDialog(message, closeLabel);
+    _showAnimatedInfoDialog(message, _dialogCloseLabel);
   }
 
   void _handleLogin() {
@@ -470,6 +476,23 @@ class _AuthWrapperState extends State<AuthWrapper> {
       }).toList(),
     ),
   );
+
+  // वाक्यभित्रैको "?" लाई क्लिक हुने badge बनाई, बाँकी भाग नेभिगेसन बटन बनाउने साझा widget —
+  // login र register दुवै स्क्रिनमा उस्तै ढाँचा दोहोरिनुको सट्टा यहीँ एकपटक परिभाषित।
+  Widget _buildQuestionRow(String textKey, VoidCallback onNavigate, VoidCallback onBadgeTap) {
+    final parts = _splitAtQuestionMark(_getText(textKey));
+    return Center(
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          TextButton(onPressed: onNavigate, child: Text(parts.before)),
+          _PulsingQuestionBadge(onTap: onBadgeTap),
+          if (parts.after.isNotEmpty) TextButton(onPressed: onNavigate, child: Text(parts.after)),
+        ],
+      ),
+    );
+  }
 
   void _showDatePicker() {
     showDialog(
@@ -562,28 +585,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 const SizedBox(height: 16),
                 SizedBox(width: double.infinity, height: 48, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.purple[50], elevation: 0), onPressed: _handleLogin, child: Text(_getText('loginButton'), style: const TextStyle(color: Colors.purple)))),
                 const SizedBox(height: 16),
-                Center(
-                  child: Builder(
-                    builder: (context) {
-                      final parts = _splitAtQuestionMark(_getText('noAccount'));
-                      return Wrap(
-                        alignment: WrapAlignment.center,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          TextButton(
-                            onPressed: () => setState(() { _loginErrorMessage = ''; _currentIndex = 1; }),
-                            child: Text(parts.before),
-                          ),
-                          _PulsingQuestionBadge(onTap: _showNoAccountHelpDialog),
-                          if (parts.after.isNotEmpty)
-                            TextButton(
-                              onPressed: () => setState(() { _loginErrorMessage = ''; _currentIndex = 1; }),
-                              child: Text(parts.after),
-                            ),
-                        ],
-                      );
-                    },
-                  ),
+                _buildQuestionRow(
+                  'noAccount',
+                  () => setState(() { _loginErrorMessage = ''; _currentIndex = 1; }),
+                  _showNoAccountHelpDialog,
                 ),
                 const SizedBox(height: 30), _buildLangSelector(),
               ],
@@ -641,28 +646,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 const SizedBox(height: 24),
                 SizedBox(width: double.infinity, height: 48, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green), onPressed: () => setState(() => _currentIndex = 11), child: Text(_getText('nextButton'), style: const TextStyle(color: Colors.white)))),
                 const SizedBox(height: 16),
-                Center(
-                  child: Builder(
-                    builder: (context) {
-                      final parts = _splitAtQuestionMark(_getText('hasAccount'));
-                      return Wrap(
-                        alignment: WrapAlignment.center,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          TextButton(
-                            onPressed: () => setState(() => _currentIndex = 0),
-                            child: Text(parts.before),
-                          ),
-                          _PulsingQuestionBadge(onTap: _showAccountHelpDialog),
-                          if (parts.after.isNotEmpty)
-                            TextButton(
-                              onPressed: () => setState(() => _currentIndex = 0),
-                              child: Text(parts.after),
-                            ),
-                        ],
-                      );
-                    },
-                  ),
+                _buildQuestionRow(
+                  'hasAccount',
+                  () => setState(() => _currentIndex = 0),
+                  _showAccountHelpDialog,
                 ),
                 const SizedBox(height: 20), Center(child: _buildLangSelector()),
               ],
