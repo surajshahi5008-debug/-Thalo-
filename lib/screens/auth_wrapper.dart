@@ -34,7 +34,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
   Timer? _birthdayTimer;
   String _selectedCountryCode = '+91';
   bool _isLoading = false;
-  String _verificationId = '', _loginErrorMessage = '';
+  String _verificationId = '', _loginErrorMessage = '', _otpErrorMessage = '';
   bool _obscureLoginPassword = true, _obscureRegPassword = true;
 
   final AuthService _authService = AuthService();
@@ -452,20 +452,18 @@ class _AuthWrapperState extends State<AuthWrapper> {
     setState(() => _isLoading = true);
     try {
       await _authService.signInWithPhoneCredential(_verificationId, smsCode);
+      _otpErrorMessage = '';
       _completeReg();
-    } catch (e, st) {
-      setState(() => _isLoading = false);
-      debugPrint('DEBUG _verifyOtp error: $e\n$st');
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('DEBUG त्रुटि'),
-            content: SingleChildScrollView(child: Text('$e\n\nverificationId: $_verificationId\nsmsCode length: ${smsCode.length}')),
-            actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('ठीक छ'))],
-          ),
-        );
-      }
+    } catch (_) {
+      setState(() {
+        _isLoading = false;
+        _otpErrorMessage = {
+          'नेपाली': 'गलत OTP हो। कृपया फेरि प्रयास गर्नुहोस्।',
+          'नेपाल भाषा': 'गलत OTP खः। कृपया न्हापां वयेकाः याना दिसँ।',
+          'हिन्दी': 'गलत OTP है। कृपया फिर से प्रयास करें।',
+          'اردو': 'غلط OTP ہے۔ براہ کرم دوبارہ کوشش کریں۔',
+        }[_currentLang] ?? 'Incorrect OTP. Please try again.';
+      });
     }
   }
 
@@ -735,6 +733,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
                   Text(_getText('verificationSubtitle'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, color: Colors.blueGrey)),
                   const SizedBox(height: 20),
                   TextField(controller: _phoneOtpCtrl, keyboardType: TextInputType.number, maxLength: 6, decoration: InputDecoration(labelText: _getText('smsOtpLabel'), border: const OutlineInputBorder(), counterText: ''), style: const TextStyle(fontSize: 18, letterSpacing: 6)),
+                  if (_otpErrorMessage.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Text(_otpErrorMessage, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                  ],
                 ]),
                 const SizedBox(height: 24),
                 SizedBox(width: double.infinity, height: 48, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: isEmail ? Colors.blue : Colors.green), onPressed: () => isEmail ? _completeReg() : _verifyOtp(_phoneOtpCtrl.text.trim()), child: Text(isEmail ? 'मैले इमेल रुजु गरें (Home जाने)' : _getText('verifyButton'), style: const TextStyle(color: Colors.white)))),
