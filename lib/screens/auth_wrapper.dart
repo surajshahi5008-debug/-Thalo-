@@ -450,8 +450,23 @@ class _AuthWrapperState extends State<AuthWrapper> {
   Future<void> _verifyOtp(String smsCode) async {
     if (smsCode.length != 6) return;
     setState(() => _isLoading = true);
-    try { await _authService.signInWithPhoneCredential(_verificationId, smsCode); _completeReg(); }
-    catch (_) { setState(() => _isLoading = false); }
+    try {
+      await _authService.signInWithPhoneCredential(_verificationId, smsCode);
+      _completeReg();
+    } catch (e, st) {
+      setState(() => _isLoading = false);
+      debugPrint('DEBUG _verifyOtp error: $e\n$st');
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('DEBUG त्रुटि'),
+            content: SingleChildScrollView(child: Text('$e\n\nverificationId: $_verificationId\nsmsCode length: ${smsCode.length}')),
+            actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('ठीक छ'))],
+          ),
+        );
+      }
+    }
   }
 
   void _completeReg() {
